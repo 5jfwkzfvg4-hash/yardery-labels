@@ -291,11 +291,20 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     </select>
     <p class="hint">Check the sticker on the back of the printer. If text prints tiny and stuck in a corner, pick 300.</p>
   </div>
-  <div class="row">
-    <div><label class="flab" for="nudgeX">Shift right (dots)</label><input class="txt" id="nudgeX" type="number" inputmode="numeric" value="0" min="-40" max="40"></div>
-    <div><label class="flab" for="nudgeY">Shift down (dots)</label><input class="txt" id="nudgeY" type="number" inputmode="numeric" value="0" min="-40" max="40"></div>
+  <div>
+    <label class="flab" for="media">Label roll</label>
+    <select class="txt" id="media">
+      <option value="Y">Separate labels with a gap between them (most rolls)</option>
+      <option value="M">Labels with a black mark on the back</option>
+      <option value="">Use the printer's own setting</option>
+    </select>
+    <p class="hint">Tells the printer to line up on each label. If every label prints a little lower than the last, this is the fix.</p>
   </div>
-  <p class="hint">Use these only if the print sits off-center. 8 dots ≈ 1 mm at 203 dpi.</p>
+  <div class="row">
+    <div><label class="flab" for="nudgeX">Move right (dots)</label><input class="txt" id="nudgeX" type="number" inputmode="numeric" value="0" min="-40" max="40"></div>
+    <div><label class="flab" for="nudgeY">Move down (dots)</label><input class="txt" id="nudgeY" type="number" inputmode="numeric" value="0" min="-40" max="40"></div>
+  </div>
+  <p class="hint">Use these only if every label is off by the same amount. Use a minus number to go the other way: <b>-8</b> in "Move down" moves the print up. 8 dots ≈ 1 mm at 203 dpi.</p>
   <div class="row">
     <button class="btn pri" id="testBtn" type="button">Print test label</button>
     <button class="btn" id="calBtn" type="button">Calibrate</button>
@@ -400,6 +409,7 @@ $("initials").value = store.get("initials", "");
 $("dpi").value = String(store.get("dpi", 203));
 $("nudgeX").value = store.get("nx", 0);
 $("nudgeY").value = store.get("ny", 0);
+$("media").value = store.get("media", "Y");
 
 /* ---------- list ---------- */
 function catOf(id){ return CATS.find(c => c.id === id); }
@@ -572,15 +582,19 @@ $("qPlus").onclick = () => { state.qty = Math.min(50, state.qty + 1); renderPane
 setInterval(() => { if(!state.madeTouched){ $("made").value = toLocalInput(new Date()); renderPanel(); } }, 30000);
 
 /* ---------- ZPL ---------- */
+function clampNudge(v){ const x = parseInt(v, 10); return isFinite(x) ? Math.max(-40, Math.min(40, x)) : 0; }
 function buildZPL(L, qty){
   const dpi = +$("dpi").value || 203;
   const s = dpi / 203;
   const n = v => Math.round(v * s);
-  const W = n(203), nx = parseInt($("nudgeX").value,10) || 0, ny = parseInt($("nudgeY").value,10) || 0;
+  const W = n(203), nx = clampNudge($("nudgeX").value), ny = clampNudge($("nudgeY").value);
+  const media = $("media").value;
   const name = zplSafe(L.name).toUpperCase().slice(0, 40);
   const nameSize = name.length > 22 ? 22 : 26;
   return [
-    "^XA","^CI28","^PW" + W,"^LL" + W,"^LH" + nx + "," + ny,
+    // ^MN: sync to each label's gap/mark so prints don't creep down label after label.
+    // ^LS/^LT: whole-label nudge (both accept negatives; ^LH does not). ^LS shifts left, so negate.
+    "^XA","^CI28"].concat(media ? ["^MN" + media] : []).concat(["^PW" + W,"^LL" + W,"^LH0,0","^LS" + (-nx),"^LT" + ny,
     "^FO" + n(6) + "," + n(8) + "^A0N," + n(nameSize) + "," + n(nameSize - 2) + "^FB" + n(191) + ",2,0,C^FD" + name + "^FS",
     "^FO" + n(6) + "," + n(62) + "^GB" + n(191) + "," + n(3) + "," + n(3) + "^FS",
     "^FO" + n(6) + "," + n(70) + "^A0N," + n(19) + "," + n(17) + "^FDMADE " + md(L.made) + " " + hm(L.made) + "^FS",
@@ -589,7 +603,7 @@ function buildZPL(L, qty){
     "^FO" + n(6) + "," + n(120) + "^A0N," + n(52) + "," + n(46) + "^FB" + n(191) + ",1,0,C^FD" + md(L.ub) + "^FS",
     "^FO" + n(6) + "," + n(178) + "^A0N," + n(19) + "," + n(17) + "^FDBY " + zplSafe(L.ini) + "^FS",
     "^PQ" + qty + ",0,1,N","^XZ"
-  ].join("\n") + "\n";
+  ]).join("\n") + "\n";
 }
 
 /* ---------- Bluetooth ---------- */
@@ -724,6 +738,7 @@ $("printBtn").onclick = async () => {
 $("dpi").onchange = e => store.set("dpi", +e.target.value);
 $("nudgeX").onchange = e => store.set("nx", parseInt(e.target.value,10) || 0);
 $("nudgeY").onchange = e => store.set("ny", parseInt(e.target.value,10) || 0);
+$("media").onchange = e => store.set("media", e.target.value);
 $("testBtn").onclick = async () => {
   say($("setStatus"), "Sending test label…");
   try{
@@ -734,7 +749,9 @@ $("testBtn").onclick = async () => {
 };
 $("calBtn").onclick = async () => {
   say($("setStatus"), "Calibrating. The printer will feed a few labels…");
-  try{ await send("~JC\n", $("setStatus")); say($("setStatus"), "Calibration sent.", "ok"); }
+  const media = $("media").value;
+  // set the media type first so the printer measures gaps (or marks) while calibrating
+  try{ await send((media ? "^XA^MN" + media + "^XZ\n" : "") + "~JC\n", $("setStatus")); say($("setStatus"), "Calibration sent. Then tap Print test label.", "ok"); }
   catch(e){ say($("setStatus"), e.message, "err"); }
 };
 $("discBtn").onclick = () => {
