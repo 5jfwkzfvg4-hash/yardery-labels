@@ -83,6 +83,14 @@ button{cursor:pointer}
 .item .s{font-size:.8rem;color:var(--ink-soft)}
 .item .s.need{color:var(--warn)}
 .empty{padding:24px;border:1.5px dashed var(--line);border-radius:12px;color:var(--ink-soft);text-align:center}
+.toprow{display:flex;gap:10px;align-items:stretch}
+.toprow .search{flex:1;min-width:0}
+.custombtn{flex:none;border:1.5px solid var(--green);background:var(--card);color:var(--green);border-radius:14px;padding:0 16px;font-weight:700;min-height:52px;white-space:nowrap}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--paper);min-height:46px;font-weight:700;padding:0 10px}
+.seg button[aria-pressed="true"]{background:var(--green);color:var(--green-ink)}
+.label.textonly hr,.label.textonly .lm,.label.textonly .lbar,.label.textonly .ld,.label.textonly .li{display:none}
+.label.textonly .ln{flex:1;height:auto;font-size:20px;line-height:1.1;overflow-wrap:anywhere}
 .custom{margin-top:14px;width:100%;border:1.5px dashed var(--line);background:transparent;border-radius:12px;padding:14px;font-weight:600;color:var(--ink-soft);min-height:52px}
 
 /* panel */
@@ -124,7 +132,7 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .prevwrap{display:flex;gap:16px;align-items:center}
 .label{width:150px;aspect-ratio:1/1;max-width:100%;flex:none;background:var(--label-paper);color:var(--label-ink);border-radius:8px;
   box-shadow:0 1px 0 rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
-.label .ln{font-weight:700;font-size:13px;line-height:1.1;text-align:center;height:29px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.label .ln{text-transform:uppercase;font-weight:700;font-size:13px;line-height:1.1;text-align:center;height:29px;overflow:hidden;display:flex;align-items:center;justify-content:center}
 .label hr{border:0;border-top:1.5px solid #111;margin:3px 0}
 .label .lm{font-size:9.5px;font-weight:700}
 .label .lbar{background:#111;color:#fff;font-size:10px;font-weight:700;text-align:center;margin-top:3px;padding:1px 0;letter-spacing:.04em}
@@ -163,6 +171,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   .close{display:block}
   .list{grid-template-columns:minmax(0,1fr)}
   .brand span{display:none}
+  .custombtn{padding:0 12px}
 }
 @media (max-width:480px){
   .top{flex-wrap:nowrap;gap:8px}
@@ -186,13 +195,16 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
 
 <main class="wrap">
   <section aria-label="Prep items">
-    <div class="search">
-      <input id="q" type="search" placeholder="Find a prep item…" autocomplete="off" aria-label="Find a prep item">
-      <button id="qClear" type="button" hidden>Clear</button>
+    <div class="toprow">
+      <div class="search">
+        <input id="q" type="search" placeholder="Find a prep item…" autocomplete="off" aria-label="Find a prep item">
+        <button id="qClear" type="button" hidden>Clear</button>
+      </div>
+      <button class="custombtn" id="customTop" type="button">+ Custom label</button>
     </div>
     <div class="pills" id="pills" role="toolbar" aria-label="Categories"></div>
     <div id="lists"></div>
-    <button class="custom" id="customBtn" type="button">+ Item not listed? Type a name</button>
+    <button class="custom" id="customBtn" type="button">+ Item not listed? Make a custom label</button>
   </section>
 
   <aside class="panel" id="panel" aria-label="Label">
@@ -201,8 +213,13 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
       <button class="close" id="pClose" type="button" aria-label="Close">×</button>
     </div>
     <div id="customWrap" hidden>
-      <label class="flab" for="customName">Item name</label>
-      <input class="txt" id="customName" maxlength="40" placeholder="e.g. Diced Celery">
+      <span class="flab">Label type</span>
+      <div class="seg" role="group" aria-label="Label type">
+        <button type="button" id="cDated" aria-pressed="true">Food with dates</button>
+        <button type="button" id="cText" aria-pressed="false">Text only</button>
+      </div>
+      <label class="flab" for="customName" id="customNameLab" style="margin-top:12px">Item name</label>
+      <input class="txt" id="customName" maxlength="40" placeholder="e.g. Diced Celery" autocomplete="off">
     </div>
 
     <div class="prevwrap">
@@ -214,10 +231,10 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
         <div class="ld" id="lD">—</div>
         <div class="li" id="lI">BY —</div>
       </div>
-      <div class="prevtxt"><b>1" × 1" label</b>Use or toss by the end of the use-by day.</div>
+      <div class="prevtxt"><b>1" × 1" label</b><span id="prevNote">Use or toss by the end of the use-by day.</span></div>
     </div>
 
-    <div>
+    <div id="datesBlock">
       <span class="flab">Shelf life (prep day counts as day 1)</span>
       <div class="days" id="days" role="group" aria-label="Shelf life in days"></div>
       <div id="moreWrap" hidden style="margin-top:8px">
@@ -227,7 +244,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
       <div id="shelfNote" style="margin-top:8px"></div>
     </div>
 
-    <div class="row">
+    <div class="row" id="whoWrap">
       <div style="flex:0 1 120px">
         <label class="flab" for="initials">Your initials</label>
         <input class="txt" id="initials" maxlength="4" autocapitalize="characters" autocomplete="off" placeholder="e.g. JE">
@@ -400,7 +417,7 @@ function zplSafe(s){ return String(s).replace(/[\^~\\]/g," ").replace(/\s+/g," "
 /* ---------- state ---------- */
 const state = {
   cat: "all", q: "", item: null, custom: false,
-  days: null, qty: 1, madeTouched: false, moreOpen: false,
+  days: null, qty: 1, madeTouched: false, moreOpen: false, textOnly: false,
   recent: store.get("recent", []),
   device: null, ch: null, mode: null, connecting: false
 };
@@ -470,7 +487,7 @@ function renderList(){
   });
   if(!shown){
     const e = document.createElement("p"); e.className = "empty";
-    e.textContent = 'No prep item matches "' + q + '". Check the spelling, or tap "Item not listed" below.';
+    e.textContent = 'No prep item matches "' + q + '". Check the spelling, or tap "+ Custom label" at the top.';
     box.appendChild(e);
   }
   $("qClear").hidden = !q;
@@ -481,7 +498,7 @@ $("qClear").onclick = () => { $("q").value = ""; state.q = ""; renderList(); $("
 /* ---------- panel ---------- */
 function openPanel(){ $("panel").classList.add("open"); }
 function pick(it){
-  state.item = it; state.custom = false;
+  state.item = it; state.custom = false; state.textOnly = false;
   state.days = SHELF_DAYS[it.id] || null;
   state.moreOpen = false; $("moreDays").value = state.days > 7 ? state.days : "";
   $("customWrap").hidden = true;
@@ -489,14 +506,27 @@ function pick(it){
   state.qty = 1;
   renderList(); renderPanel(); openPanel();
 }
-$("customBtn").onclick = () => {
-  state.item = null; state.custom = true; state.days = null; state.qty = 1;
+function openCustom(){
+  state.item = null; state.custom = true; state.days = null; state.qty = 1; setTextOnly(false);
   state.moreOpen = false; $("moreDays").value = "";
   $("customWrap").hidden = false; $("customName").value = "";
   if(!state.madeTouched) $("made").value = toLocalInput(new Date());
   renderList(); renderPanel(); openPanel();
   setTimeout(() => $("customName").focus(), 250);
-};
+}
+$("customBtn").onclick = openCustom;
+$("customTop").onclick = openCustom;
+function setTextOnly(on){
+  state.textOnly = on;
+  $("cDated").setAttribute("aria-pressed", String(!on));
+  $("cText").setAttribute("aria-pressed", String(on));
+  $("customNameLab").textContent = on ? "Label text" : "Item name";
+  $("customName").maxLength = on ? 60 : 40;
+  $("customName").placeholder = on ? "e.g. GLUTEN FREE or DO NOT USE" : "e.g. Diced Celery";
+  renderPanel();
+}
+$("cDated").onclick = () => setTextOnly(false);
+$("cText").onclick = () => setTextOnly(true);
 $("customName").addEventListener("input", renderPanel);
 $("pClose").onclick = () => $("panel").classList.remove("open");
 
@@ -527,6 +557,7 @@ function currentName(){
 }
 function labelData(){
   const name = currentName();
+  if(state.custom && state.textOnly) return {name, textOnly: true};
   const made = fromLocalInput($("made").value) || new Date();
   const ini = $("initials").value.trim().toUpperCase();
   const ub = state.days ? useBy(made, state.days) : null;
@@ -534,7 +565,20 @@ function labelData(){
 }
 function renderPanel(){
   const hasItem = state.custom || !!state.item;
-  $("pName").textContent = state.custom ? "Item not listed" : (state.item ? state.item.name : "Pick an item to label");
+  $("pName").textContent = state.custom ? "Custom label" : (state.item ? state.item.name : "Pick an item to label");
+  const T = state.custom && state.textOnly;
+  $("datesBlock").hidden = T; $("whoWrap").hidden = T;
+  $("lbl").classList.toggle("textonly", T);
+  $("prevNote").textContent = T ? "Text only. No dates." : "Use or toss by the end of the use-by day.";
+  $("qty").textContent = state.qty;
+  if(T){
+    const t = currentName();
+    $("lN").textContent = t || "—";
+    const pb = $("printBtn");
+    pb.disabled = !t;
+    pb.textContent = t ? "Print " + state.qty + (state.qty === 1 ? " label" : " labels") : "To print: type the label text";
+    return;
+  }
   renderDays();
   const L = labelData();
   $("lN").textContent = L.name || "—";
@@ -589,12 +633,25 @@ function buildZPL(L, qty){
   const n = v => Math.round(v * s);
   const W = n(203), nx = clampNudge($("nudgeX").value), ny = clampNudge($("nudgeY").value);
   const media = $("media").value;
+  const head = ["^XA","^CI28"].concat(media ? ["^MN" + media] : []).concat(["^PW" + W,"^LL" + W,"^LH0,0","^LS" + (-nx),"^LT" + ny]);
+  if(L.textOnly){
+    // text-only label: big centered text, sized to fit, roughly centered top to bottom
+    const t = zplSafe(L.name).toUpperCase().slice(0, 60);
+    const size = t.length <= 8 ? 44 : t.length <= 16 ? 36 : t.length <= 30 ? 28 : 22;
+    const maxLines = Math.floor(187 / (size + 4));
+    const lines = Math.min(maxLines, Math.max(1, Math.ceil(t.length * size * 0.58 / 191)));
+    const y = Math.max(6, Math.round((203 - lines * (size + 4)) / 2));
+    return head.concat([
+      "^FO" + n(6) + "," + n(y) + "^A0N," + n(size) + "," + n(size - 2) + "^FB" + n(191) + "," + maxLines + "," + n(4) + ",C^FD" + t + "^FS",
+      "^PQ" + qty + ",0,1,N","^XZ"
+    ]).join("\n") + "\n";
+  }
   const name = zplSafe(L.name).toUpperCase().slice(0, 40);
   const nameSize = name.length > 22 ? 22 : 26;
   return [
     // ^MN: sync to each label's gap/mark so prints don't creep down label after label.
     // ^LS/^LT: whole-label nudge (both accept negatives; ^LH does not). ^LS shifts left, so negate.
-    "^XA","^CI28"].concat(media ? ["^MN" + media] : []).concat(["^PW" + W,"^LL" + W,"^LH0,0","^LS" + (-nx),"^LT" + ny,
+    ].concat(head).concat([
     "^FO" + n(6) + "," + n(8) + "^A0N," + n(nameSize) + "," + n(nameSize - 2) + "^FB" + n(191) + ",2,0,C^FD" + name + "^FS",
     "^FO" + n(6) + "," + n(62) + "^GB" + n(191) + "," + n(3) + "," + n(3) + "^FS",
     "^FO" + n(6) + "," + n(70) + "^A0N," + n(19) + "," + n(17) + "^FDMADE " + md(L.made) + " " + hm(L.made) + "^FS",
@@ -720,7 +777,7 @@ $("pchip").onclick = async () => {
 };
 $("printBtn").onclick = async () => {
   const L = labelData();
-  if(!L.name || !L.ub || !L.ini) return;
+  if(!L.name || (!L.textOnly && (!L.ub || !L.ini))) return;
   const pb = $("printBtn"); pb.disabled = true; say($("status"), "Sending to printer…");
   try{
     await send(buildZPL(L, state.qty), $("status"));
