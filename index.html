@@ -86,7 +86,17 @@ button{cursor:pointer}
 .custom{margin-top:14px;width:100%;border:1.5px dashed var(--line);background:transparent;border-radius:12px;padding:14px;font-weight:600;color:var(--ink-soft);min-height:52px}
 
 /* panel */
-.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:16px}
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:16px;
+  max-height:calc(100vh - env(safe-area-inset-top,0px) - 92px);max-height:calc(100dvh - env(safe-area-inset-top,0px) - 92px);overflow:auto;overscroll-behavior:contain}
+/* print button stays pinned to the bottom of the panel, even when the panel scrolls */
+.actions{position:sticky;bottom:-18px;margin:auto -18px -18px;padding:10px 18px 12px;background:var(--card);border-top:1.5px solid var(--line);z-index:1;display:flex;flex-direction:column;gap:6px}
+/* shorter screens (tablets held sideways): tighten the panel so more fits */
+@media (min-width:761px) and (max-height:900px){
+  .panel{gap:12px;padding:14px}
+  .actions{bottom:-14px;margin:auto -14px -14px;padding:8px 14px 10px}
+  .label{width:120px}
+  .label .ln{font-size:11px;height:24px} .label .ld{font-size:22px} .label .lm,.label .li{font-size:8px} .label .lbar{font-size:8.5px}
+}
 .panel .ph{display:flex;align-items:flex-start;gap:10px}
 .panel .ph h3{font:700 1.25rem/1.2 var(--display);margin:0;flex:1;text-wrap:balance;min-width:0;overflow-wrap:anywhere}
 .close{display:none;border:0;background:var(--paper-soft);border-radius:10px;min-width:44px;min-height:44px;font-size:1.3rem;line-height:1}
@@ -104,9 +114,11 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .note.bad{background:var(--bad-bg);color:var(--bad)}
 .note.good{background:var(--good-bg);color:var(--good)}
 .note a{color:inherit;font-weight:700}
-.qty{display:flex;align-items:center;gap:0;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;width:max-content}
-.qty button{border:0;background:var(--paper-soft);min-width:52px;min-height:50px;font-size:1.4rem;font-weight:700}
-.qty output{min-width:56px;text-align:center;font:700 1.3rem var(--display);font-variant-numeric:tabular-nums}
+.actrow{display:flex;gap:10px;align-items:stretch}
+.actrow .print{flex:1;min-width:0}
+.qty{display:flex;flex:none;align-items:center;gap:0;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;width:max-content}
+.qty button{border:0;background:var(--paper-soft);min-width:46px;min-height:58px;font-size:1.4rem;font-weight:700}
+.qty output{min-width:44px;text-align:center;font:700 1.3rem var(--display);font-variant-numeric:tabular-nums}
 
 /* label preview: true proportions of a 1in x 1in label */
 .prevwrap{display:flex;gap:16px;align-items:center}
@@ -145,8 +157,9 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   .wrap{grid-template-columns:minmax(0,1fr);padding-bottom:120px}
   .panel{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:30;border-radius:20px 20px 0 0;max-height:88%;overflow:auto;
     padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
-    padding-block:16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 30px rgba(0,0,0,.25);transform:translateY(110%);transition:transform .22s ease}
+    padding-block:16px 0;box-shadow:0 -10px 30px rgba(0,0,0,.25);transform:translateY(110%);transition:transform .22s ease}
   .panel.open{transform:none}
+  .actions{bottom:0;margin:auto calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px))}
   .close{display:block}
   .list{grid-template-columns:minmax(0,1fr)}
   .brand span{display:none}
@@ -225,13 +238,13 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
       </div>
     </div>
 
-    <div>
-      <span class="flab">How many labels</span>
-      <div class="qty"><button type="button" id="qMinus" aria-label="One fewer">−</button><output id="qty">1</output><button type="button" id="qPlus" aria-label="One more">+</button></div>
+    <div class="actions">
+      <div class="actrow">
+        <div class="qty" role="group" aria-label="How many labels"><button type="button" id="qMinus" aria-label="One fewer">−</button><output id="qty" aria-label="Labels to print">1</output><button type="button" id="qPlus" aria-label="One more">+</button></div>
+        <button class="print" id="printBtn" type="button" disabled>Print label</button>
+      </div>
+      <div class="status" id="status" role="status"></div>
     </div>
-
-    <button class="print" id="printBtn" type="button" disabled>Print label</button>
-    <div class="status" id="status" role="status"></div>
   </aside>
 
   <p class="foot">Confidential — not for distribution · Date marking follows
