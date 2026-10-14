@@ -332,9 +332,29 @@ const ITEMS = [
   ["berry-compote","Berry Compote","desserts"],["brownies","Brownies","desserts"]
 ].map(([id,name,cat]) => ({id,name,cat}));
 
-/* ===== SHELF LIFE IN DAYS (manager-approved; prep day = day 1) =====
-   Fill in as the KM confirms each item. Items left out ask the cook to pick. */
-const SHELF_DAYS = {};
+/* ===== SHELF LIFE IN DAYS (KM-approved 2026-10-14; prep day = day 1) =====
+   Keep in sync with the Recipe Book. Items left out ask the cook to pick. */
+const SHELF_DAYS = {
+  "ahi-tuna-prep":2, "smoked-ribs":4, "blackened-fish":2, "crab-cakes":2, "fried-cod":2, "hamburger-patty":2,
+  "marinated-chicken-tenders":2, "wing-marinade":2, "pulled-pork":4, "smoked-chicken-breast":4,
+  "bama-white-bbq":5, "buffalo-sauce":7, "cilantro-lime-sauce":5, "fire-marinara":5, "fire-sauce":5,
+  "honey-mustard":5, "hot-honey-chicken-marinade":2, "hot-honey-sauce":14, "pickling-liquid":14,
+  "ranch-dressing":7, "tartar-sauce":5, "yardery-sauce":5, "bbq-dry-rub":30, "burger-seasoning":10,
+  "hot-honey-dredge":30, "poultry-seasoning":30, "seafood-breading":30, "black-beans":4, "cavatappi":3,
+  "street-corn-batch":4, "balsamic-strawberries":5, "breaded-avocado":1, "candied-bacon":4, "candied-pecans":7,
+  "caramelized-onions":3, "chopped-green-onions":2, "chopped-romaine":3, "coleslaw":3, "crispy-wontons":7,
+  "croutons":7, "diced-cucumbers":3, "diced-tomatoes":3, "roasted-cherry-tomatoes":4, "fried-onions":1,
+  "mango-pico":3, "mango-pineapple-salsa":3, "pickled-jalapenos":14, "pickles":14, "pico-de-gallo":3,
+  "roasted-peppers":4, "sliced-cucumbers":3, "sliced-jalapenos":3, "sliced-red-onions":3, "tortilla-chips":3,
+  "berry-compote":7, "brownies":4
+};
+/* extra instructions shown when the item is picked */
+const ITEM_NOTES = {
+  "fried-onions": "Recipe Book: toss 4 hours after frying, even though the label shows end of day.",
+  "mango-pico": "Set Made to the Pico de Gallo's prep date. Mango Pico expires with the pico it came from.",
+  "hot-honey-dredge": "Throw out any dredge that touched raw chicken at close.",
+  "seafood-breading": "Throw out any breading that touched raw seafood at close."
+};
 
 /* ===== Zebra Bluetooth LE (Zebra Parser Service) ===== */
 const ZSVC = "38eb4a80-c570-11e3-9507-0002a5d5c51b";
@@ -358,7 +378,7 @@ function zplSafe(s){ return String(s).replace(/[\^~\\]/g," ").replace(/\s+/g," "
 /* ---------- state ---------- */
 const state = {
   cat: "all", q: "", item: null, custom: false,
-  days: null, qty: 1, madeTouched: false,
+  days: null, qty: 1, madeTouched: false, moreOpen: false,
   recent: store.get("recent", []),
   device: null, ch: null, mode: null, connecting: false
 };
@@ -440,6 +460,7 @@ function openPanel(){ $("panel").classList.add("open"); }
 function pick(it){
   state.item = it; state.custom = false;
   state.days = SHELF_DAYS[it.id] || null;
+  state.moreOpen = false; $("moreDays").value = state.days > 7 ? state.days : "";
   $("customWrap").hidden = true;
   if(!state.madeTouched) $("made").value = toLocalInput(new Date());
   state.qty = 1;
@@ -447,6 +468,7 @@ function pick(it){
 }
 $("customBtn").onclick = () => {
   state.item = null; state.custom = true; state.days = null; state.qty = 1;
+  state.moreOpen = false; $("moreDays").value = "";
   $("customWrap").hidden = false; $("customName").value = "";
   if(!state.madeTouched) $("made").value = toLocalInput(new Date());
   renderList(); renderPanel(); openPanel();
@@ -461,15 +483,15 @@ function renderDays(){
     const b = document.createElement("button"); b.type = "button"; b.textContent = d;
     b.setAttribute("aria-label", d + (d === 1 ? " day" : " days"));
     b.setAttribute("aria-pressed", String(state.days === d));
-    b.onclick = () => { state.days = d; $("moreWrap").hidden = true; renderPanel(); };
+    b.onclick = () => { state.days = d; state.moreOpen = false; renderPanel(); };
     box.appendChild(b);
   }
   const m = document.createElement("button"); m.type = "button"; m.className = "more"; m.textContent = "More";
   const isMore = state.days && state.days > 7;
   m.setAttribute("aria-pressed", String(!!isMore));
-  m.onclick = () => { $("moreWrap").hidden = false; $("moreDays").focus(); };
+  m.onclick = () => { state.moreOpen = true; $("moreWrap").hidden = false; $("moreDays").focus(); };
   box.appendChild(m);
-  if(isMore){ $("moreWrap").hidden = false; }
+  $("moreWrap").hidden = !(isMore || state.moreOpen);
 }
 $("moreDays").addEventListener("input", e => {
   const v = parseInt(e.target.value, 10);
@@ -501,14 +523,20 @@ function renderPanel(){
 
   const note = $("shelfNote"); note.className = ""; note.textContent = "";
   if(hasItem){
-    const onFile = state.item && SHELF_DAYS[state.item.id];
-    if(state.days && state.days > 7){
+    const approved = state.item && SHELF_DAYS[state.item.id];
+    const extra = state.item && ITEM_NOTES[state.item.id];
+    if(approved && state.days === approved){
+      note.className = "note good"; note.textContent = "Manager-approved: " + approved + (approved === 1 ? " day." : " days.") + (extra ? " " + extra : "");
+    } else if(approved && state.days){
+      note.className = "note warn";
+      note.textContent = "Changed from the approved " + approved + (approved === 1 ? " day" : " days") + ". Only do this if your manager told you to.";
+    } else if(state.days && state.days > 7){
       note.className = "note warn";
       note.textContent = "Over 7 days is only for dry or shelf-stable items like rubs and breading. Anything kept cold that's ready to eat can't go past 7 days.";
-    } else if(!onFile && !state.days){
+    } else if(!approved && !state.days){
       note.className = "note warn";
       note.textContent = "No shelf life on file for this item yet. Ask the kitchen manager before picking. Cold-held, ready-to-eat food can't go past 7 days.";
-    } else if(!onFile && state.days){
+    } else if(!approved && state.days){
       note.className = "note warn";
       note.textContent = "Picked by you. No manager-approved shelf life on file for this item yet.";
     }

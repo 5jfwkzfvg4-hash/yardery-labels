@@ -13,6 +13,7 @@ Prints 1" x 1" prep labels (item, made date/time, use-by day and date, initials)
 Everything lives in `index.html`. Near the top of the `<script>`:
 - `LOCATION` – store name and printing link (change for a new store/franchise).
 - `ITEMS` – prep items (from the Recipe Book).
-- `SHELF_DAYS` – manager-approved shelf life per item, e.g. `"pico-de-gallo": 3`. Prep day counts as day 1; cold-held ready-to-eat food maxes at 7 days (FL Admin. Code 61C-4.010 / FDA Food Code 3-501.17).
+- `SHELF_DAYS` – KM-approved shelf life per item (approved 2026-10-14), e.g. `"pico-de-gallo":3`. Keep it matching the Recipe Book.
+- `ITEM_NOTES` – extra instruction shown when an item is picked (e.g. Fried Onions 4-hour rule). Prep day counts as day 1; cold-held ready-to-eat food maxes at 7 days (FL Admin. Code 61C-4.010 / FDA Food Code 3-501.17).
 
 Commit to `main` and the link updates in about a minute.
