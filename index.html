@@ -751,6 +751,12 @@ document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeSheets(
 /* ---------- start ---------- */
 $("made").value = toLocalInput(new Date());
 renderPills(); renderList(); renderPanel();
+// opened from the Recipe Book's "Print prep label" button: jump straight to that item
+try{
+  const want = new URLSearchParams(location.search).get("item");
+  const hit = want && ITEMS.find(i => i.id === want);
+  if(hit) pick(hit);
+}catch(e){}
 if(btEnv() !== "ok") setChip("", "Printer help");
 window.__ypl = { buildZPL, useBy, ITEMS };
 })();
