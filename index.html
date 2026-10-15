@@ -91,6 +91,11 @@ button{cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--green);color:var(--green-ink)}
 .label.textonly hr,.label.textonly .lm,.label.textonly .lbar,.label.textonly .ld,.label.textonly .li{display:none}
 .label.textonly .ln{flex:1;height:auto;font-size:20px;line-height:1.1;overflow-wrap:anywhere}
+.batchbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;margin-top:10px;border:0;border-radius:14px;background:var(--green);color:var(--green-ink);padding:12px 16px;min-height:56px;text-align:left}
+.batchbtn b{font:800 1.1rem var(--display)}
+.batchbtn span{font-size:.85rem;opacity:.9}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips span{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:3px 9px;font-size:.8rem;font-weight:600}
 .custom{margin-top:14px;width:100%;border:1.5px dashed var(--line);background:transparent;border-radius:12px;padding:14px;font-weight:600;color:var(--ink-soft);min-height:52px}
 
 /* panel */
@@ -202,6 +207,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
       </div>
       <button class="custombtn" id="customTop" type="button">+ Custom label</button>
     </div>
+    <button class="batchbtn" id="batchBtn" type="button"><b id="batchBtnName">Line Set</b><span id="batchBtnSub">21 labels · 2-day shelf life</span></button>
     <div class="pills" id="pills" role="toolbar" aria-label="Categories"></div>
     <div id="lists"></div>
     <button class="custom" id="customBtn" type="button">+ Item not listed? Make a custom label</button>
@@ -220,6 +226,11 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
       </div>
       <label class="flab" for="customName" id="customNameLab" style="margin-top:12px">Item name</label>
       <input class="txt" id="customName" maxlength="40" placeholder="e.g. Diced Celery" autocomplete="off">
+    </div>
+
+    <div id="batchWrap" hidden>
+      <span class="flab" id="batchCount">21 labels, one for each</span>
+      <div class="chips" id="batchChips"></div>
     </div>
 
     <div class="prevwrap">
@@ -418,6 +429,13 @@ const ITEM_NOTES = {
   "seafood-breading": "Throw out any breading that touched raw seafood at close."
 };
 
+/* ===== ONE-TAP SETS (Clay 2026-10-15): one button prints one label per item, same shelf life ===== */
+const BATCH = { id: "line-set", name: "Line Set", days: 2, items: [
+  "Feta","Parmesan","Red Onions","Coleslaw","Cucumbers","Mango Pico","Pico","Diced Tomatoes","Sliced Tomatoes",
+  "Pickles","American","Beef","Peppers","Sausage","Pepperoni","Jalapeños","Sliced Mozzarella","Pineapple",
+  "Marinara","Shredded Mozzarella","Mix Cheese Blend"
+] };
+
 /* ===== Zebra Bluetooth LE (Zebra Parser Service) ===== */
 const ZSVC = "38eb4a80-c570-11e3-9507-0002a5d5c51b";
 const ZWRITE = "38eb4a82-c570-11e3-9507-0002a5d5c51b";
@@ -442,7 +460,7 @@ function zplSafe(s){ return String(s).replace(/[\^~\\]/g," ").replace(/\s+/g," "
 /* ---------- state ---------- */
 const state = {
   cat: "all", q: "", item: null, custom: false,
-  days: null, qty: 1, madeTouched: false, moreOpen: false, textOnly: false,
+  days: null, qty: 1, madeTouched: false, moreOpen: false, textOnly: false, batch: null,
   recent: store.get("recent", []),
   device: null, ch: null, mode: null, connecting: false
 };
@@ -523,7 +541,7 @@ $("qClear").onclick = () => { $("q").value = ""; state.q = ""; renderList(); $("
 /* ---------- panel ---------- */
 function openPanel(){ $("panel").classList.add("open"); }
 function pick(it){
-  state.item = it; state.custom = false; state.textOnly = false;
+  state.item = it; state.custom = false; state.textOnly = false; state.batch = null;
   state.days = SHELF_DAYS[it.id] || null;
   state.moreOpen = false; $("moreDays").value = state.days > 7 ? state.days : "";
   $("customWrap").hidden = true;
@@ -532,7 +550,7 @@ function pick(it){
   renderList(); renderPanel(); openPanel();
 }
 function openCustom(){
-  state.item = null; state.custom = true; state.days = null; state.qty = 1; setTextOnly(false);
+  state.item = null; state.custom = true; state.days = null; state.qty = 1; state.batch = null; setTextOnly(false);
   state.moreOpen = false; $("moreDays").value = "";
   $("customWrap").hidden = false; $("customName").value = "";
   if(!state.madeTouched) $("made").value = toLocalInput(new Date());
@@ -540,6 +558,18 @@ function openCustom(){
   setTimeout(() => $("customName").focus(), 250);
 }
 $("customBtn").onclick = openCustom;
+function openBatch(){
+  state.item = null; state.custom = false; state.textOnly = false; state.batch = BATCH; state.days = BATCH.days; state.qty = 1;
+  $("customWrap").hidden = true;
+  if(!state.madeTouched) $("made").value = toLocalInput(new Date());
+  renderList(); renderPanel(); openPanel();
+}
+$("batchBtn").onclick = openBatch;
+$("batchBtnName").textContent = BATCH.name;
+$("batchBtnSub").textContent = BATCH.items.length + " labels · " + BATCH.days + "-day shelf life";
+$("batchCount").textContent = BATCH.items.length + " labels, one for each";
+$("batchChips").innerHTML = BATCH.items.map(n => "<span></span>").join("");
+$("batchChips").querySelectorAll("span").forEach((el, i) => el.textContent = BATCH.items[i]);
 $("customTop").onclick = openCustom;
 function setTextOnly(on){
   state.textOnly = on;
@@ -577,6 +607,7 @@ $("moreDays").addEventListener("input", e => {
 });
 
 function currentName(){
+  if(state.batch) return state.batch.items[0];
   if(state.custom) return $("customName").value.trim();
   return state.item ? state.item.name : "";
 }
@@ -589,12 +620,16 @@ function labelData(){
   return {name, made, ini, ub, days: state.days};
 }
 function renderPanel(){
-  const hasItem = state.custom || !!state.item;
+  const hasItem = state.custom || !!state.item || !!state.batch;
   $("pName").textContent = state.custom ? "Custom label" : (state.item ? state.item.name : "Pick an item to label");
   const T = state.custom && state.textOnly;
-  $("datesBlock").hidden = T; $("whoWrap").hidden = T;
+  const B = !!state.batch;
+  if(B) $("pName").textContent = state.batch.name;
+  $("batchWrap").hidden = !B;
+  $("qMinus").parentElement.hidden = B;
+  $("datesBlock").hidden = T || B; $("whoWrap").hidden = T;
   $("lbl").classList.toggle("textonly", T);
-  $("prevNote").textContent = T ? "Text only. No dates." : "Use or toss by the end of the use-by day.";
+  $("prevNote").textContent = T ? "Text only. No dates." : B ? "Preview of the first label. All " + state.batch.items.length + " get the same dates." : "Use or toss by the end of the use-by day.";
   $("qty").textContent = state.qty;
   if(T){
     const t = currentName();
@@ -650,7 +685,7 @@ function renderPanel(){
   if(hasItem && !L.ini) missing.push("add your initials");
   const pb = $("printBtn");
   pb.disabled = missing.length > 0;
-  pb.textContent = missing.length ? "To print: " + missing.join(", ") : "Print " + state.qty + (state.qty === 1 ? " label" : " labels");
+  pb.textContent = missing.length ? "To print: " + missing.join(", ") : B ? "Print all " + state.batch.items.length + " labels" : "Print " + state.qty + (state.qty === 1 ? " label" : " labels");
 }
 $("initials").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g,""); store.set("initials", e.target.value); renderPanel(); });
 $("made").addEventListener("input", () => { state.madeTouched = true; renderPanel(); });
@@ -813,6 +848,16 @@ $("printBtn").onclick = async () => {
   const L = labelData();
   if(!L.name || (!L.textOnly && (!L.ub || !L.ini))) return;
   const pb = $("printBtn"); pb.disabled = true; say($("status"), "Sending to printer…");
+  if(state.batch){
+    const B = state.batch;
+    try{
+      // one job: a separate label format per item, all with the same made/use-by dates
+      await send(B.items.map(name => buildZPL(Object.assign({}, L, {name}), 1)).join(""), $("status"));
+      say($("status"), "Printed all " + B.items.length + " " + B.name + " labels.", "ok");
+      state.madeTouched = false;
+    }catch(e){ say($("status"), (e && e.message) || "Couldn't print.", "err"); }
+    renderPanel(); return;
+  }
   try{
     await send(buildZPL(L, state.qty), $("status"));
     say($("status"), "Printed " + state.qty + (state.qty === 1 ? " label" : " labels") + " for " + L.name + ".", "ok");
