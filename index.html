@@ -383,7 +383,7 @@ const ITEMS = [
   ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"]
 ].map(([id,name,cat]) => ({id,name,cat}));
 
-/* ===== SHELF LIFE IN DAYS (KM-approved 2026-10-14; prep day = day 1) =====
+/* ===== SHELF LIFE IN DAYS (KM-approved 2026-10-14, frozen items added 2026-10-15; prep day = day 1) =====
    Keep in sync with the Recipe Book. Items left out ask the cook to pick. */
 const SHELF_DAYS = {
   "ahi-tuna-prep":2, "smoked-ribs":4, "blackened-fish":2, "crab-cakes":2, "fried-cod":2, "hamburger-patty":2,
@@ -397,7 +397,9 @@ const SHELF_DAYS = {
   "croutons":7, "diced-cucumbers":3, "diced-tomatoes":3, "roasted-cherry-tomatoes":4, "fried-onions":1,
   "mango-pico":3, "mango-pineapple-salsa":3, "pickled-jalapenos":14, "pickles":14, "pico-de-gallo":3,
   "roasted-peppers":4, "sliced-cucumbers":3, "sliced-jalapenos":3, "sliced-red-onions":3, "tortilla-chips":3,
-  "berry-compote":7, "brownies":4
+  "berry-compote":7, "brownies":4,
+  /* added 2026-10-15 (Clay): frozen quality date */
+  "shrimp-raw-frozen":90, "ribs-frozen":90, "beef-frozen":90
 };
 /* extra instructions shown when the item is picked */
 const ITEM_NOTES = {
