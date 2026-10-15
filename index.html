@@ -352,7 +352,8 @@ const CATS = [
   {id:"rubs",     name:"Rubs & Breading", c:"--rub"},
   {id:"sides",    name:"Sides", c:"--side"},
   {id:"toppings", name:"Toppings & Prep", c:"--topping"},
-  {id:"desserts", name:"Desserts", c:"--dessert"}
+  {id:"desserts", name:"Desserts", c:"--dessert"},
+  {id:"freezer",  name:"Frozen & Thawing", c:"--other"}
 ];
 const ITEMS = [
   ["ahi-tuna-prep","Ahi Tuna Prep","proteins"],["smoked-ribs","Baby Back Ribs","proteins"],["blackened-fish","Blackened Fish","proteins"],
@@ -376,7 +377,10 @@ const ITEMS = [
   ["pickles","Pickles","toppings"],["pico-de-gallo","Pico de Gallo","toppings"],["roasted-peppers","Roasted Peppers","toppings"],
   ["sliced-cucumbers","Sliced Cucumbers","toppings"],["sliced-jalapenos","Sliced Jalapeños","toppings"],["sliced-red-onions","Sliced Red Onions","toppings"],
   ["tortilla-chips","Tortilla Chips","toppings"],
-  ["berry-compote","Berry Compote","desserts"],["brownies","Brownies","desserts"]
+  ["berry-compote","Berry Compote","desserts"],["brownies","Brownies","desserts"],
+  ["lettuce","Lettuce","toppings"],["shredded-lettuce","Shredded Lettuce","toppings"],["spring-mix","Spring Mix","toppings"],
+  ["shrimp-raw-frozen","ShrimpRawFrzn","freezer"],["ribs-thawing","Ribs Thawing","freezer"],["beef-thawing","Beef Thawing","freezer"],
+  ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"]
 ].map(([id,name,cat]) => ({id,name,cat}));
 
 /* ===== SHELF LIFE IN DAYS (KM-approved 2026-10-14; prep day = day 1) =====
@@ -397,6 +401,11 @@ const SHELF_DAYS = {
 };
 /* extra instructions shown when the item is picked */
 const ITEM_NOTES = {
+  "ribs-thawing": "Thaw in the walk-in at 41°F or below, on the bottom shelf.",
+  "beef-thawing": "Thaw in the walk-in at 41°F or below, on the bottom shelf.",
+  "ribs-frozen": "Keep frozen at 0°F or below.",
+  "beef-frozen": "Keep frozen at 0°F or below.",
+  "shrimp-raw-frozen": "Keep frozen at 0°F or below. Thaw in the walk-in, never at room temperature.",
   "fried-onions": "Recipe Book: toss 4 hours after frying, even though the label shows end of day.",
   "mango-pico": "Set Made to the Pico de Gallo's prep date. Mango Pico expires with the pico it came from.",
   "hot-honey-dredge": "Throw out any dredge that touched raw chicken at close.",
@@ -605,6 +614,9 @@ function renderPanel(){
     } else if(approved && state.days){
       note.className = "note warn";
       note.textContent = "Changed from the approved " + approved + (approved === 1 ? " day" : " days") + ". Only do this if your manager told you to.";
+    } else if(state.days && state.days > 7 && state.item && state.item.cat === "freezer"){
+      note.className = "note warn";
+      note.textContent = "No manager-approved shelf life yet. Frozen items can go past 7 days. Use the number your manager gave you.";
     } else if(state.days && state.days > 7){
       note.className = "note warn";
       note.textContent = "Over 7 days is only for dry or shelf-stable items like rubs and breading. Anything kept cold that's ready to eat can't go past 7 days.";
@@ -614,6 +626,11 @@ function renderPanel(){
     } else if(!approved && state.days){
       note.className = "note warn";
       note.textContent = "Picked by you. No manager-approved shelf life on file for this item yet.";
+    }
+    // storage reminders show even before a shelf life is approved
+    if(extra && !(approved && state.days === approved)){
+      note.textContent += (note.textContent ? " " : "") + extra;
+      if(!note.className) note.className = "note";
     }
   }
 
