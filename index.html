@@ -235,7 +235,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     </div>
 
     <div id="datesBlock">
-      <span class="flab">Shelf life (prep day counts as day 1)</span>
+      <span class="flab" id="daysLab">Shelf life (prep day counts as day 1)</span>
       <div class="days" id="days" role="group" aria-label="Shelf life in days"></div>
       <div id="moreWrap" hidden style="margin-top:8px">
         <label class="flab" for="moreDays">Days (dry, shelf-stable items only)</label>
@@ -430,7 +430,9 @@ function toLocalInput(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad
 function fromLocalInput(v){ const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v||""); return m ? new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5]) : null; }
 function md(d){ return (d.getMonth()+1)+"/"+d.getDate(); }
 function hm(d){ let h=d.getHours(), ap=h<12?"A":"P"; h=h%12||12; return h+":"+pad(d.getMinutes())+ap; }
-function useBy(made, days){ const d = new Date(made.getFullYear(), made.getMonth(), made.getDate()); d.setDate(d.getDate() + days - 1); return d; }
+// Prep items: prep day = day 1 (Food Code 3-501.17). Frozen & Thawing: the day it goes in is day 0 (Clay, 2026-10-15).
+function useBy(made, days, dayZero){ const d = new Date(made.getFullYear(), made.getMonth(), made.getDate()); d.setDate(d.getDate() + days - (dayZero ? 0 : 1)); return d; }
+function startsDayZero(it){ return !!(it && it.cat === "freezer"); }
 function zplSafe(s){ return String(s).replace(/[\^~\\]/g," ").replace(/\s+/g," ").trim(); }
 
 /* ---------- state ---------- */
@@ -579,7 +581,7 @@ function labelData(){
   if(state.custom && state.textOnly) return {name, textOnly: true};
   const made = fromLocalInput($("made").value) || new Date();
   const ini = $("initials").value.trim().toUpperCase();
-  const ub = state.days ? useBy(made, state.days) : null;
+  const ub = state.days ? useBy(made, state.days, !state.custom && startsDayZero(state.item)) : null;
   return {name, made, ini, ub, days: state.days};
 }
 function renderPanel(){
@@ -599,6 +601,7 @@ function renderPanel(){
     return;
   }
   renderDays();
+  $("daysLab").textContent = (!state.custom && startsDayZero(state.item)) ? "Shelf life (day it goes in doesn't count)" : "Shelf life (prep day counts as day 1)";
   const L = labelData();
   $("lN").textContent = L.name || "—";
   $("lM").textContent = "MADE " + md(L.made) + " " + hm(L.made);
