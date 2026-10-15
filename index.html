@@ -368,7 +368,7 @@ const ITEMS = [
   ["bbq-dry-rub","BBQ Dry Rub","rubs"],["burger-seasoning","Burger Seasoning","rubs"],["hot-honey-dredge","Hot Honey Dredge","rubs"],
   ["poultry-seasoning","Poultry Seasoning","rubs"],["seafood-breading","Seafood Breading","rubs"],
   ["black-beans","Black Beans","sides"],["cavatappi","Cavatappi","sides"],["street-corn-batch","Twisted Street Corn (Cooked Corn)","sides"],
-  ["balsamic-strawberries","Balsamic Glazed Strawberries","toppings"],["breaded-avocado","Breaded Avocado","toppings"],["candied-bacon","Candied Bacon","toppings"],
+  ["balsamic-strawberries","Balsamic Glazed Strawberries","toppings"],["candied-bacon","Candied Bacon","toppings"],
   ["candied-pecans","Candied Pecans","toppings"],["caramelized-onions","Caramelized Onions","toppings"],["chopped-green-onions","Chopped Green Onions","toppings"],
   ["chopped-romaine","Chopped Romaine","toppings"],["coleslaw","Coleslaw","toppings"],["crispy-wontons","Crispy Wontons","toppings"],
   ["croutons","Croutons","toppings"],["diced-cucumbers","Diced Cucumbers","toppings"],["diced-tomatoes","Diced Tomatoes","toppings"],
@@ -380,7 +380,8 @@ const ITEMS = [
   ["berry-compote","Berry Compote","desserts"],["brownies","Brownies","desserts"],
   ["lettuce","Lettuce","toppings"],["shredded-lettuce","Shredded Lettuce","toppings"],["spring-mix","Spring Mix","toppings"],
   ["shrimp-raw-frozen","ShrimpRawFrzn","freezer"],["ribs-thawing","Ribs Thawing","freezer"],["beef-thawing","Beef Thawing","freezer"],
-  ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"]
+  ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"],
+  ["breaded-avocado","Frozen Breaded Avocado","freezer"]
 ].map(([id,name,cat]) => ({id,name,cat}));
 
 /* ===== SHELF LIFE IN DAYS (KM-approved 2026-10-14, frozen items added 2026-10-15; prep day = day 1) =====
@@ -392,14 +393,14 @@ const SHELF_DAYS = {
   "honey-mustard":5, "hot-honey-chicken-marinade":2, "hot-honey-sauce":14, "pickling-liquid":14,
   "ranch-dressing":7, "tartar-sauce":5, "yardery-sauce":5, "bbq-dry-rub":30, "burger-seasoning":10,
   "hot-honey-dredge":30, "poultry-seasoning":30, "seafood-breading":30, "black-beans":4, "cavatappi":3,
-  "street-corn-batch":4, "balsamic-strawberries":5, "breaded-avocado":1, "candied-bacon":4, "candied-pecans":7,
+  "street-corn-batch":4, "balsamic-strawberries":5, "candied-bacon":4, "candied-pecans":7,
   "caramelized-onions":3, "chopped-green-onions":2, "chopped-romaine":3, "coleslaw":3, "crispy-wontons":7,
   "croutons":7, "diced-cucumbers":3, "diced-tomatoes":3, "roasted-cherry-tomatoes":4, "fried-onions":1,
   "mango-pico":3, "mango-pineapple-salsa":3, "pickled-jalapenos":14, "pickles":14, "pico-de-gallo":3,
   "roasted-peppers":4, "sliced-cucumbers":3, "sliced-jalapenos":3, "sliced-red-onions":3, "tortilla-chips":3,
   "berry-compote":7, "brownies":4,
   /* added 2026-10-15 (Clay): frozen quality date */
-  "shrimp-raw-frozen":90, "ribs-frozen":90, "beef-frozen":90
+  "shrimp-raw-frozen":90, "ribs-frozen":90, "beef-frozen":90, "breaded-avocado":90
 };
 /* extra instructions shown when the item is picked */
 const ITEM_NOTES = {
@@ -407,6 +408,7 @@ const ITEM_NOTES = {
   "beef-thawing": "Thaw in the walk-in at 41°F or below, on the bottom shelf.",
   "ribs-frozen": "Keep frozen at 0°F or below.",
   "beef-frozen": "Keep frozen at 0°F or below.",
+  "breaded-avocado": "Keep frozen at 0°F or below.",
   "shrimp-raw-frozen": "Keep frozen at 0°F or below. Thaw in the walk-in, never at room temperature.",
   "fried-onions": "Recipe Book: toss 4 hours after frying, even though the label shows end of day.",
   "mango-pico": "Set Made to the Pico de Gallo's prep date. Mango Pico expires with the pico it came from.",
