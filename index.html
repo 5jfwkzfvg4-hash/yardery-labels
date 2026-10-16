@@ -699,13 +699,24 @@ setInterval(() => { if(!state.madeTouched){ $("made").value = toLocalInput(new D
 
 /* ---------- ZPL ---------- */
 function clampNudge(v){ const x = parseInt(v, 10); return isFinite(x) ? Math.max(-40, Math.min(40, x)) : 0; }
-function buildZPL(L, qty){
+// Rough width of font 0 (condensed bold) in dots; deliberately generous so text never runs off.
+function zplLines(text, size, width){
+  const cw = size * 0.62, words = text.split(" "); let lines = 1, cur = 0;
+  for(const w of words){
+    const ww = w.length * cw, sp = cur ? cw : 0;
+    if(cur && cur + sp + ww > width){ lines++; cur = ww; } else cur += sp + ww;
+    if(ww > width) lines += Math.ceil(ww / width) - 1;
+  }
+  return lines;
+}
+// opts.noBackfeed: ^XB, used on every label of a batch except the last so the roll feeds straight through
+function buildZPL(L, qty, opts){
   const dpi = +$("dpi").value || 203;
   const s = dpi / 203;
   const n = v => Math.round(v * s);
   const W = n(203), nx = clampNudge($("nudgeX").value), ny = clampNudge($("nudgeY").value);
   const media = $("media").value;
-  const head = ["^XA","^CI28"].concat(media ? ["^MN" + media] : []).concat(["^PW" + W,"^LL" + W,"^LH0,0","^LS" + (-nx),"^LT" + ny]);
+  const head = ["^XA","^CI28"].concat(opts && opts.noBackfeed ? ["^XB"] : []).concat(media ? ["^MN" + media] : []).concat(["^PW" + W,"^LL" + W,"^LH0,0","^LS" + (-nx),"^LT" + ny]);
   if(L.textOnly){
     // text-only label: big centered text, sized to fit, roughly centered top to bottom
     const t = zplSafe(L.name).toUpperCase().slice(0, 60);
@@ -719,7 +730,9 @@ function buildZPL(L, qty){
     ]).join("\n") + "\n";
   }
   const name = zplSafe(L.name).toUpperCase().slice(0, 40);
-  const nameSize = name.length > 22 ? 22 : 26;
+  // name gets 2 lines max: shrink until the wrap fits so a 3rd line never overprints
+  let nameSize = name.length > 22 ? 22 : 26;
+  while(nameSize > 16 && zplLines(name, nameSize, 191) > 2) nameSize -= 2;
   return [
     // ^MN: sync to each label's gap/mark so prints don't creep down label after label.
     // ^LS/^LT: whole-label nudge (both accept negatives; ^LH does not). ^LS shifts left, so negate.
@@ -855,7 +868,8 @@ $("printBtn").onclick = async () => {
     const B = state.batch;
     try{
       // one job: a separate label format per item, all with the same made/use-by dates
-      await send(B.items.map(name => buildZPL(Object.assign({}, L, {name}), 1)).join(""), $("status"));
+      const last = B.items.length - 1;
+      await send(B.items.map((name, i) => buildZPL(Object.assign({}, L, {name}), 1, {noBackfeed: i < last})).join(""), $("status"));
       say($("status"), "Printed all " + B.items.length + " " + B.name + " labels.", "ok");
       state.madeTouched = false;
     }catch(e){ say($("status"), (e && e.message) || "Couldn't print.", "err"); }
@@ -927,7 +941,7 @@ try{
   if(hit) pick(hit);
 }catch(e){}
 if(btEnv() !== "ok") setChip("", "Printer help");
-window.__ypl = { buildZPL, useBy, ITEMS };
+window.__ypl = { buildZPL, useBy, ITEMS, BATCH, zplLines };
 })();
 </script>
 </body>
