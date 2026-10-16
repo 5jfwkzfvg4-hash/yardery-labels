@@ -302,6 +302,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   <div id="onbPrinter" class="onbstep" hidden>
     <p class="hint" id="onbStepLab">First-time setup · Step 2 of 2</p>
     <h3>Connect the label printer</h3>
+    <div class="note warn" id="onbOne"><b>One device at a time.</b> The printer can only be connected to one phone or tablet. If someone else is connected right now, you can't connect until they disconnect (⚙ → Disconnect) or close the app. Turning the printer off and on also frees it.</div>
     <div id="onbEnv"></div>
     <ol id="onbSteps"></ol>
     <div class="lookfor" id="onbLook">On the list, tap the printer named<b id="onbPrinterName"></b><span id="onbPrinterHint"></span></div>
@@ -866,7 +867,7 @@ async function connect(){
 function friendly(err){
   const m = (err && (err.name + " " + err.message)) || "";
   if(/^Timeout picker/.test(m)) return new Error("The printer list never opened. Bluetooth is blocked in this view. Open the backup file or the link in Chrome (Android) or Bluefy (iPad), not inside the Claude app.");
-  if(/^Timeout connect/.test(m)) return new Error("Picked the printer, but it never answered. Turn the Zebra off and on, make sure no other tablet or phone is connected to it, then tap Print again.");
+  if(/^Timeout connect/.test(m)) return new Error("Picked the printer, but it never answered. It's probably connected to someone else's phone or tablet, and it only allows one at a time. Ask them to disconnect (⚙ → Disconnect), or turn the Zebra off and on, then try again.");
   if(/^Timeout service/.test(m)) return new Error("Connected, but couldn't find the print channel. Power-cycle the printer and try again. If this keeps happening, tell your manager: the printer's Bluetooth LE may be turned off.");
   if(/^Timeout write/.test(m)) return new Error("Connected, but the printer stopped taking data. Power-cycle the printer and tap Print again.");
   if(/NotFoundError.*cancel|User cancelled|chooser/i.test(m)) return new Error("No printer picked. Tap Connect printer and choose the Zebra.");
@@ -1005,14 +1006,15 @@ function buildPrinterSteps(){
   const env = btEnv(), ol = $("onbSteps"); ol.innerHTML = "";
   const pn = printerLabel();
   $("onbPrinterName").textContent = pn || LOCATION.printerModel;
-  $("onbPrinterHint").textContent = pn ? "It's the " + LOCATION.printerModel + " label printer. Ignore anything else on the list."
-    : "If you don't see that name, look for the serial number from the sticker on the back of the printer.";
+  $("onbPrinterHint").textContent = (pn ? "It's the " + LOCATION.printerModel + " label printer. Ignore anything else on the list."
+    : "If you don't see that name, look for the serial number from the sticker on the back of the printer.")
+    + " Not on the list at all? Someone else is probably connected to it.";
   $("onbCopy").hidden = true; $("onbConnect").hidden = false; $("onbLook").hidden = false;
-  $("onbEnv").className = ""; $("onbEnv").textContent = "";
+  $("onbEnv").className = ""; $("onbEnv").textContent = ""; $("onbOne").hidden = false;
   if(env === "ok"){
     [ "Turn the " + LOCATION.printerModel + " on. The light should be solid green.",
       "Make sure <b>Bluetooth</b> is on in this device's settings.",
-      "Make sure no other phone or tablet is connected to the printer. It only talks to one at a time.",
+      "Check that no one else is connected to the printer (see the yellow box above).",
       "Tap <b>Connect printer</b> below. A list of nearby devices pops up.",
       "Tap the printer name shown in the green box, then tap <b>Pair</b> or <b>Connect</b>. If asked to allow <b>Nearby devices</b>, tap Allow." ]
       .forEach(t => ol.appendChild(li(t)));
@@ -1025,6 +1027,7 @@ function buildPrinterSteps(){
       .forEach(t => ol.appendChild(li(t)));
     $("onbConnect").hidden = true; $("onbCopy").hidden = false; $("onbLook").hidden = true;
   } else {
+    $("onbOne").hidden = true;
     $("onbEnv").className = "note warn";
     $("onbEnv").textContent = "This browser can't reach the printer. On Android, open this link in Chrome. On iPhone or iPad, use the free Bluefy app.";
     $("onbConnect").hidden = true; $("onbCopy").hidden = false; $("onbLook").hidden = true;
