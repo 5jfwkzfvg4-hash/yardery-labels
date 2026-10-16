@@ -328,13 +328,13 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   <ol>
     <li>Turn the Zebra on. Turn Bluetooth on in the tablet's settings.</li>
     <li>Open the printing link in <b>Chrome</b>.</li>
-    <li>Tap <b>Connect printer</b> at the top, pick the Zebra from the list (its name is usually the serial number on the back), and tap Pair.</li>
+    <li>Tap <b>Connect printer</b> at the top, pick <b>DFJ235305204</b> (the Zebra ZD411) from the list, and tap Pair.</li>
   </ol>
   <h4>iPad</h4>
   <ol>
     <li>Install the free <b>Bluefy – Web BLE Browser</b> app from the App Store. Safari and Chrome on iPad can't reach Bluetooth printers from a web page.</li>
     <li>Open the printing link in Bluefy and add it to the Home Screen from Bluefy's menu.</li>
-    <li>Tap <b>Connect printer</b> and pick the Zebra.</li>
+    <li>Tap <b>Connect printer</b> and pick <b>DFJ235305204</b>.</li>
   </ol>
   <h4>If the printer doesn't show up</h4>
   <ol>
@@ -397,7 +397,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
 const LOCATION = { name: "The Yardery · Sanford",
   printUrl: "https://5jfwkzfvg4-hash.github.io/yardery-labels/" /* the store's hosted printing link */,
   printerModel: "Zebra ZD411",
-  printerName: "" /* the name the ZD411 shows in the Bluetooth list; fill in once known */ };
+  printerName: "DFJ235305204" /* the ZD411's Bluetooth name (its serial number); the list shows only this printer */ };
 
 /* ===== PREP ITEMS (from the Recipe Book, 2026-10-14) ===== */
 const CATS = [
@@ -510,7 +510,7 @@ const state = {
   cat: "all", q: "", item: null, custom: false,
   days: null, qty: 1, madeTouched: false, moreOpen: false, textOnly: false, batch: null,
   recent: store.get("recent", []),
-  device: null, ch: null, mode: null, connecting: false
+  device: null, ch: null, mode: null, connecting: false, pickAll: false
 };
 $("locname").textContent = LOCATION.name;
 /* ---------- this device: id, name, first-time setup ---------- */
@@ -845,7 +845,11 @@ async function connect(){
   try{
     if(!state.device){
       step("Step 1 of 3: opening the printer list…");
-      state.device = await timeout(navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [ZSVC] }), 45000, "picker");
+      // show only our printer in the list; after a cancel, the next try shows every device in case it was renamed
+      const opts = (LOCATION.printerName && !state.pickAll)
+        ? { filters: [{ name: LOCATION.printerName }], optionalServices: [ZSVC] }
+        : { acceptAllDevices: true, optionalServices: [ZSVC] };
+      state.device = await timeout(navigator.bluetooth.requestDevice(opts), 45000, "picker");
       state.device.addEventListener("gattserverdisconnected", () => { state.ch = null; setChip("", "Reconnect printer"); });
     }
     step("Step 2 of 3: connecting to " + (state.device.name || "the printer") + "…");
@@ -870,7 +874,13 @@ function friendly(err){
   if(/^Timeout connect/.test(m)) return new Error("Picked the printer, but it never answered. It's probably connected to someone else's phone or tablet, and it only allows one at a time. Ask them to disconnect (⚙ → Disconnect), or turn the Zebra off and on, then try again.");
   if(/^Timeout service/.test(m)) return new Error("Connected, but couldn't find the print channel. Power-cycle the printer and try again. If this keeps happening, tell your manager: the printer's Bluetooth LE may be turned off.");
   if(/^Timeout write/.test(m)) return new Error("Connected, but the printer stopped taking data. Power-cycle the printer and tap Print again.");
-  if(/NotFoundError.*cancel|User cancelled|chooser/i.test(m)) return new Error("No printer picked. Tap Connect printer and choose the Zebra.");
+  if(/NotFoundError.*cancel|User cancelled|chooser/i.test(m)){
+    if(LOCATION.printerName && !state.pickAll){
+      state.pickAll = true;
+      return new Error("No printer picked. If " + LOCATION.printerName + " wasn't on the list, someone else is probably connected to it, or it's off. Tap Connect again to see every nearby device.");
+    }
+    return new Error("No printer picked. Tap Connect printer and choose " + (LOCATION.printerName || "the Zebra") + ".");
+  }
   if(/permissions policy|SecurityError|not allowed|disallowed|NotAllowedError/i.test(m))
     return new Error("Bluetooth is blocked in this view. Open the link directly in Chrome (Android) or Bluefy (iPad), not inside the Claude app.");
   if(/getPrimaryService|No Services|NotFoundError/i.test(m))
@@ -1006,7 +1016,7 @@ function buildPrinterSteps(){
   const env = btEnv(), ol = $("onbSteps"); ol.innerHTML = "";
   const pn = printerLabel();
   $("onbPrinterName").textContent = pn || LOCATION.printerModel;
-  $("onbPrinterHint").textContent = (pn ? "It's the " + LOCATION.printerModel + " label printer. Ignore anything else on the list."
+  $("onbPrinterHint").textContent = (pn ? "It's the " + LOCATION.printerModel + " label printer, and it should be the only thing on the list."
     : "If you don't see that name, look for the serial number from the sticker on the back of the printer.")
     + " Not on the list at all? Someone else is probably connected to it.";
   $("onbCopy").hidden = true; $("onbConnect").hidden = false; $("onbLook").hidden = false;
