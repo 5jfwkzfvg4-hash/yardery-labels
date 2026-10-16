@@ -391,7 +391,7 @@ const ITEMS = [
   ["berry-compote","Berry Compote","desserts"],["brownies","Brownies","desserts"],
   ["lettuce","Lettuce","toppings"],["shredded-lettuce","Shredded Lettuce","toppings"],["spring-mix","Spring Mix","toppings"],
   ["basil","Basil","toppings"],["cilantro","Cilantro","toppings"],
-  ["shrimp-raw-frozen","ShrimpRawFrzn","freezer"],["ribs-thawing","Ribs Thawing","freezer"],["beef-thawing","Beef Thawing","freezer"],
+  ["shrimp-raw-frozen","ShrimpRawFrzn","freezer"],["ribs-thawing","Ribs Thawing","freezer"],["beef-thawing","Beef Thawing","freezer"],["ground-beef-thawing","Ground Beef Thawing","freezer"],
   ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"],
   ["breaded-avocado","Frozen Breaded Avocado","freezer"]
 ].map(([id,name,cat]) => ({id,name,cat}));
@@ -414,13 +414,14 @@ const SHELF_DAYS = {
   /* added 2026-10-15 (Clay): frozen quality date */
   "shrimp-raw-frozen":90, "ribs-frozen":90, "beef-frozen":90, "breaded-avocado":90,
   "basil":3, "cilantro":3,
-  "ribs-thawing":5, "beef-thawing":5, "lettuce":5, "shredded-lettuce":5, "spring-mix":5
+  "ribs-thawing":5, "beef-thawing":5, "ground-beef-thawing":4, "lettuce":5, "shredded-lettuce":5, "spring-mix":5
 };
 /* extra instructions shown when the item is picked */
 const ITEM_NOTES = {
   "ribs-thawing": "Thaw in the walk-in at 41°F or below, on the bottom shelf. Ribs made from it can't go past this date.",
-  "beef-thawing": "Thaw in the walk-in at 41°F or below, on the bottom shelf. Patties made from it can't go past this date.",
-  "hamburger-patty": "Made from thawed beef? The patty label can't go past the Beef Thawing label's date.",
+  "beef-thawing": "Whole cuts. Thaw in the walk-in at 41°F or below, on the bottom shelf. Anything made from it can't go past this date.",
+  "ground-beef-thawing": "Thaw in the walk-in at 41°F or below, on the bottom shelf. Patties made from it can't go past this date.",
+  "hamburger-patty": "Made from thawed ground beef? The patty label can't go past the Ground Beef Thawing label's date.",
   "smoked-ribs": "Made from thawed ribs? Raw ribs can't be used past the Ribs Thawing label's date.",
   "ribs-frozen": "Keep frozen at 0°F or below.",
   "beef-frozen": "Keep frozen at 0°F or below.",
