@@ -21,7 +21,7 @@ Commit to `main` and the link updates in about a minute.
 ## Recipe Book
 `recipes.html` is a copy of the Recipe Book (original in Claude: https://claude.ai/artifact/6o8JrPZsbJkYeFggZnd58w).
 The **Recipes** button opens it over the label page so the printer stays connected; **Print prep label** in a recipe
-closes the book and opens that item. Differences from the original: label buttons open the label page in place,
+prints one label right away without leaving the page. Differences from the original: label buttons print in place,
 a **Labels** button shows when `recipes.html` is opened on its own, and **Data Needed** is read-only here
 (its shared saving only works inside Claude). When the original Recipe Book changes, re-copy it into
 `recipes.html` and re-apply those three changes.

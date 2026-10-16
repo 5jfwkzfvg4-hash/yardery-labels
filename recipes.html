@@ -393,7 +393,11 @@
   .labelbtn { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; min-height: 44px; padding: 0 16px; border-radius: 10px; background: var(--catcolor2); color: #fff; font-weight: 700; font-size: 14px; text-decoration: none; }
   .dn-ro input[data-dn] { pointer-events: none; opacity: .55; }
   .labelbtn:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
-  @media print { .labelbtn { display: none; } }
+  .labelbtn.ok { background: #2E6B3A; }
+  .labelbtn[aria-disabled="true"] { opacity: .7; cursor: progress; }
+  .labelmsg { margin-top: 8px; font-size: 13.5px; font-weight: 600; color: #2E6B3A; }
+  .labelmsg.bad { color: #A3322A; }
+  @media print { .labelbtn, .labelmsg { display: none; } }
   .note .why { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
   .note .why-h { font-family: 'Bitter', Georgia, serif; font-weight: 700; font-size: 15px; color: var(--catcolor2); margin-bottom: 6px; }
   .note .why p { margin: 0 0 9px; line-height: 1.5; }
@@ -2347,13 +2351,40 @@ function ingYieldsHTML(id) {
 const PREP_LABELS_URL = "index.html";
 const IN_LABELS_APP = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 if (!IN_LABELS_APP) document.getElementById("labelsBtn").hidden = false;
-// Inside the label page, "Print prep label" hands the item to it (keeps the printer connected) instead of navigating.
+// Inside the label page, "Print prep label" asks it to print right away; the book stays on this page.
+const PARENT_ORIGIN = location.origin === "null" ? "*" : location.origin;
 document.addEventListener("click", e => {
   const a = e.target.closest && e.target.closest("a.labelbtn[data-item]");
   if (!a || !IN_LABELS_APP) return;
   e.preventDefault();
-  window.parent.postMessage({ type: "ypl-print", item: a.dataset.item }, location.origin === "null" ? "*" : location.origin);
+  if (a.getAttribute("aria-disabled") === "true") return;
+  a.setAttribute("aria-disabled", "true"); a.classList.remove("ok", "bad");
+  a.textContent = "Printing…";
+  const msg = a.parentElement.querySelector(".labelmsg"); if (msg) msg.textContent = "";
+  window.parent.postMessage({ type: "ypl-print", item: a.dataset.item }, PARENT_ORIGIN);
 });
+window.addEventListener("message", e => {
+  if (!IN_LABELS_APP || e.source !== window.parent) return;
+  const d = e.data || {};
+  if (d.type !== "ypl-printed") return;
+  document.querySelectorAll('a.labelbtn[data-item="' + d.item + '"]').forEach(a => {
+    a.removeAttribute("aria-disabled");
+    a.classList.add(d.ok ? "ok" : "bad");
+    a.textContent = d.ok ? "Printed ✓" : "Print prep label";
+    let msg = a.parentElement.querySelector(".labelmsg");
+    if (!msg) { msg = document.createElement("div"); msg.className = "labelmsg"; msg.setAttribute("role", "status"); a.after(msg); }
+    msg.textContent = d.text || "";
+    msg.classList.toggle("bad", !d.ok);
+    if (d.ok) setTimeout(() => { a.classList.remove("ok"); a.textContent = "Print prep label"; }, 4000);
+  });
+});
+// Taps in the book count as using the app, so the label page keeps (or takes back) the printer.
+let lastPing = 0;
+["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, () => {
+  if (!IN_LABELS_APP) return;
+  const now = Date.now(); if (now - lastPing < 5000) return; lastPing = now;
+  window.parent.postMessage({ type: "ypl-active" }, PARENT_ORIGIN);
+}, { passive: true, capture: true }));
 const PREP_LABEL_IDS = new Set(["ahi-tuna-prep","smoked-ribs","blackened-fish","crab-cakes","fried-cod","hamburger-patty","marinated-chicken-tenders","wing-marinade","pulled-pork","smoked-chicken-breast","bama-white-bbq","buffalo-sauce","cilantro-lime-sauce","fire-marinara","fire-sauce","honey-mustard","hot-honey-chicken-marinade","hot-honey-sauce","pickling-liquid","ranch-dressing","tartar-sauce","yardery-sauce","bbq-dry-rub","burger-seasoning","hot-honey-dredge","poultry-seasoning","seafood-breading","black-beans","cavatappi","street-corn-batch","balsamic-strawberries","breaded-avocado","candied-bacon","candied-pecans","caramelized-onions","chopped-green-onions","chopped-romaine","coleslaw","crispy-wontons","croutons","diced-tomatoes","roasted-cherry-tomatoes","fried-onions","mango-pico","mango-pineapple-salsa","pickled-jalapenos","pickles","pico-de-gallo","roasted-peppers","sliced-cucumbers","sliced-jalapenos","sliced-red-onions","tortilla-chips","berry-compote","brownies"]);
 
 function buildRecipeInner(r, cat, mult) {
