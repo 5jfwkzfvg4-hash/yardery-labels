@@ -711,7 +711,15 @@ function zplLines(text, size, width){
   }
   return lines;
 }
-// opts.noBackfeed: ^XB, used on every label of a batch except the last so the roll feeds straight through
+/* Every print job is built the same way as the Line Set, which prints dead-centered on the ZD411:
+   one ^XA..^XZ format per label (^PQ1), with ^XB (no backfeed) on every label except the last,
+   so the roll feeds straight through and only the final label advances to the tear bar. */
+function buildJob(labels){
+  const last = labels.length - 1;
+  return labels.map((L, i) => buildZPL(L, 1, {noBackfeed: i < last})).join("");
+}
+function copies(L, n){ return Array.from({length: Math.max(1, n)}, () => L); }
+// opts.noBackfeed: ^XB, used on every label of a job except the last so the roll feeds straight through
 function buildZPL(L, qty, opts){
   const dpi = +$("dpi").value || 203;
   const s = dpi / 203;
@@ -870,15 +878,14 @@ $("printBtn").onclick = async () => {
     const B = state.batch;
     try{
       // one job: a separate label format per item, all with the same made/use-by dates
-      const last = B.items.length - 1;
-      await send(B.items.map((name, i) => buildZPL(Object.assign({}, L, {name}), 1, {noBackfeed: i < last})).join(""), $("status"));
+      await send(buildJob(B.items.map(name => Object.assign({}, L, {name}))), $("status"));
       say($("status"), "Printed all " + B.items.length + " " + B.name + " labels.", "ok");
       state.madeTouched = false;
     }catch(e){ say($("status"), (e && e.message) || "Couldn't print.", "err"); }
     renderPanel(); return;
   }
   try{
-    await send(buildZPL(L, state.qty), $("status"));
+    await send(buildJob(copies(L, state.qty)), $("status"));
     say($("status"), "Printed " + state.qty + (state.qty === 1 ? " label" : " labels") + " for " + L.name + ".", "ok");
     if(state.item){
       state.recent = [state.item.id].concat(state.recent.filter(x => x !== state.item.id)).slice(0, 6);
@@ -898,7 +905,7 @@ $("testBtn").onclick = async () => {
   say($("setStatus"), "Sending test label…");
   try{
     const now = new Date();
-    await send(buildZPL({name:"TEST LABEL", made:now, ub:useBy(now, 7), ini:"OK"}, 1), $("setStatus"));
+    await send(buildJob([{name:"TEST LABEL", made:now, ub:useBy(now, 7), ini:"OK"}]), $("setStatus"));
     say($("setStatus"), "Test label sent. Check that the text fits inside the square.", "ok");
   }catch(e){ say($("setStatus"), e.message, "err"); }
 };
@@ -943,7 +950,7 @@ try{
   if(hit) pick(hit);
 }catch(e){}
 if(btEnv() !== "ok") setChip("", "Printer help");
-window.__ypl = { buildZPL, useBy, ITEMS, BATCH, zplLines };
+window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines };
 })();
 </script>
 </body>
