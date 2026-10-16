@@ -158,6 +158,14 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .sheet h3{font:700 1.3rem var(--display);margin:0}
 .sheet h4{font:700 1rem var(--display);margin:6px 0 0}
 .sheet ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px}
+.hdrbtn{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;border-radius:12px;min-height:44px;padding:0 14px;font-weight:700;font-size:.95rem}
+.rb{position:fixed;inset:0;z-index:45;background:var(--paper);display:flex;flex-direction:column}
+.rbbar{display:flex;align-items:center;gap:12px;background:#1F3A24;color:#fff;
+  padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px))}
+.rbbar b{font:700 1rem var(--display)}
+.rbback{border:0;background:var(--yellow);color:#1E241A;border-radius:10px;min-height:42px;padding:0 14px;font-weight:800}
+.rb iframe{flex:1;width:100%;border:0;background:#fff}
+@media (max-width:480px){ .hdrbtn{padding:0 10px;font-size:.85rem} }
 .onbstep{display:flex;flex-direction:column;gap:14px}
 .lookfor{border:2px solid var(--green);background:var(--green-soft);border-radius:12px;padding:12px 14px;font-size:.9rem}
 .lookfor b{display:block;font:800 1.3rem var(--display);color:var(--ink);margin-top:4px;word-break:break-all}
@@ -199,6 +207,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   <div class="logo" role="img" aria-label="The Yardery"></div>
   <div class="brand"><b>Prep Labels</b><span id="locname">The Yardery</span></div>
   <button class="pchip" id="pchip" type="button" aria-live="polite"><i></i><span id="pchipTxt">Connect printer</span></button>
+  <button class="hdrbtn" id="rbBtn" type="button">Recipes</button>
   <button class="iconbtn" id="helpBtn" type="button" aria-label="Help">?</button>
   <button class="iconbtn" id="setBtn" type="button" aria-label="Printer settings">⚙</button>
 </header>
@@ -286,6 +295,15 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
 </main>
 
 <div class="scrim" id="scrim" hidden></div>
+
+<!-- Recipe Book, opened over the label page so the printer stays connected -->
+<div class="rb" id="rb" hidden role="dialog" aria-modal="true" aria-label="Recipe Book">
+  <div class="rbbar">
+    <button class="rbback" id="rbClose" type="button">← Prep Labels</button>
+    <b>Recipe Book</b>
+  </div>
+  <iframe id="rbFrame" title="Recipe Book"></iframe>
+</div>
 
 <!-- First-time setup on a new device: first name, then connect the printer. Shown until this device connects once. -->
 <div class="sheet onb" id="onbSheet" hidden role="dialog" aria-modal="true" aria-labelledby="onbH">
@@ -1005,7 +1023,32 @@ $("helpBtn").onclick = () => openSheet("helpSheet");
 $("setBtn").onclick = () => openSheet("setSheet");
 $("scrim").onclick = closeSheets;
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeSheets);
-document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeSheets(); $("panel").classList.remove("open"); } });
+document.addEventListener("keydown", e => { if(e.key === "Escape"){ if(!$("rb").hidden){ closeRecipes(false); return; } closeSheets(); $("panel").classList.remove("open"); } });
+
+/* ---------- Recipe Book (recipes.html, shown over this page) ---------- */
+function openRecipes(){
+  const f = $("rbFrame");
+  if(!f.src) f.src = "recipes.html";      // load once; keeps its place between visits
+  $("rb").hidden = false;
+  try{ history.pushState({rb: 1}, ""); }catch(e){}
+}
+function closeRecipes(fromHistory){
+  if($("rb").hidden) return;
+  $("rb").hidden = true;
+  if(!fromHistory){ try{ if(history.state && history.state.rb) history.back(); }catch(e){} }
+}
+$("rbBtn").onclick = openRecipes;
+$("rbClose").onclick = () => closeRecipes(false);
+window.addEventListener("popstate", () => closeRecipes(true)); // phone Back button closes the book
+// "Print prep label" inside the book: close it and open that item, ready to print
+window.addEventListener("message", e => {
+  if(e.source !== $("rbFrame").contentWindow) return;
+  const d = e.data || {};
+  if(d.type !== "ypl-print") return;
+  const it = ITEMS.find(i => i.id === d.item);
+  closeRecipes(false);
+  if(it) pick(it);
+});
 
 /* ---------- first-time setup ---------- */
 function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }

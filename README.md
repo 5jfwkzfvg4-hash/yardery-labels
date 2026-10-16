@@ -17,3 +17,11 @@ Everything lives in `index.html`. Near the top of the `<script>`:
 - `ITEM_NOTES` – extra instruction shown when an item is picked (e.g. Fried Onions 4-hour rule). Prep day counts as day 1; cold-held ready-to-eat food maxes at 7 days (FL Admin. Code 61C-4.010 / FDA Food Code 3-501.17).
 
 Commit to `main` and the link updates in about a minute.
+
+## Recipe Book
+`recipes.html` is a copy of the Recipe Book (original in Claude: https://claude.ai/artifact/6o8JrPZsbJkYeFggZnd58w).
+The **Recipes** button opens it over the label page so the printer stays connected; **Print prep label** in a recipe
+closes the book and opens that item. Differences from the original: label buttons open the label page in place,
+a **Labels** button shows when `recipes.html` is opened on its own, and **Data Needed** is read-only here
+(its shared saving only works inside Claude). When the original Recipe Book changes, re-copy it into
+`recipes.html` and re-apply those three changes.
