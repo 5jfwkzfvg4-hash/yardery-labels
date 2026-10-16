@@ -392,7 +392,7 @@ const ITEMS = [
   ["lettuce","Lettuce","toppings"],["shredded-lettuce","Shredded Lettuce","toppings"],["spring-mix","Spring Mix","toppings"],
   ["basil","Basil","toppings"],["cilantro","Cilantro","toppings"],
   ["shrimp-raw-frozen","ShrimpRawFrzn","freezer"],["ribs-thawing","Ribs Thawing","freezer"],["beef-thawing","Beef Thawing","freezer"],["ground-beef-thawing","Ground Beef Thawing","freezer"],
-  ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"],
+  ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"],["ground-beef-frozen","Ground Beef Frozen","freezer"],
   ["breaded-avocado","Frozen Breaded Avocado","freezer"]
 ].map(([id,name,cat]) => ({id,name,cat}));
 
@@ -412,7 +412,7 @@ const SHELF_DAYS = {
   "roasted-peppers":4, "sliced-cucumbers":3, "sliced-jalapenos":3, "sliced-red-onions":3, "tortilla-chips":3,
   "berry-compote":7, "brownies":4,
   /* added 2026-10-15 (Clay): frozen quality date */
-  "shrimp-raw-frozen":90, "ribs-frozen":90, "beef-frozen":90, "breaded-avocado":90,
+  "shrimp-raw-frozen":90, "ribs-frozen":90, "beef-frozen":90, "ground-beef-frozen":90, "breaded-avocado":90,
   "basil":3, "cilantro":3,
   "ribs-thawing":5, "beef-thawing":5, "ground-beef-thawing":4, "lettuce":5, "shredded-lettuce":5, "spring-mix":5
 };
@@ -424,7 +424,8 @@ const ITEM_NOTES = {
   "hamburger-patty": "Made from thawed ground beef? The patty label can't go past the Ground Beef Thawing label's date.",
   "smoked-ribs": "Made from thawed ribs? Raw ribs can't be used past the Ribs Thawing label's date.",
   "ribs-frozen": "Keep frozen at 0°F or below.",
-  "beef-frozen": "Keep frozen at 0°F or below.",
+  "beef-frozen": "Whole cuts. Keep frozen at 0°F or below.",
+  "ground-beef-frozen": "Keep frozen at 0°F or below. When you pull it to thaw, print a Ground Beef Thawing label.",
   "breaded-avocado": "Keep frozen at 0°F or below.",
   "shrimp-raw-frozen": "Keep frozen at 0°F or below. Thaw in the walk-in, never at room temperature.",
   "fried-onions": "Recipe Book: toss 4 hours after frying, even though the label shows end of day.",
