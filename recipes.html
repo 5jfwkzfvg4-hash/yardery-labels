@@ -393,11 +393,17 @@
   .labelbtn { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; min-height: 44px; padding: 0 16px; border-radius: 10px; background: var(--catcolor2); color: #fff; font-weight: 700; font-size: 14px; text-decoration: none; }
   .dn-ro input[data-dn] { pointer-events: none; opacity: .55; }
   .labelbtn:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+  .labelrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+  .labelrow .labelbtn { margin-top: 0; }
+  .labelrow .labelmsg { flex-basis: 100%; margin-top: 0; }
+  .lqty { display: flex; align-items: center; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+  .lqty button { border: 0; background: var(--catbg2, #F1F4EC); min-width: 44px; min-height: 44px; font-size: 20px; font-weight: 700; color: var(--ink); cursor: pointer; }
+  .lqty output { min-width: 40px; text-align: center; font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; }
   .labelbtn.ok { background: #2E6B3A; }
   .labelbtn[aria-disabled="true"] { opacity: .7; cursor: progress; }
   .labelmsg { margin-top: 8px; font-size: 13.5px; font-weight: 600; color: #2E6B3A; }
   .labelmsg.bad { color: #A3322A; }
-  @media print { .labelbtn, .labelmsg { display: none; } }
+  @media print { .labelrow, .labelbtn, .labelmsg { display: none; } }
   .note .why { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
   .note .why-h { font-family: 'Bitter', Georgia, serif; font-weight: 700; font-size: 15px; color: var(--catcolor2); margin-bottom: 6px; }
   .note .why p { margin: 0 0 9px; line-height: 1.5; }
@@ -2353,7 +2359,17 @@ const IN_LABELS_APP = (() => { try { return window.self !== window.top; } catch 
 if (!IN_LABELS_APP) document.getElementById("labelsBtn").hidden = false;
 // Inside the label page, "Print prep label" asks it to print right away; the book stays on this page.
 const PARENT_ORIGIN = location.origin === "null" ? "*" : location.origin;
+function labelQty(a){ const o = a.parentElement.querySelector(".lqty output"); return o ? parseInt(o.textContent, 10) || 1 : 1; }
+function labelText(n){ return n === 1 ? "Print prep label" : "Print " + n + " labels"; }
 document.addEventListener("click", e => {
+  const q = e.target.closest && e.target.closest("[data-lq]");
+  if (q && IN_LABELS_APP) {
+    const row = q.closest(".labelrow"), o = row.querySelector(".lqty output"), a = row.querySelector("a.labelbtn");
+    const n = Math.max(1, Math.min(50, (parseInt(o.textContent, 10) || 1) + parseInt(q.dataset.lq, 10)));
+    o.textContent = n;
+    if (a.getAttribute("aria-disabled") !== "true") { a.classList.remove("ok", "bad"); a.textContent = labelText(n); }
+    return;
+  }
   const a = e.target.closest && e.target.closest("a.labelbtn[data-item]");
   if (!a || !IN_LABELS_APP) return;
   e.preventDefault();
@@ -2361,7 +2377,7 @@ document.addEventListener("click", e => {
   a.setAttribute("aria-disabled", "true"); a.classList.remove("ok", "bad");
   a.textContent = "Printing…";
   const msg = a.parentElement.querySelector(".labelmsg"); if (msg) msg.textContent = "";
-  window.parent.postMessage({ type: "ypl-print", item: a.dataset.item }, PARENT_ORIGIN);
+  window.parent.postMessage({ type: "ypl-print", item: a.dataset.item, qty: labelQty(a) }, PARENT_ORIGIN);
 });
 window.addEventListener("message", e => {
   if (!IN_LABELS_APP || e.source !== window.parent) return;
@@ -2370,12 +2386,14 @@ window.addEventListener("message", e => {
   document.querySelectorAll('a.labelbtn[data-item="' + d.item + '"]').forEach(a => {
     a.removeAttribute("aria-disabled");
     a.classList.add(d.ok ? "ok" : "bad");
-    a.textContent = d.ok ? "Printed ✓" : "Print prep label";
+    const o = a.parentElement.querySelector(".lqty output");
+    if (d.ok && o) o.textContent = "1";               // back to 1 so a second tap doesn't repeat a big batch by accident
+    a.textContent = d.ok ? "Printed ✓" : labelText(labelQty(a));
     let msg = a.parentElement.querySelector(".labelmsg");
     if (!msg) { msg = document.createElement("div"); msg.className = "labelmsg"; msg.setAttribute("role", "status"); a.after(msg); }
     msg.textContent = d.text || "";
     msg.classList.toggle("bad", !d.ok);
-    if (d.ok) setTimeout(() => { a.classList.remove("ok"); a.textContent = "Print prep label"; }, 4000);
+    if (d.ok) setTimeout(() => { a.classList.remove("ok"); a.textContent = labelText(labelQty(a)); }, 4000);
   });
 });
 // Taps in the book count as using the app, so the label page keeps (or takes back) the printer.
@@ -2398,7 +2416,9 @@ function buildRecipeInner(r, cat, mult) {
   body += ingYieldsHTML(r.id);
   body += `<h4>Method</h4><ol class="steps">${r.steps.map(s => `<li>${s}</li>`).join('')}</ol>`;
   if (r.note) body += `<div class="note"><strong>Note — </strong>${r.note}</div>`;
-  if (PREP_LABEL_IDS.has(r.id)) body += `<a class="labelbtn" data-item="${r.id}" href="${PREP_LABELS_URL}?item=${encodeURIComponent(r.id)}">Print prep label</a>`;
+  if (PREP_LABEL_IDS.has(r.id)) body += `<div class="labelrow">` +
+    (IN_LABELS_APP ? `<div class="lqty" role="group" aria-label="How many labels"><button type="button" data-lq="-1" aria-label="One fewer">−</button><output aria-label="Labels to print">1</output><button type="button" data-lq="1" aria-label="One more">+</button></div>` : ``) +
+    `<a class="labelbtn" data-item="${r.id}" href="${PREP_LABELS_URL}?item=${encodeURIComponent(r.id)}">Print prep label</a></div>`;
   if (r.ratio) body += `<div class="ratio"><strong>Ratio</strong>${r.ratio}</div>`;
   return body;
 }

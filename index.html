@@ -165,7 +165,13 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .rbbar b{font:700 1rem var(--display)}
 .rbback{border:0;background:var(--yellow);color:#1E241A;border-radius:10px;min-height:42px;padding:0 14px;font-weight:800}
 .rb iframe{flex:1;width:100%;border:0;background:#fff}
-@media (max-width:480px){ .hdrbtn{padding:0 10px;font-size:.85rem} }
+.hdrbtn{white-space:nowrap}
+/* phones: the book button gets its own full-width row under the header */
+@media (max-width:480px){
+  .top{flex-wrap:wrap!important;row-gap:8px}
+  .top .brand{flex:1 1 0;min-width:0} .top .brand b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hdrbtn{order:10;flex:1 0 100%;min-height:40px}
+}
 .onbstep{display:flex;flex-direction:column;gap:14px}
 .lookfor{border:2px solid var(--green);background:var(--green-soft);border-radius:12px;padding:12px 14px;font-size:.9rem}
 .lookfor b{display:block;font:800 1.3rem var(--display);color:var(--ink);margin-top:4px;word-break:break-all}
@@ -207,7 +213,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   <div class="logo" role="img" aria-label="The Yardery"></div>
   <div class="brand"><b>Prep Labels</b><span id="locname">The Yardery</span></div>
   <button class="pchip" id="pchip" type="button" aria-live="polite"><i></i><span id="pchipTxt">Connect printer</span></button>
-  <button class="hdrbtn" id="rbBtn" type="button">Recipes</button>
+  <button class="hdrbtn" id="rbBtn" type="button">Open Recipe Book</button>
   <button class="iconbtn" id="helpBtn" type="button" aria-label="Help">?</button>
   <button class="iconbtn" id="setBtn" type="button" aria-label="Printer settings">⚙</button>
 </header>
@@ -1105,7 +1111,8 @@ window.addEventListener("popstate", () => closeRecipes(true)); // phone Back but
 // Messages from the book: activity pings keep the printer, and "Print prep label" prints one label right away
 // (approved shelf life, made now, this device's name) without leaving the recipe page.
 function replyBook(msg){ try{ $("rbFrame").contentWindow.postMessage(msg, location.origin === "null" ? "*" : location.origin); }catch(e){} }
-async function printFromBook(id){
+async function printFromBook(id, qty){
+  qty = Math.max(1, Math.min(50, parseInt(qty, 10) || 1));
   const it = ITEMS.find(i => i.id === id);
   const days = it && SHELF_DAYS[it.id];
   const who = store.get("name", "");
@@ -1115,17 +1122,17 @@ async function printFromBook(id){
   if(state.printing) return done(false, "The printer is busy with another label. Try again in a moment.");
   const now = new Date(), ub = useBy(now, days, startsDayZero(it));
   try{
-    await send(buildJob([{name: it.name, made: now, ub, ini: who.toUpperCase()}]), null);
+    await send(buildJob(copies({name: it.name, made: now, ub, ini: who.toUpperCase()}, qty)), null);
     state.recent = [it.id].concat(state.recent.filter(x => x !== it.id)).slice(0, 6);
     store.set("recent", state.recent); renderList();
-    done(true, "Printed · use by " + DOW[ub.getDay()] + " " + md(ub));
+    done(true, "Printed " + qty + (qty === 1 ? " label" : " labels") + " · use by " + DOW[ub.getDay()] + " " + md(ub));
   }catch(e){ done(false, (e && e.message) || "Couldn't print."); }
 }
 window.addEventListener("message", e => {
   if(e.source !== $("rbFrame").contentWindow) return;
   const d = e.data || {};
   if(d.type === "ypl-active"){ const wasIdle = !state.ch; touch(); if(wasIdle) autoConnect(); return; }
-  if(d.type === "ypl-print"){ touch(); printFromBook(d.item); }
+  if(d.type === "ypl-print"){ touch(); printFromBook(d.item, d.qty); }
 });
 
 /* ---------- first-time setup ---------- */
