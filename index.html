@@ -158,6 +158,11 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .sheet h3{font:700 1.3rem var(--display);margin:0}
 .sheet h4{font:700 1rem var(--display);margin:6px 0 0}
 .sheet ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px}
+.onbstep{display:flex;flex-direction:column;gap:14px}
+.lookfor{border:2px solid var(--green);background:var(--green-soft);border-radius:12px;padding:12px 14px;font-size:.9rem}
+.lookfor b{display:block;font:800 1.3rem var(--display);color:var(--ink);margin-top:4px;word-break:break-all}
+.lookfor span{display:block;font-size:.82rem;color:var(--ink-soft);margin-top:4px}
+.linkbtn{border:0;background:none;color:var(--ink-soft);text-decoration:underline;font-weight:600;padding:8px;align-self:center}
 .sheet .sh{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .btn{border:1.5px solid var(--line);background:var(--paper);border-radius:12px;min-height:48px;padding:0 16px;font-weight:650}
 .btn.pri{background:var(--green);border-color:var(--green);color:var(--green-ink)}
@@ -256,9 +261,9 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     </div>
 
     <div class="row" id="whoWrap">
-      <div style="flex:0 1 120px">
-        <label class="flab" for="initials">Your initials</label>
-        <input class="txt" id="initials" maxlength="4" autocapitalize="characters" autocomplete="off" placeholder="e.g. JE">
+      <div style="flex:0 1 140px">
+        <label class="flab" for="initials">Name on label</label>
+        <input class="txt" id="initials" maxlength="12" autocapitalize="words" autocomplete="off" placeholder="First name">
       </div>
       <div style="flex:1 1 200px">
         <label class="flab" for="made">Made (now)</label>
@@ -281,6 +286,36 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
 </main>
 
 <div class="scrim" id="scrim" hidden></div>
+
+<!-- First-time setup on a new device: first name, then connect the printer. Shown until this device connects once. -->
+<div class="sheet onb" id="onbSheet" hidden role="dialog" aria-modal="true" aria-labelledby="onbH">
+  <div id="onbName" class="onbstep">
+    <p class="hint">First-time setup · Step 1 of 2</p>
+    <h3 id="onbH">Welcome to Prep Labels</h3>
+    <p style="margin:0">What's your first name? It prints on every label you make from this device.</p>
+    <div>
+      <label class="flab" for="onbNameIn">First name</label>
+      <input class="txt" id="onbNameIn" maxlength="12" autocomplete="given-name" autocapitalize="words" placeholder="e.g. Maria">
+    </div>
+    <button class="btn pri" id="onbNameNext" type="button" disabled>Continue</button>
+  </div>
+  <div id="onbPrinter" class="onbstep" hidden>
+    <p class="hint" id="onbStepLab">First-time setup · Step 2 of 2</p>
+    <h3>Connect the label printer</h3>
+    <div id="onbEnv"></div>
+    <ol id="onbSteps"></ol>
+    <div class="lookfor" id="onbLook">On the list, tap the printer named<b id="onbPrinterName"></b><span id="onbPrinterHint"></span></div>
+    <button class="btn pri" id="onbConnect" type="button">Connect printer</button>
+    <button class="btn" id="onbCopy" type="button" hidden>Copy this link</button>
+    <div class="status" id="onbStatus" role="status"></div>
+    <button class="linkbtn" id="onbSkip" type="button">Skip for now</button>
+  </div>
+  <div id="onbDone" class="onbstep" hidden>
+    <h3>You're all set, <span id="onbDoneName"></span>!</h3>
+    <p style="margin:0">Labels from this device will say <b>BY <span id="onbDoneBy"></span></b>. Next time, the printer reconnects when you tap Print. Pick an item, set how many, and print.</p>
+    <button class="btn pri" id="onbFinish" type="button">Start printing</button>
+  </div>
+</div>
 
 <div class="sheet" id="helpSheet" hidden role="dialog" aria-modal="true" aria-labelledby="helpH">
   <div class="sh"><h3 id="helpH">Connect the label printer</h3><button class="btn" data-close type="button">Done</button></div>
@@ -347,6 +382,11 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     <button class="btn" id="discBtn" type="button">Disconnect</button>
   </div>
   <div class="status" id="setStatus" role="status"></div>
+  <div>
+    <h4>This device</h4>
+    <p class="hint" id="devInfo"></p>
+    <button class="btn" id="rerunSetup" type="button" style="margin-top:8px">New person on this device? Run setup again</button>
+  </div>
 </div>
 
 <script>
@@ -354,7 +394,9 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
 "use strict";
 /* ===== LOCATION SETTINGS (change these for a new store) ===== */
 const LOCATION = { name: "The Yardery · Sanford",
-  printUrl: "https://5jfwkzfvg4-hash.github.io/yardery-labels/" /* the store's hosted printing link */ };
+  printUrl: "https://5jfwkzfvg4-hash.github.io/yardery-labels/" /* the store's hosted printing link */,
+  printerModel: "Zebra ZD411",
+  printerName: "" /* the name the ZD411 shows in the Bluetooth list; fill in once known */ };
 
 /* ===== PREP ITEMS (from the Recipe Book, 2026-10-14) ===== */
 const CATS = [
@@ -470,7 +512,12 @@ const state = {
   device: null, ch: null, mode: null, connecting: false
 };
 $("locname").textContent = LOCATION.name;
-$("initials").value = store.get("initials", "");
+/* ---------- this device: id, name, first-time setup ---------- */
+function newId(){ try{ return crypto.randomUUID(); }catch(e){ return "d-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); } }
+let deviceId = store.get("deviceId", "");
+if(!deviceId){ deviceId = newId(); store.set("deviceId", deviceId); }
+function cleanName(v){ return String(v || "").replace(/[^A-Za-zÀ-ÿ'\- ]/g, "").replace(/\s+/g, " ").trimStart().slice(0, 12); }
+$("initials").value = store.get("name", "");
 $("dpi").value = String(store.get("dpi", 203));
 $("nudgeX").value = store.get("nx", 0);
 $("nudgeY").value = store.get("ny", 0);
@@ -687,12 +734,12 @@ function renderPanel(){
   if(!hasItem) missing.push("pick an item");
   else if(!L.name) missing.push("type the item name");
   if(hasItem && !state.days) missing.push("pick the shelf life");
-  if(hasItem && !L.ini) missing.push("add your initials");
+  if(hasItem && !L.ini) missing.push("add your name");
   const pb = $("printBtn");
   pb.disabled = missing.length > 0;
   pb.textContent = missing.length ? "To print: " + missing.join(", ") : B ? "Print all " + state.batch.items.length + " labels" : "Print " + state.qty + (state.qty === 1 ? " label" : " labels");
 }
-$("initials").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g,""); store.set("initials", e.target.value); renderPanel(); });
+$("initials").addEventListener("input", e => { e.target.value = cleanName(e.target.value); store.set("name", e.target.value.trim()); renderPanel(); });
 $("made").addEventListener("input", () => { state.madeTouched = true; renderPanel(); });
 $("qMinus").onclick = () => { state.qty = Math.max(1, state.qty - 1); renderPanel(); };
 $("qPlus").onclick = () => { state.qty = Math.min(50, state.qty + 1); renderPanel(); };
@@ -806,6 +853,8 @@ async function connect(){
     const svc = await timeout(server.getPrimaryService(ZSVC), 15000, "service");
     state.ch = await timeout(svc.getCharacteristic(ZWRITE), 10000, "service");
     setChip("on", state.device.name ? "Printer: " + state.device.name : "Printer connected");
+    store.set("printerSetup", true);
+    if(state.device.name) store.set("printerName", state.device.name);
     return state.ch;
   }catch(err){
     dropConnection();
@@ -924,6 +973,10 @@ $("discBtn").onclick = () => {
 /* ---------- sheets ---------- */
 function openSheet(id){
   $("scrim").hidden = false; $(id).hidden = false;
+  if(id === "setSheet"){
+    const pn = store.get("printerName", "");
+    $("devInfo").textContent = "Labels print with: " + (store.get("name", "") || "no name yet") + " · Printer: " + (pn || "not connected yet") + " · Device ID: " + deviceId.slice(0, 8);
+  }
   if(id === "helpSheet"){
     const m = envMessage(); const n = $("envNote");
     n.className = m ? "note warn" : ""; n.textContent = m;
@@ -933,12 +986,92 @@ function openSheet(id){
   }
   const b = $(id).querySelector("[data-close]"); if(b) b.focus();
 }
-function closeSheets(){ $("scrim").hidden = true; document.querySelectorAll(".sheet").forEach(s => s.hidden = true); }
+function closeSheets(){
+  if(!$("onbSheet").hidden) return; // first-time setup stays until finished or skipped
+  $("scrim").hidden = true; document.querySelectorAll(".sheet").forEach(s => s.hidden = true);
+}
 $("helpBtn").onclick = () => openSheet("helpSheet");
 $("setBtn").onclick = () => openSheet("setSheet");
 $("scrim").onclick = closeSheets;
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeSheets);
 document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeSheets(); $("panel").classList.remove("open"); } });
+
+/* ---------- first-time setup ---------- */
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+function printerLabel(){ return LOCATION.printerName || store.get("printerName", ""); }
+function showOnbStep(id){ ["onbName","onbPrinter","onbDone"].forEach(x => $(x).hidden = x !== id); }
+function li(html){ const el = document.createElement("li"); el.innerHTML = html; return el; }
+function buildPrinterSteps(){
+  const env = btEnv(), ol = $("onbSteps"); ol.innerHTML = "";
+  const pn = printerLabel();
+  $("onbPrinterName").textContent = pn || LOCATION.printerModel;
+  $("onbPrinterHint").textContent = pn ? "It's the " + LOCATION.printerModel + " label printer. Ignore anything else on the list."
+    : "If you don't see that name, look for the serial number from the sticker on the back of the printer.";
+  $("onbCopy").hidden = true; $("onbConnect").hidden = false; $("onbLook").hidden = false;
+  $("onbEnv").className = ""; $("onbEnv").textContent = "";
+  if(env === "ok"){
+    [ "Turn the " + LOCATION.printerModel + " on. The light should be solid green.",
+      "Make sure <b>Bluetooth</b> is on in this device's settings.",
+      "Make sure no other phone or tablet is connected to the printer. It only talks to one at a time.",
+      "Tap <b>Connect printer</b> below. A list of nearby devices pops up.",
+      "Tap the printer name shown in the green box, then tap <b>Pair</b> or <b>Connect</b>. If asked to allow <b>Nearby devices</b>, tap Allow." ]
+      .forEach(t => ol.appendChild(li(t)));
+  } else if(env === "ios-nobt"){
+    $("onbEnv").className = "note warn";
+    $("onbEnv").textContent = "Safari and Chrome on iPhone and iPad can't reach the printer. Use the free Bluefy app instead.";
+    [ "Install <b>Bluefy – Web BLE Browser</b> (free) from the App Store.",
+      "Tap <b>Copy this link</b> below, open Bluefy, and paste the link in its address bar.",
+      "Bluefy opens this setup again. Enter your name there and connect the printer." ]
+      .forEach(t => ol.appendChild(li(t)));
+    $("onbConnect").hidden = true; $("onbCopy").hidden = false; $("onbLook").hidden = true;
+  } else {
+    $("onbEnv").className = "note warn";
+    $("onbEnv").textContent = "This browser can't reach the printer. On Android, open this link in Chrome. On iPhone or iPad, use the free Bluefy app.";
+    $("onbConnect").hidden = true; $("onbCopy").hidden = false; $("onbLook").hidden = true;
+  }
+}
+function openOnboarding(){
+  $("scrim").hidden = false; $("onbSheet").hidden = false;
+  const name = store.get("name", "");
+  // iPhone/iPad Safari can't print; send them to Bluefy before asking a name that Bluefy won't see
+  if(!name && btEnv() !== "ios-nobt"){
+    showOnbStep("onbName"); $("onbNameIn").value = ""; setTimeout(() => $("onbNameIn").focus(), 200);
+  } else {
+    $("onbStepLab").textContent = name ? "First-time setup · Step 2 of 2" : "First-time setup";
+    buildPrinterSteps(); showOnbStep("onbPrinter");
+  }
+}
+function closeOnboarding(){ $("onbSheet").hidden = true; $("scrim").hidden = true; }
+$("onbNameIn").addEventListener("input", e => { e.target.value = cleanName(e.target.value); $("onbNameNext").disabled = !e.target.value.trim(); });
+$("onbNameIn").addEventListener("keydown", e => { if(e.key === "Enter" && !$("onbNameNext").disabled) $("onbNameNext").click(); });
+$("onbNameNext").onclick = () => {
+  let n = $("onbNameIn").value.trim(); if(!n) return;
+  n = n.charAt(0).toUpperCase() + n.slice(1);
+  store.set("name", n); $("initials").value = n; renderPanel();
+  if(store.get("printerSetup", false)){ closeOnboarding(); return; }
+  buildPrinterSteps(); showOnbStep("onbPrinter");
+};
+$("onbConnect").onclick = async () => {
+  const b = $("onbConnect"); b.disabled = true; stepEl = $("onbStatus"); say($("onbStatus"), "Opening the printer list…");
+  try{
+    await connect();
+    const n = store.get("name", "") || "there";
+    $("onbDoneName").textContent = n; $("onbDoneBy").textContent = n.toUpperCase();
+    showOnbStep("onbDone");
+  }catch(e){ say($("onbStatus"), (e && e.message) || "Couldn't connect.", "err"); }
+  b.disabled = false;
+};
+$("onbCopy").onclick = async () => {
+  const url = LOCATION.printUrl || location.href;
+  try{ await navigator.clipboard.writeText(url); say($("onbStatus"), "Link copied. Open Bluefy and paste it.", "ok"); }
+  catch(e){ say($("onbStatus"), "Copy this link: " + url, ""); }
+};
+$("onbSkip").onclick = closeOnboarding;
+$("onbFinish").onclick = closeOnboarding;
+$("rerunSetup").onclick = () => {
+  store.set("name", ""); store.set("printerSetup", false); $("initials").value = "";
+  closeSheets(); renderPanel(); openOnboarding();
+};
 
 /* ---------- start ---------- */
 $("made").value = toLocalInput(new Date());
@@ -950,6 +1083,7 @@ try{
   if(hit) pick(hit);
 }catch(e){}
 if(btEnv() !== "ok") setChip("", "Printer help");
+if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines };
 })();
 </script>
