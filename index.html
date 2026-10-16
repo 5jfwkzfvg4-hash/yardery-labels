@@ -320,7 +320,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   <div id="onbPrinter" class="onbstep" hidden>
     <p class="hint" id="onbStepLab">First-time setup · Step 2 of 2</p>
     <h3>Connect the label printer</h3>
-    <div class="note warn" id="onbOne"><b>One device at a time.</b> The printer can only be connected to one phone or tablet. If someone else is connected right now, you can't connect until they disconnect (⚙ → Disconnect) or close the app. Turning the printer off and on also frees it.</div>
+    <div class="note warn" id="onbOne"><b>One device at a time.</b> The printer can only be connected to one phone or tablet. If someone else is connected right now, you can't connect until they're done. Phones let go of the printer by themselves when the app is closed or untouched for 3 minutes, or they can tap ⚙ → Disconnect. Turning the printer off and on also frees it.</div>
     <div id="onbEnv"></div>
     <ol id="onbSteps"></ol>
     <div class="lookfor" id="onbLook">On the list, tap the printer named<b id="onbPrinterName"></b><span id="onbPrinterHint"></span></div>
@@ -331,7 +331,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   </div>
   <div id="onbDone" class="onbstep" hidden>
     <h3>You're all set, <span id="onbDoneName"></span>!</h3>
-    <p style="margin:0">Labels from this device will say <b>BY <span id="onbDoneBy"></span></b>. Next time, the printer reconnects when you tap Print. Pick an item, set how many, and print.</p>
+    <p style="margin:0">Labels from this device will say <b>BY <span id="onbDoneBy"></span></b>. From now on, this device connects to the printer by itself when you open the app. Pick an item, set how many, and print.</p>
     <button class="btn pri" id="onbFinish" type="button">Start printing</button>
   </div>
 </div>
@@ -528,7 +528,7 @@ const state = {
   cat: "all", q: "", item: null, custom: false,
   days: null, qty: 1, madeTouched: false, moreOpen: false, textOnly: false, batch: null,
   recent: store.get("recent", []),
-  device: null, ch: null, mode: null, connecting: false, pickAll: false
+  device: null, ch: null, mode: null, connecting: false, pickAll: false, manualOff: false, printing: false, connectP: null
 };
 $("locname").textContent = LOCATION.name;
 /* ---------- this device: id, name, first-time setup ---------- */
@@ -758,7 +758,8 @@ function renderPanel(){
   pb.disabled = missing.length > 0;
   pb.textContent = missing.length ? "To print: " + missing.join(", ") : B ? "Print all " + state.batch.items.length + " labels" : "Print " + state.qty + (state.qty === 1 ? " label" : " labels");
 }
-$("initials").addEventListener("input", e => { e.target.value = cleanName(e.target.value); store.set("name", e.target.value.trim()); renderPanel(); });
+// Typing here changes the name for this label only; the device's remembered name changes only through setup.
+$("initials").addEventListener("input", e => { e.target.value = cleanName(e.target.value); renderPanel(); });
 $("made").addEventListener("input", () => { state.madeTouched = true; renderPanel(); });
 $("qMinus").onclick = () => { state.qty = Math.max(1, state.qty - 1); renderPanel(); };
 $("qPlus").onclick = () => { state.qty = Math.min(50, state.qty + 1); renderPanel(); };
@@ -854,7 +855,22 @@ function dropConnection(){
   state.ch = null; state.mode = null;
   try{ if(state.device && state.device.gatt && state.device.gatt.connected) state.device.gatt.disconnect(); }catch(e){}
 }
-async function connect(){
+function adoptDevice(dev){
+  state.device = dev;
+  if(dev && !dev.__ypl){ dev.__ypl = true; dev.addEventListener("gattserverdisconnected", () => { state.ch = null; if(!state.connecting) setChip("", "Connect printer"); }); }
+}
+// One connection attempt at a time: a Print tap during an auto-connect waits for it, then retries itself if it failed.
+async function connect(auto){
+  if(!auto) state.manualOff = false;
+  if(state.ch && state.device && state.device.gatt && state.device.gatt.connected) return state.ch;
+  if(state.connectP){
+    try{ return await state.connectP; }catch(e){ if(auto) throw e; }
+    if(state.ch && state.device && state.device.gatt && state.device.gatt.connected) return state.ch;
+  }
+  state.connectP = connectOnce(auto);
+  try{ return await state.connectP; } finally { state.connectP = null; }
+}
+async function connectOnce(auto){
   if(state.ch && state.device && state.device.gatt && state.device.gatt.connected) return state.ch;
   state.ch = null;
   const msg = envMessage();
@@ -867,11 +883,10 @@ async function connect(){
       const opts = (LOCATION.printerName && !state.pickAll)
         ? { filters: [{ name: LOCATION.printerName }], optionalServices: [ZSVC] }
         : { acceptAllDevices: true, optionalServices: [ZSVC] };
-      state.device = await timeout(navigator.bluetooth.requestDevice(opts), 45000, "picker");
-      state.device.addEventListener("gattserverdisconnected", () => { state.ch = null; setChip("", "Reconnect printer"); });
+      adoptDevice(await timeout(navigator.bluetooth.requestDevice(opts), 45000, "picker"));
     }
     step("Step 2 of 3: connecting to " + (state.device.name || "the printer") + "…");
-    const server = await timeout(state.device.gatt.connect(), 20000, "connect");
+    const server = await timeout(state.device.gatt.connect(), auto ? 8000 : 20000, "connect");
     step("Step 3 of 3: finding the print channel…");
     const svc = await timeout(server.getPrimaryService(ZSVC), 15000, "service");
     state.ch = await timeout(svc.getCharacteristic(ZWRITE), 10000, "service");
@@ -882,7 +897,7 @@ async function connect(){
   }catch(err){
     dropConnection();
     if(err && err.name === "Timeout" && err.message === "picker") state.device = null;
-    setChip("", state.device ? "Reconnect printer" : "Connect printer");
+    setChip("", auto ? "Connect printer" : state.device ? "Reconnect printer" : "Connect printer");
     throw friendly(err);
   }finally{ state.connecting = false; }
 }
@@ -922,6 +937,10 @@ async function writeChunks(ch, bytes, withResponse){
   }
 }
 async function send(text, statusEl){
+  state.printing = true;
+  try{ return await sendNow(text, statusEl); } finally { state.printing = false; touch(); }
+}
+async function sendNow(text, statusEl){
   stepEl = statusEl || null;
   const ch = await connect();
   const bytes = new TextEncoder().encode(text);
@@ -995,7 +1014,7 @@ $("calBtn").onclick = async () => {
   catch(e){ say($("setStatus"), e.message, "err"); }
 };
 $("discBtn").onclick = () => {
-  dropConnection(); state.device = null; setChip("", "Connect printer");
+  dropConnection(); state.manualOff = true; setChip("", "Connect printer");
   say($("setStatus"), "Disconnected. Another tablet can connect now.", "ok");
 };
 
@@ -1024,6 +1043,48 @@ $("setBtn").onclick = () => openSheet("setSheet");
 $("scrim").onclick = closeSheets;
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeSheets);
 document.addEventListener("keydown", e => { if(e.key === "Escape"){ if(!$("rb").hidden){ closeRecipes(false); return; } closeSheets(); $("panel").classList.remove("open"); } });
+
+/* ---------- auto-connect and hand-off ----------
+   A device that has connected before reconnects on its own when the app is open and in use.
+   The printer takes one device at a time, so a device lets go when its app goes to the
+   background or sits untouched for IDLE_MS; whoever is actively using the app gets it next. */
+const IDLE_MS = 3 * 60 * 1000;
+let lastActive = Date.now();
+function touch(){ lastActive = Date.now(); }
+async function rememberedPrinter(){
+  if(state.device) return state.device;
+  if(!navigator.bluetooth || typeof navigator.bluetooth.getDevices !== "function") return null;
+  try{
+    const list = await navigator.bluetooth.getDevices();
+    const want = store.get("printerName", "") || LOCATION.printerName;
+    const dev = list.find(d => d.name && d.name === want) || (list.length === 1 ? list[0] : null);
+    if(dev) adoptDevice(dev);
+    return dev || null;
+  }catch(e){ return null; }
+}
+async function autoConnect(){
+  if(framed() || btEnv() !== "ok" || state.manualOff) return;
+  if(!store.get("printerSetup", false)) return;
+  if(document.visibilityState !== "visible" || state.connecting || state.printing) return;
+  if(state.ch && state.device && state.device.gatt && state.device.gatt.connected) return;
+  if(!(await rememberedPrinter())) return;          // browser doesn't remember it: first Print tap reconnects
+  try{ stepEl = null; await connect(true); }catch(e){ /* printer off or in use by someone else: try again on next tap */ }
+}
+function release(why){
+  if(!state.ch || state.printing || state.connecting) return;
+  dropConnection();
+  setChip("", why === "idle" ? "Printer free · tap to use" : "Connect printer");
+}
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "hidden") release("hidden");
+  else { touch(); autoConnect(); }
+});
+window.addEventListener("pagehide", () => release("hidden"));
+["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, () => {
+  const wasIdle = !state.ch; touch();
+  if(wasIdle) autoConnect();                          // a tap from the person using the app takes the printer back
+}, {passive: true, capture: true}));
+setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("idle"); }, 15000);
 
 /* ---------- Recipe Book (recipes.html, shown over this page) ---------- */
 function openRecipes(){
@@ -1140,6 +1201,7 @@ try{
 }catch(e){}
 if(btEnv() !== "ok") setChip("", "Printer help");
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
+else autoConnect();
 window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines };
 })();
 </script>
