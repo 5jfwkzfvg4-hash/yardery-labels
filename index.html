@@ -508,6 +508,13 @@ const BATCH = { id: "line-set", name: "Line Set", days: 2, items: [
   "Fire Marinara","Shredded Mozzarella","Mix Cheese Blend"
 ] };
 
+/* ===== MANAGER LOG: names entered and labels printed, sent to Clay's private Google Form =====
+   Leave formUrl empty to turn logging off. entry ids come from the form's "Get pre-filled link". */
+const LOG = {
+  formUrl: "",          // https://docs.google.com/forms/d/e/<id>/formResponse
+  fields: { event: "", name: "", device: "", items: "", labels: "", made: "", useBy: "", source: "" }
+};
+
 /* ===== Zebra Bluetooth LE (Zebra Parser Service) ===== */
 const ZSVC = "38eb4a80-c570-11e3-9507-0002a5d5c51b";
 const ZWRITE = "38eb4a82-c570-11e3-9507-0002a5d5c51b";
@@ -983,6 +990,7 @@ $("printBtn").onclick = async () => {
       // one job: a separate label format per item, all with the same made/use-by dates
       await send(buildJob(B.items.map(name => Object.assign({}, L, {name}))), $("status"));
       say($("status"), "Printed all " + B.items.length + " " + B.name + " labels.", "ok");
+      logPrint(B.name, B.items.map(name => ({name, count: 1})), L.made, L.ub);
       state.madeTouched = false;
     }catch(e){ say($("status"), (e && e.message) || "Couldn't print.", "err"); }
     renderPanel(); return;
@@ -990,6 +998,7 @@ $("printBtn").onclick = async () => {
   try{
     await send(buildJob(copies(L, state.qty)), $("status"));
     say($("status"), "Printed " + state.qty + (state.qty === 1 ? " label" : " labels") + " for " + L.name + ".", "ok");
+    logPrint(state.custom ? (L.textOnly ? "custom text" : "custom") : "labels page", [{name: L.name, count: state.qty}], L.textOnly ? null : L.made, L.textOnly ? null : L.ub);
     if(state.item){
       state.recent = [state.item.id].concat(state.recent.filter(x => x !== state.item.id)).slice(0, 6);
       store.set("recent", state.recent);
@@ -1049,6 +1058,40 @@ $("setBtn").onclick = () => openSheet("setSheet");
 $("scrim").onclick = closeSheets;
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeSheets);
 document.addEventListener("keydown", e => { if(e.key === "Escape"){ if(!$("rb").hidden){ closeRecipes(false); return; } closeSheets(); $("panel").classList.remove("open"); } });
+
+/* ---------- manager log ----------
+   Each event is queued on the device and posted to the form; anything that fails (offline) is retried later. */
+function fmtStamp(d){ return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+function logEvent(ev){
+  if(!LOG.formUrl) return;
+  const q = store.get("logQueue", []);
+  q.push(Object.assign({device: deviceId.slice(0, 8)}, ev));
+  store.set("logQueue", q.slice(-500));
+  flushLog();
+}
+let flushing = false;
+async function flushLog(){
+  if(!LOG.formUrl || flushing) return;
+  flushing = true;
+  try{
+    let q = store.get("logQueue", []);
+    while(q.length){
+      const ev = q[0], body = new URLSearchParams();
+      Object.keys(LOG.fields).forEach(k => { if(LOG.fields[k] && ev[k] != null) body.append(LOG.fields[k], String(ev[k])); });
+      try{ await fetch(LOG.formUrl, { method: "POST", mode: "no-cors", body }); }
+      catch(e){ break; }                       // offline: keep the rest for later
+      q = store.get("logQueue", []).slice(1); store.set("logQueue", q);
+    }
+  } finally { flushing = false; }
+}
+window.addEventListener("online", flushLog);
+function logPrint(source, labels, made, ub){
+  // labels: [{name, count}]
+  const total = labels.reduce((n, l) => n + l.count, 0);
+  logEvent({ event: "print", name: store.get("name", "") || "(no name)", source,
+    items: labels.map(l => l.count > 1 ? l.name + " ×" + l.count : l.name).join(", "), labels: total,
+    made: made ? fmtStamp(made) : "", useBy: ub ? (ub.getMonth()+1) + "/" + ub.getDate() + "/" + ub.getFullYear() : "" });
+}
 
 /* ---------- auto-connect and hand-off ----------
    A device that has connected before reconnects on its own when the app is open and in use.
@@ -1126,6 +1169,7 @@ async function printFromBook(id, qty){
     state.recent = [it.id].concat(state.recent.filter(x => x !== it.id)).slice(0, 6);
     store.set("recent", state.recent); renderList();
     done(true, "Printed " + qty + (qty === 1 ? " label" : " labels") + " · use by " + DOW[ub.getDay()] + " " + md(ub));
+    logPrint("recipe book", [{name: it.name, count: qty}], now, ub);
   }catch(e){ done(false, (e && e.message) || "Couldn't print."); }
 }
 window.addEventListener("message", e => {
@@ -1189,6 +1233,7 @@ $("onbNameNext").onclick = () => {
   let n = $("onbNameIn").value.trim(); if(!n) return;
   n = n.charAt(0).toUpperCase() + n.slice(1);
   store.set("name", n); $("initials").value = n; renderPanel();
+  logEvent({ event: "name entered", name: n, source: "setup" });
   if(store.get("printerSetup", false)){ closeOnboarding(); return; }
   buildPrinterSteps(); showOnbStep("onbPrinter");
 };
@@ -1226,6 +1271,7 @@ try{
 if(btEnv() !== "ok") setChip("", "Printer help");
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 else autoConnect();
+flushLog();
 window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines };
 })();
 </script>
