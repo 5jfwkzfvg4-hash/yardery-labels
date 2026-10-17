@@ -202,7 +202,7 @@ test('Labels: no Diced Cucumbers label (owner, 2026-10-17: we only slice cucumbe
   await p.close2();
 });
 
-test('Labels: every Line Set item has its own button, with no repeats', async () => {
+test('Labels: every Line Flip Labels item has its own button, with no repeats', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const r = await p.evaluate(() => {
     const y = window.__ypl, key = n => n.toLowerCase().replace(/ de gallo$/, '');
@@ -210,7 +210,7 @@ test('Labels: every Line Set item has its own button, with no repeats', async ()
     return { missing: y.BATCH.items.filter(n => !names.includes(key(n))), dupes: names.filter((n, i) => names.indexOf(n) !== i),
       days: Object.fromEntries(y.ITEMS.filter(i => i.cat === 'line').map(i => [i.id, y.SHELF_DAYS[i.id]])) };
   });
-  eq(r.missing.join(', '), '', 'Line Set items without a button');
+  eq(r.missing.join(', '), '', 'Line Flip Labels items without a button');
   eq(r.dupes.join(', '), '', 'repeated buttons');
   // Food Code 3-501.17 (Florida): TCS items 7 days max; parmesan (hard cheese) exempt
   eq(JSON.stringify(r.days), JSON.stringify({ feta: 7, parmesan: 14, 'sliced-tomatoes': 3, american: 7, beef: 4, sausage: 4, pepperoni: 7,
@@ -240,7 +240,7 @@ test('Labels: dates — prep day counts as day 1; frozen/thawing day it goes in 
   await p.close2();
 });
 
-test('Labels: Line Set prints all 21 with the same 2-day date', async () => {
+test('Labels: Line Flip Labels prints all 21 with the same 2-day date', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await p.click('#batchBtn'); await printAndWait(p, /Printed all/);
   const f = formats(await zpl(p));
@@ -317,7 +317,7 @@ test('Book: Data Needed is read-only outside Claude; book opened alone links to 
 
 /* ================= Prep List ================= */
 
-test('Prep List: lists the Line Set and every labeled item; on-hand counts kept today; Prep = par − on hand', async () => {
+test('Prep List: lists the Line Flip Labels and every labeled item; on-hand counts kept today; Prep = par − on hand', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await p.click('#plBtn'); await p.waitForTimeout(200);
   const want = await p.evaluate(() => window.__ypl.BATCH.items.length + window.__ypl.ITEMS.filter(i => window.__ypl.SHELF_DAYS[i.id] && i.cat !== 'line').length);
@@ -476,7 +476,7 @@ test('Log: prints made before the form is set up are kept and sent once it is', 
   await p.close2();
 });
 
-test('Log: Line Set writes one row per item (21 rows)', async () => {
+test('Log: Line Flip Labels writes one row per item (21 rows)', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const got = [];
   await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
@@ -487,7 +487,7 @@ test('Log: Line Set writes one row per item (21 rows)', async () => {
   await p.click('#batchBtn'); await printAndWait(p, /Printed all/); await p.waitForTimeout(1500);
   eq(got.length, 21, 'rows');
   eq(new Set(got.map(g => g['entry.5'])).size, 21, 'one row per item');
-  assert(got.every(g => g['entry.9'] === 'Line Set' && g['entry.6'] === '1'), 'source and count');
+  assert(got.every(g => g['entry.9'] === 'Line Flip Labels' && g['entry.6'] === '1'), 'source and count');
   await p.close2();
 });
 

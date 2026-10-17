@@ -24,7 +24,7 @@ The kitchen depends on this page to print legally required date labels. Keep it 
    its shelf life changes, update the Google Doc "Yardery Sanford — Line Item Prep List"
    (id `15GWG2fqwkSGYDuniQI_gNhSUw4pXfIPPDSCz6zbedCQ`) in place with the Google Docs connector: same link,
    grids only (section heading + table, no other text), columns Item | Shelf life | Par | On Hand | Prep |
-   Initials | Notes (Line Set table has no Shelf life column), items alphabetical within each section (Line Set and Frozen & Thawing
+   Initials | Notes (Line Flip Labels table has no Shelf life column), items alphabetical within each section (Line Flip Labels and Frozen & Thawing
    follow the app's order), Item column
    150pt. Never create a new doc. If the Docs connector isn't available, tell the owner the doc still needs the change.
    The in-app Prep List builds itself from the same data; par levels live in `PARS` (owner-set only).

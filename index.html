@@ -256,7 +256,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
       </div>
       <button class="custombtn" id="customTop" type="button">+ Custom label</button>
     </div>
-    <button class="batchbtn" id="batchBtn" type="button"><b id="batchBtnName">Line Set</b><span id="batchBtnSub">21 labels · 2-day shelf life</span></button>
+    <button class="batchbtn" id="batchBtn" type="button"><b id="batchBtnName">Line Flip Labels</b><span id="batchBtnSub">21 labels · 2-day shelf life</span></button>
     <div class="pills" id="pills" role="toolbar" aria-label="Categories"></div>
     <div id="lists"></div>
     <button class="custom" id="customBtn" type="button">+ Item not listed? Make a custom label</button>
@@ -479,7 +479,7 @@ const CATS = [
   {id:"sides",    name:"Sides", c:"--side"},
   {id:"toppings", name:"Toppings & Prep", c:"--topping"},
   {id:"desserts", name:"Desserts", c:"--dessert"},
-  {id:"line",     name:"Line Set Items", c:"--side"},
+  {id:"line",     name:"Line Flip Items", c:"--side"},
   {id:"freezer",  name:"Frozen & Thawing", c:"--other"}
 ];
 const ITEMS = [
@@ -510,7 +510,7 @@ const ITEMS = [
   ["shrimp-raw-frozen","ShrimpRawFrzn","freezer"],["ribs-thawing","Ribs Thawing","freezer"],["beef-thawing","Beef Thawing","freezer"],["ground-beef-thawing","Ground Beef Thawing","freezer"],
   ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"],["ground-beef-frozen","Ground Beef Frozen","freezer"],
   ["breaded-avocado","Frozen Breaded Avocado","freezer"],
-  // Line Set items that had no button of their own (Clay 2026-10-17); each has its own shelf life (see SHELF_DAYS)
+  // Line Flip Labels items that had no button of their own (Clay 2026-10-17); each has its own shelf life (see SHELF_DAYS)
   ["feta","Feta","line"],["parmesan","Parmesan","line"],["sliced-tomatoes","Sliced Tomatoes","line"],["american","American","line"],
   ["beef","Beef","line"],["sausage","Sausage","line"],["pepperoni","Pepperoni","line"],["sliced-mozzarella","Sliced Mozzarella","line"],
   ["pineapple","Pineapple","line"],["shredded-mozzarella","Shredded Mozzarella","line"],["mix-cheese-blend","Mix Cheese Blend","line"]
@@ -533,7 +533,7 @@ const SHELF_DAYS = {
   "berry-compote":7, "brownies":4,
   /* added 2026-10-15 (Clay): frozen quality date */
   "shrimp-raw-frozen":90, "ribs-frozen":90, "beef-frozen":90, "ground-beef-frozen":90, "breaded-avocado":90,
-  // Line Set items, set from FDA Food Code 3-501.17 as adopted in Florida (Clay 2026-10-17): ready-to-eat TCS food at 41°F
+  // Line Flip Labels items, set from FDA Food Code 3-501.17 as adopted in Florida (Clay 2026-10-17): ready-to-eat TCS food at 41°F
   // or below = 7 days max, day opened/made = day 1; hard and semi-soft cheeses and shelf-stable dry sausage are exempt.
   "feta":7, "parmesan":14, "sliced-tomatoes":3, "american":7, "beef":4, "sausage":4, "pepperoni":7, "sliced-mozzarella":7,
   "pineapple":5, "shredded-mozzarella":7, "mix-cheese-blend":7,
@@ -570,13 +570,13 @@ const ITEM_NOTES = {
 };
 
 /* ===== ONE-TAP SETS (Clay 2026-10-15): one button prints one label per item, same shelf life ===== */
-const BATCH = { id: "line-set", name: "Line Set", days: 2, items: [
+const BATCH = { id: "line-set", name: "Line Flip Labels", days: 2, items: [
   "Feta","Parmesan","Sliced Red Onions","Coleslaw","Sliced Cucumbers","Mango Pico","Pico","Diced Tomatoes","Sliced Tomatoes",
   "Pickles","American","Beef","Roasted Peppers","Sausage","Pepperoni","Sliced Jalapeños","Sliced Mozzarella","Pineapple",
   "Fire Marinara","Shredded Mozzarella","Mix Cheese Blend"
 ] };
 
-/* ===== PREP LIST PARS: set by the owner. Key = item id (or the Line Set name), value = [amount, "unit"],
+/* ===== PREP LIST PARS: set by the owner. Key = item id (or the Line Flip Labels name), value = [amount, "unit"],
    e.g. "pico-de-gallo": [2, "qt"], "Feta": [1, "1/6 pan"]. No par = the Prep column shows "—". ===== */
 const PARS = {};
 
@@ -889,7 +889,7 @@ function zplLines(text, size, width){
   }
   return lines;
 }
-/* Every print job is built the same way as the Line Set, which prints dead-centered on the ZD411:
+/* Every print job is built the same way as the Line Flip Labels, which prints dead-centered on the ZD411:
    one ^XA..^XZ format per label (^PQ1), with ^XB (no backfeed) on every label except the last,
    so the roll feeds straight through and only the final label advances to the tear bar. */
 function buildJob(labels){
@@ -1115,7 +1115,7 @@ $("printBtn").onclick = async () => {
     try{
       // one job: a separate label format per item, all with the same made/use-by dates
       await send(buildJob(B.items.map(name => Object.assign({}, L, {name}))), $("status"));
-      say($("status"), "Printed all " + B.items.length + " " + B.name + " labels.", "ok");
+      say($("status"), "Printed all " + B.items.length + " " + B.name + ".", "ok");
       logPrint(B.name, B.items.map(name => ({name, count: 1})), L.made, L.ub);
       state.madeTouched = false;
     }catch(e){ say($("status"), (e && e.message) || "Couldn't print.", "err"); }
@@ -1335,7 +1335,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-17.8";
+const APP_VERSION = "2026-10-17.9";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1418,7 +1418,7 @@ const PL_SECTIONS = (() => {
   const az = (a, b) => a.name.localeCompare(b.name);
   const secs = [{name: BATCH.name, line: true, rows: BATCH.items.map(n => ({key: n, name: n, days: BATCH.days}))}];
   CATS.forEach(c => {
-    if(c.id === "line") return;                             // already rows of the Line Set table above
+    if(c.id === "line") return;                             // already rows of the Line Flip Labels table above
     const list = ITEMS.filter(i => i.cat === c.id && SHELF_DAYS[i.id]);
     if(c.id !== "freezer") list.sort(az);
     if(list.length) secs.push({name: c.name, rows: list.map(i => ({key: i.id, name: i.name, days: SHELF_DAYS[i.id], item: i}))});

@@ -15,7 +15,7 @@ Everything lives in `index.html`. Near the top of the `<script>`:
 - `ITEMS` – prep items (from the Recipe Book).
 - `SHELF_DAYS` – KM-approved shelf life per item (approved 2026-10-14), e.g. `"pico-de-gallo":3`. Keep it matching the Recipe Book.
 - `ITEM_NOTES` – extra instruction shown when an item is picked (e.g. Fried Onions 4-hour rule). Prep day counts as day 1; cold-held ready-to-eat food maxes at 7 days (FL Admin. Code 61C-4.010 / FDA Food Code 3-501.17).
-- `PARS` – par level per item for the **Prep List** screen, e.g. `"pico-de-gallo": [2, "qt"]` (Line Set items use their name). Owner-set only. Staff count On Hand; Prep = par − on hand; each row prints its label. Counts stay on that device for the day.
+- `PARS` – par level per item for the **Prep List** screen, e.g. `"pico-de-gallo": [2, "qt"]` (Line Flip Labels items use their name). Owner-set only. Staff count On Hand; Prep = par − on hand; each row prints its label. Counts stay on that device for the day.
 - `YIELDS` – batch yield per item, copied from the Recipe Book's `BATCH_YIELDS` (a check keeps them equal). Printing an item with a yield asks how many batches were made; the log records batches and batches × yield. Until the Google Form has "Batches" and "Amount Made" questions (`LOG.fields.batches` / `made`), they are added to the Source column.
 
 Bump `APP_VERSION` in `index.html` with every change (including `recipes.html`), then commit to `main`. The link updates in about a minute, and tablets that leave the app open pick it up within about 5 minutes once nobody is using the screen (or right away when the app is reopened).
