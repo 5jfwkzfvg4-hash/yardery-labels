@@ -513,10 +513,13 @@ const BATCH = { id: "line-set", name: "Line Set", days: 2, items: [
 ] };
 
 /* ===== MANAGER LOG: names entered and labels printed, sent to Clay's private Google Form =====
-   Leave formUrl empty to turn logging off. entry ids come from the form's "Get pre-filled link". */
+   The form feeds the "Yardery Sanford — Prep Label Print Log" sheet, one row per item per print.
+   Leave formUrl empty to turn logging off. entry ids come from the form's "Get pre-filled link".
+   Form questions, in order: Event, Date, Time, Printed By, Item (Recipe Book name), # Labels,
+   Prep Date, Use-By Date, Source, Device. */
 const LOG = {
   formUrl: "",          // https://docs.google.com/forms/d/e/<id>/formResponse
-  fields: { event: "", name: "", device: "", items: "", labels: "", made: "", useBy: "", source: "" }
+  fields: { event: "", date: "", time: "", name: "", item: "", labels: "", prep: "", useBy: "", source: "", device: "" }
 };
 
 /* ===== Zebra Bluetooth LE (Zebra Parser Service) ===== */
@@ -1091,11 +1094,13 @@ document.addEventListener("keydown", e => { if(e.key === "Escape"){ if(!$("rb").
 
 /* ---------- manager log ----------
    Each event is queued on the device and posted to the form; anything that fails (offline) is retried later. */
-function fmtStamp(d){ return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+function fmtDate(d){ return (d.getMonth()+1) + "/" + d.getDate() + "/" + d.getFullYear(); }
+function fmtTime(d){ let h = d.getHours(); const ap = h < 12 ? "AM" : "PM"; h = h % 12 || 12; return h + ":" + pad(d.getMinutes()) + " " + ap; }
 function logEvent(ev){
   if(!LOG.formUrl) return;
-  const q = store.get("logQueue", []);
-  q.push(Object.assign({device: deviceId.slice(0, 8)}, ev));
+  const now = new Date(), q = store.get("logQueue", []);
+  // date/time are stamped on the device, so a print sent later (after being offline) keeps its real time
+  q.push(Object.assign({device: deviceId.slice(0, 8), date: fmtDate(now), time: fmtTime(now)}, ev));
   store.set("logQueue", q.slice(-500));
   flushLog();
 }
@@ -1116,11 +1121,10 @@ async function flushLog(){
 }
 window.addEventListener("online", flushLog);
 function logPrint(source, labels, made, ub){
-  // labels: [{name, count}]
-  const total = labels.reduce((n, l) => n + l.count, 0);
-  logEvent({ event: "print", name: store.get("name", "") || "(no name)", source,
-    items: labels.map(l => l.count > 1 ? l.name + " ×" + l.count : l.name).join(", "), labels: total,
-    made: made ? fmtStamp(made) : "", useBy: ub ? (ub.getMonth()+1) + "/" + ub.getDate() + "/" + ub.getFullYear() : "" });
+  // one row per item per print (labels: [{name, count}])
+  const who = store.get("name", "") || "(no name)";
+  labels.forEach(l => logEvent({ event: "print", name: who, source, item: l.name, labels: l.count,
+    prep: made ? fmtDate(made) + " " + fmtTime(made) : "", useBy: ub ? fmtDate(ub) : "" }));
 }
 
 /* ---------- safety nets: the printer controls can never get stuck ----------

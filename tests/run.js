@@ -311,7 +311,24 @@ test('Log: names and prints are sent to the form; offline prints are kept and se
   offline = true;
   await pickItem(p, 'Croutons'); await printAndWait(p, /Croutons/); await p.waitForTimeout(300);
   offline = false; await p.evaluate(() => window.dispatchEvent(new Event('online'))); await p.waitForTimeout(500);
-  eq(got.map(g => g['entry.1'] + ':' + (g['entry.4'] || '')).join(' | '), 'name entered: | print:Coleslaw | print:Croutons', 'log rows');
+  eq(got.map(g => g['entry.1'] + ':' + (g['entry.5'] || '')).join(' | '), 'name entered: | print:Coleslaw | print:Croutons', 'log rows');
+  assert(got.every(g => /^\d+\/\d+\/\d{4}$/.test(g['entry.2']) && /^\d+:\d\d [AP]M$/.test(g['entry.3'])), 'date and time stamped on the device');
+  eq(got[1]['entry.4'] + '|' + got[1]['entry.6'] + '|' + got[1]['entry.9'], 'Maria|1|labels page', 'printed by, # labels, source');
+  await p.close2();
+});
+
+test('Log: Line Set writes one row per item (21 rows)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const got = [];
+  await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
+  await p.evaluate(() => {
+    const L = window.__ypl.LOG; L.formUrl = 'https://docs.google.com/forms/d/e/TEST/formResponse';
+    Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); });
+  });
+  await p.click('#batchBtn'); await printAndWait(p, /Printed all/); await p.waitForTimeout(1500);
+  eq(got.length, 21, 'rows');
+  eq(new Set(got.map(g => g['entry.5'])).size, 21, 'one row per item');
+  assert(got.every(g => g['entry.9'] === 'Line Set' && g['entry.6'] === '1'), 'source and count');
   await p.close2();
 });
 
