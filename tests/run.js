@@ -209,6 +209,14 @@ test('Labels: Brussels Sprouts button in Sides with a 7-day shelf life (owner, 2
   await p.close2();
 });
 
+test('Labels: Sour Cream (7 days) added; American renamed Sliced American Cheese on its button and in Line Flip Labels (owner, 2026-10-17)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const r = await p.evaluate(() => { const { ITEMS, SHELF_DAYS, BATCH } = window.__ypl, sc = ITEMS.find(i => i.id === 'sour-cream'), am = ITEMS.find(i => i.id === 'american');
+    return [sc && sc.name, sc && SHELF_DAYS[sc.id], am.name, BATCH.items.includes('Sliced American Cheese'), BATCH.items.includes('American')]; });
+  eq(JSON.stringify(r), JSON.stringify(['Sour Cream', 7, 'Sliced American Cheese', true, false]), 'items');
+  await p.close2();
+});
+
 test('Labels: every Line Flip Labels item has its own button, with no repeats', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const r = await p.evaluate(() => {

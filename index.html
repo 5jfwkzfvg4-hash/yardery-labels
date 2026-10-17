@@ -506,12 +506,12 @@ const ITEMS = [
   ["tortilla-chips","Tortilla Chips","toppings"],
   ["berry-compote","Berry Compote","desserts"],["brownies","Brownies","desserts"],
   ["lettuce","Lettuce","toppings"],["shredded-lettuce","Shredded Lettuce","toppings"],["spring-mix","Spring Mix","toppings"],
-  ["basil","Basil","toppings"],["cilantro","Cilantro","toppings"],
+  ["basil","Basil","toppings"],["sour-cream","Sour Cream","toppings"],["cilantro","Cilantro","toppings"],
   ["shrimp-raw-frozen","ShrimpRawFrzn","freezer"],["ribs-thawing","Ribs Thawing","freezer"],["beef-thawing","Beef Thawing","freezer"],["ground-beef-thawing","Ground Beef Thawing","freezer"],
   ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"],["ground-beef-frozen","Ground Beef Frozen","freezer"],
   ["breaded-avocado","Frozen Breaded Avocado","freezer"],
   // Line Flip Labels items that had no button of their own (Clay 2026-10-17); each has its own shelf life (see SHELF_DAYS)
-  ["feta","Feta","line"],["parmesan","Parmesan","line"],["sliced-tomatoes","Sliced Tomatoes","line"],["american","American","line"],
+  ["feta","Feta","line"],["parmesan","Parmesan","line"],["sliced-tomatoes","Sliced Tomatoes","line"],["american","Sliced American Cheese","line"],
   ["beef","Beef","line"],["sausage","Sausage","line"],["pepperoni","Pepperoni","line"],["sliced-mozzarella","Sliced Mozzarella","line"],
   ["pineapple","Pineapple","line"],["shredded-mozzarella","Shredded Mozzarella","line"],["mix-cheese-blend","Mix Cheese Blend","line"]
 ].map(([id,name,cat]) => ({id,name,cat}));
@@ -537,7 +537,7 @@ const SHELF_DAYS = {
   // or below = 7 days max, day opened/made = day 1; hard and semi-soft cheeses and shelf-stable dry sausage are exempt.
   "feta":7, "parmesan":14, "sliced-tomatoes":3, "american":7, "beef":4, "sausage":4, "pepperoni":7, "sliced-mozzarella":7,
   "pineapple":5, "shredded-mozzarella":7, "mix-cheese-blend":7,
-  "basil":3, "cilantro":3,
+  "basil":3, "cilantro":3, "sour-cream":7 /* Clay 2026-10-17 */,
   "ribs-thawing":5, "beef-thawing":5, "ground-beef-thawing":4, "lettuce":5, "shredded-lettuce":5, "spring-mix":5
 };
 /* extra instructions shown when the item is picked */
@@ -545,6 +545,7 @@ const ITEM_NOTES = {
   "feta": "Opened package: day opened is day 1, and never past the package date.",
   "parmesan": "Hard cheese: the 7-day date-mark rule doesn't apply. House limit 14 days, and never past the package date.",
   "sliced-tomatoes": "Cut tomatoes must stay at 41°F or below. Same 3 days as Diced Tomatoes.",
+  "sour-cream": "Opened package: day opened is day 1, and never past the package date.",
   "american": "Opened package: day opened is day 1, and never past the package date.",
   "beef": "Cooked beef: cool from 135°F to 70°F within 2 hours and to 41°F within 6 hours total. Same 4 days as our other cooked proteins.",
   "sausage": "Cooked sausage: cool from 135°F to 70°F within 2 hours and to 41°F within 6 hours total. Same 4 days as our other cooked proteins.",
@@ -572,7 +573,7 @@ const ITEM_NOTES = {
 /* ===== ONE-TAP SETS (Clay 2026-10-15): one button prints one label per item, same shelf life ===== */
 const BATCH = { id: "line-set", name: "Line Flip Labels", days: 2, items: [
   "Feta","Parmesan","Sliced Red Onions","Coleslaw","Sliced Cucumbers","Mango Pico","Pico","Diced Tomatoes","Sliced Tomatoes",
-  "Pickles","American","Beef","Roasted Peppers","Sausage","Pepperoni","Sliced Jalapeños","Sliced Mozzarella","Pineapple",
+  "Pickles","Sliced American Cheese","Beef","Roasted Peppers","Sausage","Pepperoni","Sliced Jalapeños","Sliced Mozzarella","Pineapple",
   "Fire Marinara","Shredded Mozzarella","Mix Cheese Blend"
 ] };
 
@@ -1335,7 +1336,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-17.10";
+const APP_VERSION = "2026-10-17.11";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
