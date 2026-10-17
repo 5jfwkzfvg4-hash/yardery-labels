@@ -172,6 +172,9 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
   .top .brand{flex:1 1 0;min-width:0} .top .brand b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hdrbtn{order:10;flex:1 0 100%;min-height:40px}
 }
+.toast{position:fixed;z-index:60;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 74px);width:min(520px,calc(100% - 32px));
+  background:var(--ink);color:var(--paper);border-radius:12px;padding:12px 16px;font-weight:600;font-size:.92rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.toast.ok{background:var(--good);color:#fff} .toast.err{background:var(--bad);color:#fff}
 .onbstep{display:flex;flex-direction:column;gap:14px}
 .lookfor{border:2px solid var(--green);background:var(--green-soft);border-radius:12px;padding:12px 14px;font-size:.9rem}
 .lookfor b{display:block;font:800 1.3rem var(--display);color:var(--ink);margin-top:4px;word-break:break-all}
@@ -300,6 +303,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     (adopts FDA Food Code 3-501.17)</p>
 </main>
 
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <div class="scrim" id="scrim" hidden></div>
 
 <!-- Recipe Book, opened over the label page so the printer stays connected -->
@@ -541,7 +545,7 @@ const state = {
   cat: "all", q: "", item: null, custom: false,
   days: null, qty: 1, madeTouched: false, moreOpen: false, textOnly: false, batch: null,
   recent: store.get("recent", []),
-  device: null, ch: null, mode: null, connecting: false, pickAll: false, manualOff: false, printing: false, connectP: null
+  device: null, ch: null, mode: null, connecting: false, pickAll: false, manualOff: false, printing: false, connectP: null, connectMode: null, attempt: 0
 };
 $("locname").textContent = LOCATION.name;
 /* ---------- this device: id, name, first-time setup ---------- */
@@ -843,6 +847,11 @@ function setChip(mode, text){
   const c = $("pchip"); c.classList.toggle("on", mode === "on"); c.classList.toggle("busy", mode === "busy");
   $("pchipTxt").textContent = text;
 }
+let toastT = 0;
+function toast(text, kind, ms){
+  const t = $("toast"); t.textContent = text; t.className = "toast" + (kind ? " " + kind : ""); t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms || 4000);
+}
 function say(el, text, kind){ el.textContent = text; el.className = "status" + (kind ? " " + kind : ""); }
 function btEnv(){
   if(!("bluetooth" in navigator)){
@@ -872,47 +881,66 @@ function adoptDevice(dev){
   state.device = dev;
   if(dev && !dev.__ypl){ dev.__ypl = true; dev.addEventListener("gattserverdisconnected", () => { state.ch = null; if(!state.connecting) setChip("", "Connect printer"); }); }
 }
-// One connection attempt at a time: a Print tap during an auto-connect waits for it, then retries itself if it failed.
-async function connect(auto){
+/* Connecting.
+   mode "auto":  background reconnect to the remembered printer (no list, never interrupts the person).
+   mode "pick":  a Connect tap: open the printer list right away, while the tap still counts as a user action.
+   no mode:      Print: reuse a printer this page has already reached, otherwise open the list.
+   A user action never waits behind a background attempt; the older attempt is ignored when it finishes. */
+function isLive(){ return !!(state.ch && state.device && state.device.gatt && state.device.gatt.connected); }
+function staleErr(){ const e = new Error("superseded"); e.name = "Stale"; return e; }
+async function connect(mode){
+  const auto = mode === "auto";
   if(!auto) state.manualOff = false;
-  if(state.ch && state.device && state.device.gatt && state.device.gatt.connected) return state.ch;
-  if(state.connectP){
-    try{ return await state.connectP; }catch(e){ if(auto) throw e; }
-    if(state.ch && state.device && state.device.gatt && state.device.gatt.connected) return state.ch;
+  if(isLive()) return state.ch;
+  if(state.connectP && (auto || state.connectMode !== "auto")){
+    // join an attempt already running (auto joins anything; a user action joins only another user action)
+    try{ return await state.connectP; }catch(e){ if(auto || (e && e.name !== "Stale")) throw e; }
+    if(isLive()) return state.ch;
   }
-  state.connectP = connectOnce(auto);
-  try{ return await state.connectP; } finally { state.connectP = null; }
+  const my = ++state.attempt;
+  state.connectMode = auto ? "auto" : (mode || "print");
+  const run = connectOnce(mode, my);
+  state.connectP = run;
+  try{ return await run; } finally { if(state.connectP === run) state.connectP = null; }
 }
-async function connectOnce(auto){
-  if(state.ch && state.device && state.device.gatt && state.device.gatt.connected) return state.ch;
-  state.ch = null;
+async function connectOnce(mode, my){
+  const auto = mode === "auto";
   const msg = envMessage();
   if(msg){ throw new Error(msg); }
   state.connecting = true; setChip("busy", "Connecting…");
+  let dev = null;
   try{
-    if(!state.device){
+    const reuse = state.device && (auto || (mode !== "pick" && state.device.__reached));
+    if(reuse) dev = state.device;
+    else {
       step("Step 1 of 3: opening the printer list…");
       // show only our printer in the list; after a cancel, the next try shows every device in case it was renamed
       const opts = (LOCATION.printerName && !state.pickAll)
         ? { filters: [{ name: LOCATION.printerName }], optionalServices: [ZSVC] }
         : { acceptAllDevices: true, optionalServices: [ZSVC] };
-      adoptDevice(await timeout(navigator.bluetooth.requestDevice(opts), 45000, "picker"));
+      dev = await timeout(navigator.bluetooth.requestDevice(opts), 45000, "picker");
     }
-    step("Step 2 of 3: connecting to " + (state.device.name || "the printer") + "…");
-    const server = await timeout(state.device.gatt.connect(), auto ? 8000 : 20000, "connect");
+    if(my !== state.attempt) throw staleErr();
+    adoptDevice(dev);
+    step("Step 2 of 3: connecting to " + (dev.name || "the printer") + "…");
+    const server = await timeout(dev.gatt.connect(), auto ? 8000 : 20000, "connect");
+    if(my !== state.attempt) throw staleErr();
     step("Step 3 of 3: finding the print channel…");
     const svc = await timeout(server.getPrimaryService(ZSVC), 15000, "service");
-    state.ch = await timeout(svc.getCharacteristic(ZWRITE), 10000, "service");
-    setChip("on", state.device.name ? "Printer: " + state.device.name : "Printer connected");
+    const ch = await timeout(svc.getCharacteristic(ZWRITE), 10000, "service");
+    if(my !== state.attempt) throw staleErr();
+    dev.__reached = true; state.device = dev; state.ch = ch; state.mode = null;
+    setChip("on", dev.name ? "Printer: " + dev.name : "Printer connected");
     store.set("printerSetup", true);
-    if(state.device.name) store.set("printerName", state.device.name);
+    if(dev.name) store.set("printerName", dev.name);
     return state.ch;
   }catch(err){
-    dropConnection();
+    if(err && err.name === "Stale") throw err;          // a newer attempt took over; leave its state alone
+    if(!dev || dev === state.device) dropConnection();
     if(err && err.name === "Timeout" && err.message === "picker") state.device = null;
     setChip("", auto ? "Connect printer" : state.device ? "Reconnect printer" : "Connect printer");
     throw friendly(err);
-  }finally{ state.connecting = false; }
+  }finally{ if(my === state.attempt) state.connecting = false; }
 }
 function friendly(err){
   const m = (err && (err.name + " " + err.message)) || "";
@@ -975,10 +1003,11 @@ async function sendNow(text, statusEl){
   catch(e){ dropConnection(); throw friendly(e); }
 }
 $("pchip").onclick = async () => {
-  if(state.connecting) return;
-  if(state.ch){ openSheet("setSheet"); return; }
-  try{ stepEl = $("status"); await connect(); say($("status"), "Printer connected. Ready to print.", "ok"); }
-  catch(e){ say($("status"), e.message, "err"); if(framed() || btEnv() !== "ok") openSheet("helpSheet"); }
+  if(isLive()){ openSheet("setSheet"); return; }
+  if(state.connecting && state.connectMode !== "auto") return;   // a Connect tap is already in progress
+  if(framed() || btEnv() !== "ok"){ openSheet("helpSheet"); return; }
+  try{ stepEl = null; toast("Opening the printer list…"); await connect("pick"); toast("Printer connected. Ready to print.", "ok"); }
+  catch(e){ if(e && e.name === "Stale") return; toast(e.message, "err", 9000); }
 };
 $("printBtn").onclick = async () => {
   const L = labelData();
@@ -1117,7 +1146,7 @@ async function autoConnect(){
   if(document.visibilityState !== "visible" || state.connecting || state.printing) return;
   if(state.ch && state.device && state.device.gatt && state.device.gatt.connected) return;
   if(!(await rememberedPrinter())) return;          // browser doesn't remember it: first Print tap reconnects
-  try{ stepEl = null; await connect(true); }catch(e){ /* printer off or in use by someone else: try again on next tap */ }
+  try{ stepEl = null; await connect("auto"); }catch(e){ /* printer off or in use by someone else: try again on next tap */ }
 }
 function release(why){
   if(!state.ch || state.printing || state.connecting) return;
@@ -1129,8 +1158,9 @@ document.addEventListener("visibilitychange", () => {
   else { touch(); autoConnect(); }
 });
 window.addEventListener("pagehide", () => release("hidden"));
-["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, () => {
+["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, e => {
   const wasIdle = !state.ch; touch();
+  if(e.target && e.target.closest && e.target.closest("#pchip,#onbConnect,#printBtn,#testBtn,#calBtn,#discBtn")) return;
   if(wasIdle) autoConnect();                          // a tap from the person using the app takes the printer back
 }, {passive: true, capture: true}));
 setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("idle"); }, 15000);
@@ -1240,7 +1270,7 @@ $("onbNameNext").onclick = () => {
 $("onbConnect").onclick = async () => {
   const b = $("onbConnect"); b.disabled = true; stepEl = $("onbStatus"); say($("onbStatus"), "Opening the printer list…");
   try{
-    await connect();
+    await connect("pick");
     const n = store.get("name", "") || "there";
     $("onbDoneName").textContent = n; $("onbDoneBy").textContent = n.toUpperCase();
     showOnbStep("onbDone");
