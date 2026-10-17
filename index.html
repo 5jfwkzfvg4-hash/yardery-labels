@@ -1186,7 +1186,7 @@ function release(why){
 }
 document.addEventListener("visibilitychange", () => {
   if(document.visibilityState === "hidden") release("hidden");
-  else { touch(); autoConnect(); }
+  else { touch(); autoConnect(); checkForUpdate(true); }
 });
 window.addEventListener("pagehide", () => release("hidden"));
 ["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, e => {
@@ -1196,10 +1196,48 @@ window.addEventListener("pagehide", () => release("hidden"));
 }, {passive: true, capture: true}));
 setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("idle"); }, 15000);
 
+/* ---------- Stay up to date ----------
+   Kitchen tablets keep this page open for days, so a change pushed to GitHub never reached them.
+   Every few minutes (and whenever the app comes back on screen) it asks the server for the newest
+   index.html, skipping every cache, and compares APP_VERSION. When it differs it reloads, but only when
+   nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
+   app was just reopened). The reload URL carries the version so no cache can hand back the old page.
+   BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
+const APP_VERSION = "2026-10-17.2";
+const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
+let pendingVersion = null;
+async function latestVersion(){
+  const r = await fetch(location.pathname.replace(/[^/]*$/, "") + "index.html?check=" + Date.now(), {cache: "no-store"});
+  if(!r.ok) return null;
+  const m = (await r.text()).match(/const APP_VERSION = "([^"]+)"/);
+  return m ? m[1] : null;
+}
+function applyUpdate(reopened){
+  if(!pendingVersion || state.printing || state.connecting) return;
+  if(!reopened && Date.now() - lastActive < UPDATE_IDLE_MS) return;
+  let tried = ""; try{ tried = sessionStorage.getItem("yplUpdateTried") || ""; }catch(e){}
+  if(tried === pendingVersion){                       // already reloaded once for this version and still old: say so, don't loop
+    toast("A new version is ready. Close the app completely and open it again.", "", 8000);
+    pendingVersion = null; return;
+  }
+  try{ sessionStorage.setItem("yplUpdateTried", pendingVersion); }catch(e){}
+  const q = new URLSearchParams(location.search); q.set("v", pendingVersion);
+  location.replace(location.pathname + "?" + q.toString() + location.hash);
+}
+async function checkForUpdate(reopened){
+  if(framed() || !/^https?:$/.test(location.protocol)) return;   // the copy inside Claude can't print anyway
+  let v = null; try{ v = await latestVersion(); }catch(e){ return; }
+  if(v && v !== APP_VERSION) pendingVersion = v;
+  applyUpdate(!!reopened);
+}
+setTimeout(() => checkForUpdate(false), 10000);
+setInterval(() => { if(pendingVersion) applyUpdate(false); else checkForUpdate(false); }, UPDATE_EVERY_MS);
+setInterval(() => applyUpdate(false), 30000);
+
 /* ---------- Recipe Book (recipes.html, shown over this page) ---------- */
 function openRecipes(){
   const f = $("rbFrame");
-  if(!f.src) f.src = "recipes.html";      // load once; keeps its place between visits
+  if(!f.src) f.src = "recipes.html?v=" + encodeURIComponent(APP_VERSION);   // load once; the version skips any cached old copy
   $("rb").hidden = false;
   try{ history.pushState({rb: 1}, ""); }catch(e){}
 }
@@ -1333,7 +1371,7 @@ if(btEnv() !== "ok") setChip("", "Printer help");
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 else autoConnect();
 flushLog();
-window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG };
+window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate };
 })();
 </script>
 </body>

@@ -348,6 +348,45 @@ test('Log: Line Set writes one row per item (21 rows)', async () => {
   await p.close2();
 });
 
+/* ================= Updates reach tablets that never close the app (bug of 2026-10-17) ================= */
+
+// Serve a "newer" index.html to the update check only, as GitHub would after a push.
+async function newerOnServer(p, v) {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace(/const APP_VERSION = "[^"]+"/, `const APP_VERSION = "${v}"`);
+  await p.context().route(/index\.html\?check=/, r => r.fulfill({ status: 200, contentType: 'text/html', body: html }));
+}
+
+test('Update: tablet left open picks up a new version once nobody is using it', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true }, { clock: true });
+  await newerOnServer(p, '9999-test');
+  await p.evaluate(() => window.__ypl.checkForUpdate(false)); await p.waitForTimeout(300);
+  assert(!/v=9999-test/.test(p.url()), 'must not reload while someone just used the screen');
+  await p.clock.fastForward(95000); await p.waitForTimeout(800);
+  assert(/v=9999-test/.test(p.url()), 'should reload to the new version after a minute idle, got ' + p.url());
+  await p.close2();
+});
+
+test('Update: coming back to the app reloads right away; never loops if the old page comes back', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  await newerOnServer(p, '9999-test');
+  await p.evaluate(() => window.__ypl.checkForUpdate(true)); await p.waitForTimeout(1200);
+  assert(/v=9999-test/.test(p.url()), 'reopening the app should load the new version');
+  // the server still hands back the old page: the next check must explain, not reload again
+  const before = p.url();
+  await p.evaluate(() => window.__ypl.checkForUpdate(true)); await p.waitForTimeout(800);
+  eq(p.url(), before, 'no second reload for the same version');
+  assert(/new version is ready/i.test(await toastText(p)), 'tells the person to reopen the app');
+  await p.close2();
+});
+
+test('Update: the Recipe Book loads the current version, not a cached copy', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const f = await openBook(p);
+  const v = await p.evaluate(() => window.__ypl.APP_VERSION);
+  assert(f && f.url().includes('v=' + encodeURIComponent(v)), 'recipes.html should carry the app version, got ' + (f && f.url()));
+  await p.close2();
+});
+
 /* ================= runner ================= */
 (async () => {
   const server = await serve();

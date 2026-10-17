@@ -16,3 +16,6 @@ The kitchen depends on this page to print legally required date labels. Keep it 
    the Recipe Book (`recipes.html` and the Claude original) in step. Prep day = day 1; Frozen & Thawing
    items: the day it goes in doesn't count.
 6. `recipes.html` is a copy of the Claude Recipe Book; see README for what differs.
+7. **Bump `APP_VERSION`** (near the Recipe Book code in `index.html`) on every change to `index.html` or
+   `recipes.html`. Open tablets compare it with the server every 5 minutes and reload when idle; without a
+   bump, devices that never close the app keep the old version.

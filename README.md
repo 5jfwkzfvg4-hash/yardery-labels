@@ -16,7 +16,7 @@ Everything lives in `index.html`. Near the top of the `<script>`:
 - `SHELF_DAYS` – KM-approved shelf life per item (approved 2026-10-14), e.g. `"pico-de-gallo":3`. Keep it matching the Recipe Book.
 - `ITEM_NOTES` – extra instruction shown when an item is picked (e.g. Fried Onions 4-hour rule). Prep day counts as day 1; cold-held ready-to-eat food maxes at 7 days (FL Admin. Code 61C-4.010 / FDA Food Code 3-501.17).
 
-Commit to `main` and the link updates in about a minute.
+Bump `APP_VERSION` in `index.html` with every change (including `recipes.html`), then commit to `main`. The link updates in about a minute, and tablets that leave the app open pick it up within about 5 minutes once nobody is using the screen (or right away when the app is reopened).
 
 ## Recipe Book
 `recipes.html` is a copy of the Recipe Book (original in Claude: https://claude.ai/artifact/6o8JrPZsbJkYeFggZnd58w).
