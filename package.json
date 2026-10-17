@@ -1,0 +1,11 @@
+{
+  "name": "yardery-labels",
+  "private": true,
+  "description": "Yardery Prep Labels — automatic checks",
+  "scripts": {
+    "test": "node tests/run.js"
+  },
+  "devDependencies": {
+    "playwright": "1.64.1"
+  }
+}

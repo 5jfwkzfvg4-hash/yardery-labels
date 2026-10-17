@@ -25,3 +25,10 @@ prints one label right away without leaving the page. Differences from the origi
 a **Labels** button shows when `recipes.html` is opened on its own, and **Data Needed** is read-only here
 (its shared saving only works inside Claude). When the original Recipe Book changes, re-copy it into
 `recipes.html` and re-apply those three changes.
+
+## Automatic checks
+`npm install` once, then `npm test` runs every check in `tests/run.js` against a simulated Zebra ZD411:
+connecting (including the "Connect printer does nothing" bug of 2026-10-17), sharing the printer between
+devices, label content/dates/feed, setup and names, the Recipe Book, layout on phones and tablets, and the
+manager log. GitHub runs them on every push and every morning at 6 AM Eastern and emails the owner if any
+fail (Actions tab shows the details). Rules for changes are in `CLAUDE.md`.

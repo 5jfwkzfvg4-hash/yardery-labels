@@ -1004,7 +1004,8 @@ async function sendNow(text, statusEl){
 }
 $("pchip").onclick = async () => {
   if(isLive()){ openSheet("setSheet"); return; }
-  if(state.connecting && state.connectMode !== "auto") return;   // a Connect tap is already in progress
+  // RULE: a Connect tap always shows something. Never return silently from here.
+  if(state.connecting && state.connectMode !== "auto"){ toast("Still connecting to the printer… if nothing happens in a few seconds, tap again."); return; }
   if(framed() || btEnv() !== "ok"){ openSheet("helpSheet"); return; }
   try{ stepEl = null; toast("Opening the printer list…"); await connect("pick"); toast("Printer connected. Ready to print.", "ok"); }
   catch(e){ if(e && e.name === "Stale") return; toast(e.message, "err", 9000); }
@@ -1121,6 +1122,32 @@ function logPrint(source, labels, made, ub){
     items: labels.map(l => l.count > 1 ? l.name + " ×" + l.count : l.name).join(", "), labels: total,
     made: made ? fmtStamp(made) : "", useBy: ub ? (ub.getMonth()+1) + "/" + ub.getDate() + "/" + ub.getFullYear() : "" });
 }
+
+/* ---------- safety nets: the printer controls can never get stuck ----------
+   1) Watchdog: every step of a connection has its own time limit (picker 45s, connect 20s, service 25s), so
+      "Connecting…" can't last longer than ~95s. If it ever does, reset so the next tap starts fresh.
+   2) Any unexpected script error while connecting or printing resets the connection state and says so. */
+let connectingSince = 0;
+setInterval(() => {
+  if(!state.connecting){ connectingSince = 0; return; }
+  if(!connectingSince){ connectingSince = Date.now(); return; }
+  if(Date.now() - connectingSince > 100000){
+    state.attempt++; state.connecting = false; state.connectP = null; connectingSince = 0;
+    dropConnection(); setChip("", "Connect printer");
+    toast("The printer didn't answer. Tap Connect printer to try again.", "err", 9000);
+  }
+}, 5000);
+function resetAfterCrash(msg){
+  state.attempt++; state.connecting = false; state.connectP = null; state.printing = false;
+  setChip("", isLive() ? "Printer: " + (state.device.name || "connected") : "Connect printer");
+  toast("Something went wrong (" + msg + "). Tap Connect printer and try again.", "err", 9000);
+}
+window.addEventListener("error", e => { if(state.connecting || state.printing) resetAfterCrash(e.message || "error"); });
+window.addEventListener("unhandledrejection", e => {
+  const r = e.reason || {};
+  if(r.name === "Stale") return;
+  if(state.connecting || state.printing) resetAfterCrash(r.message || "error");
+});
 
 /* ---------- auto-connect and hand-off ----------
    A device that has connected before reconnects on its own when the app is open and in use.
@@ -1302,7 +1329,7 @@ if(btEnv() !== "ok") setChip("", "Printer help");
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 else autoConnect();
 flushLog();
-window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines };
+window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG };
 })();
 </script>
 </body>

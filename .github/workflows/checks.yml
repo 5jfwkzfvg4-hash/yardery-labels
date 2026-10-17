@@ -1,0 +1,23 @@
+# Runs the label app's automatic checks (tests/run.js) with a simulated Zebra ZD411.
+# When: every push to main, every pull request, every morning, and on demand (Actions tab → Run workflow).
+# A failed run marks the commit red and GitHub emails the repo owner.
+name: Label app checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 10 * * *"   # 10:00 UTC = 6:00 AM Eastern (daylight time), 5:00 AM in winter
+  workflow_dispatch:
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
