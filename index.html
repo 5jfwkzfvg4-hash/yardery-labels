@@ -1096,12 +1096,12 @@ document.addEventListener("keydown", e => { if(e.key === "Escape"){ if(!$("rb").
    Each event is queued on the device and posted to the form; anything that fails (offline) is retried later. */
 function fmtDate(d){ return (d.getMonth()+1) + "/" + d.getDate() + "/" + d.getFullYear(); }
 function fmtTime(d){ let h = d.getHours(); const ap = h < 12 ? "AM" : "PM"; h = h % 12 || 12; return h + ":" + pad(d.getMinutes()) + " " + ap; }
+// Always queue, even before the form exists: nothing printed is lost, and the backlog is sent once it's connected.
 function logEvent(ev){
-  if(!LOG.formUrl) return;
   const now = new Date(), q = store.get("logQueue", []);
   // date/time are stamped on the device, so a print sent later (after being offline) keeps its real time
   q.push(Object.assign({device: deviceId.slice(0, 8), date: fmtDate(now), time: fmtTime(now)}, ev));
-  store.set("logQueue", q.slice(-500));
+  store.set("logQueue", q.slice(-3000));      // ~2 weeks of a busy kitchen; oldest dropped first
   flushLog();
 }
 let flushing = false;

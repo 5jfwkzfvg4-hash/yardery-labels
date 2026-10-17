@@ -317,6 +317,22 @@ test('Log: names and prints are sent to the form; offline prints are kept and se
   await p.close2();
 });
 
+test('Log: prints made before the form is set up are kept and sent once it is', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const got = [];
+  await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
+  await pickItem(p, 'Coleslaw'); await printAndWait(p);              // logging not configured yet
+  eq(got.length, 0, 'nothing can be sent without a form');
+  await p.evaluate(() => {                                            // form gets connected (next app version)
+    const L = window.__ypl.LOG; L.formUrl = 'https://docs.google.com/forms/d/e/TEST/formResponse';
+    Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); });
+    window.dispatchEvent(new Event('online'));
+  });
+  await p.waitForTimeout(600);
+  eq(got.map(g => g['entry.5']).join(), 'Coleslaw', 'the earlier print is delivered');
+  await p.close2();
+});
+
 test('Log: Line Set writes one row per item (21 rows)', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const got = [];
