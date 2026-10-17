@@ -189,6 +189,10 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .pltab input{width:58px;min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--paper);text-align:center;font-variant-numeric:tabular-nums}
 .pltab .plp{border:0;border-radius:10px;background:var(--green);color:var(--green-ink);min-height:40px;padding:0 12px;font-weight:700;white-space:nowrap}
 .pltab tr.done td{background:var(--good-bg)}
+/* batch count, asked before printing an item that has a Recipe Book yield; sits above the book and Prep List */
+.bcsheet{z-index:52;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+.bcsheet .qty{margin:0 auto} .bcsheet .qty button{min-height:52px}
+.bcsheet .bcamt{margin:0;text-align:center;font-weight:700;min-height:1.4em}
 .pltab tr.done .plp{background:var(--good)}
 @media (max-width:420px){ .pltab th,.pltab td{padding:6px 5px} .pltab input{width:50px} .pltab .plp{padding:0 9px} }
 .toast{position:fixed;z-index:60;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 74px);width:min(520px,calc(100% - 32px));
@@ -335,6 +339,15 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     <b>Recipe Book</b>
   </div>
   <iframe id="rbFrame" title="Recipe Book"></iframe>
+</div>
+
+<!-- Batch count: asked before printing an item that has a Recipe Book yield -->
+<div class="sheet bcsheet" id="bcSheet" hidden role="dialog" aria-modal="true" aria-labelledby="bcH">
+  <h3 id="bcH">How many batches did you make?</h3>
+  <p id="bcItem" style="margin:0"></p>
+  <div class="qty" role="group" aria-label="Batches made"><button type="button" id="bcMinus" aria-label="One fewer batch">−</button><output id="bcN" aria-label="Batches">1</output><button type="button" id="bcPlus" aria-label="One more batch">+</button></div>
+  <p class="bcamt" id="bcAmt"></p>
+  <div class="actrow"><button class="btn" id="bcCancel" type="button">Cancel</button><button class="btn pri" id="bcOk" type="button" style="flex:1">Print</button></div>
 </div>
 
 <!-- Prep List, opened over the label page so the printer stays connected -->
@@ -547,6 +560,25 @@ const BATCH = { id: "line-set", name: "Line Set", days: 2, items: [
    e.g. "pico-de-gallo": [2, "qt"], "Feta": [1, "1/6 pan"]. No par = the Prep column shows "—". ===== */
 const PARS = {};
 
+/* ===== BATCH YIELDS, copied from the Recipe Book (BATCH_YIELDS in recipes.html; a check keeps them equal; "≈" = kitchen
+   to verify). Printing a label for one of these items asks how many batches were made; the log records batches × yield. ===== */
+const YIELDS = {
+  "ahi-tuna-prep": "Per piece, 4 oz", "smoked-ribs": "1 rack", "blackened-fish": "18–21 pieces × 2 oz",
+  "crab-cakes": "≈ 4 cakes × 4 oz", "hamburger-patty": "40 patties × 4 oz", "wing-marinade": "40 lb wings",
+  "pulled-pork": "256 oz (16 lb)", "smoked-chicken-breast": "≈ 58 portions × 4 oz", "bama-white-bbq": "≈ 170 oz",
+  "buffalo-sauce": "176 oz", "cilantro-lime-sauce": "152 oz", "fire-marinara": "≈ 6.5 quarts", "fire-sauce": "176 oz",
+  "honey-mustard": "56 oz", "hot-honey-chicken-marinade": "TBD", "hot-honey-sauce": "≈ 192 oz",
+  "pickling-liquid": "12 cups", "ranch-dressing": "1.5 gallons", "tartar-sauce": "≈ 57 oz", "yardery-sauce": "164 oz",
+  "bbq-dry-rub": "96 oz", "burger-seasoning": "8 oz", "hot-honey-dredge": "412 oz", "poultry-seasoning": "7 cups",
+  "seafood-breading": "25 lb", "black-beans": "TBD", "cavatappi": "≈ 16 portions × 10 oz",
+  "street-corn-batch": "≈ 150 oz", "balsamic-strawberries": "Portioned at 4 oz each", "candied-bacon": "16 slices",
+  "candied-pecans": "Portioned at 2 oz each", "chopped-green-onions": "27 oz", "chopped-romaine": "33.25 oz",
+  "coleslaw": "TBD", "croutons": "1 loaf", "diced-tomatoes": "112 oz", "fried-onions": "Per batch, as needed",
+  "mango-pineapple-salsa": "≈ 5.5 cups", "pickled-jalapenos": "≈ 12 cups", "pickles": "12 cups",
+  "pico-de-gallo": "240 oz", "roasted-peppers": "64 oz", "sliced-cucumbers": "43.2 oz", "sliced-jalapenos": "11.2 oz",
+  "sliced-red-onions": "6 quarts", "brownies": "2 half sheet pans", "breaded-avocado": "24 orders"
+};
+
 /* ===== MANAGER LOG: names entered and labels printed, sent to Clay's private Google Form =====
    The form feeds the "Yardery Sanford — Prep Label Print Log" sheet, one row per item per print.
    Leave formUrl empty to turn logging off. entry ids come from the form's "Get pre-filled link".
@@ -556,7 +588,8 @@ const LOG = {
   formUrl: "https://docs.google.com/forms/d/e/1FAIpQLSdLhgegb5Xw-Nwvo4RwO1xX8BCZSUA_wQbqR8G9-ez6LJ0k4A/formResponse",
   fields: { event: "entry.444009407", date: "entry.258515554", time: "entry.1463676766", name: "entry.405834225",
             item: "entry.1743752289", labels: "entry.92420478", prep: "entry.1430001378", useBy: "entry.1281263933",
-            source: "entry.1833039941", device: "entry.1932382082" }
+            source: "entry.1833039941", device: "entry.1932382082",
+            batches: "", made: "" }   // no form question yet: batches and amount made ride along in Source
 };
 
 /* ===== Zebra Bluetooth LE (Zebra Parser Service) ===== */
@@ -1054,6 +1087,8 @@ $("pchip").onclick = async () => {
 $("printBtn").onclick = async () => {
   const L = labelData();
   if(!L.name || (!L.textOnly && (!L.ub || !L.ini))) return;
+  const bi = (!state.batch && !state.custom && state.item) ? await batchInfo(state.item.id, L.name) : {};
+  if(!bi){ say($("status"), "Not printed. Tap Print when you're ready.", ""); return; }
   const pb = $("printBtn"); pb.disabled = true; say($("status"), "Sending to printer…");
   if(state.batch){
     const B = state.batch;
@@ -1069,7 +1104,7 @@ $("printBtn").onclick = async () => {
   try{
     await send(buildJob(copies(L, state.qty)), $("status"));
     say($("status"), "Printed " + state.qty + (state.qty === 1 ? " label" : " labels") + " for " + L.name + ".", "ok");
-    logPrint(state.custom ? (L.textOnly ? "custom text" : "custom") : "labels page", [{name: L.name, count: state.qty}], L.textOnly ? null : L.made, L.textOnly ? null : L.ub);
+    logPrint(state.custom ? (L.textOnly ? "custom text" : "custom") : "labels page", [Object.assign({name: L.name, count: state.qty}, bi)], L.textOnly ? null : L.made, L.textOnly ? null : L.ub);
     if(state.item){
       state.recent = [state.item.id].concat(state.recent.filter(x => x !== state.item.id)).slice(0, 6);
       store.set("recent", state.recent);
@@ -1128,7 +1163,7 @@ $("helpBtn").onclick = () => openSheet("helpSheet");
 $("setBtn").onclick = () => openSheet("setSheet");
 $("scrim").onclick = closeSheets;
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeSheets);
-document.addEventListener("keydown", e => { if(e.key === "Escape"){ if(!$("rb").hidden){ closeRecipes(false); return; } closeSheets(); $("panel").classList.remove("open"); } });
+document.addEventListener("keydown", e => { if(e.key === "Escape"){ if(bcDone){ bcDone(null); return; } if(!$("rb").hidden){ closeRecipes(false); return; } closeSheets(); $("panel").classList.remove("open"); } });
 
 /* ---------- manager log ----------
    Each event is queued on the device and posted to the form; anything that fails (offline) is retried later. */
@@ -1149,7 +1184,11 @@ async function flushLog(){
   try{
     let q = store.get("logQueue", []);
     while(q.length){
-      const ev = q[0], body = new URLSearchParams();
+      const ev = Object.assign({}, q[0]), body = new URLSearchParams();
+      // a value whose question isn't on the form yet is added to Source, so it is never lost
+      const extra = ["batches", "made"].filter(k => !LOG.fields[k] && ev[k] != null && ev[k] !== "")
+        .map(k => k === "batches" ? ev[k] + (+ev[k] === 1 ? " batch" : " batches") : ev[k]);
+      if(extra.length) ev.source = [ev.source].concat(extra).filter(Boolean).join(" · ");
       Object.keys(LOG.fields).forEach(k => { if(LOG.fields[k] && ev[k] != null) body.append(LOG.fields[k], String(ev[k])); });
       try{ await fetch(LOG.formUrl, { method: "POST", mode: "no-cors", body }); }
       catch(e){ break; }                       // offline: keep the rest for later
@@ -1159,10 +1198,45 @@ async function flushLog(){
 }
 window.addEventListener("online", flushLog);
 function logPrint(source, labels, made, ub){
-  // one row per item per print (labels: [{name, count}])
+  // one row per item per print (labels: [{name, count, batches?, made?}])
   const who = store.get("name", "") || "(no name)";
-  labels.forEach(l => logEvent({ event: "print", name: who, source, item: l.name, labels: l.count,
-    prep: made ? fmtDate(made) + " " + fmtTime(made) : "", useBy: ub ? fmtDate(ub) : "" }));
+  labels.forEach(l => logEvent(Object.assign({ event: "print", name: who, source, item: l.name, labels: l.count,
+    prep: made ? fmtDate(made) + " " + fmtTime(made) : "", useBy: ub ? fmtDate(ub) : "" },
+    l.batches ? { batches: l.batches, made: l.made || "" } : {})));
+}
+
+/* ---------- batch count: asked before printing an item with a Recipe Book yield ---------- */
+// "240 oz" × 2 = "480 oz"; "18–21 pieces × 2 oz" × 2 = "36–42 pieces × 2 oz"; a yield with no leading number gives ""
+function amountMade(id, n){
+  const y = YIELDS[id]; if(!y) return "";
+  const est = /^≈ /.test(y), v = y.replace(/^≈ /, ""), f = x => String(Math.round(x * n * 100) / 100);
+  let m = v.match(/^(\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)(.*)$/);
+  if(m) return (est ? "≈ " : "") + f(+m[1]) + "–" + f(+m[2]) + m[3];
+  m = v.match(/^(\d+(?:\.\d+)?)(.*)$/);
+  if(!m) return "";
+  let unit = m[2];
+  if(+m[1] === 1 && n > 1) unit = unit.replace(/^(\s+)(rack|loaf)\b/, (x, sp, w) => sp + (w === "loaf" ? "loaves" : w + "s"));
+  return (est ? "≈ " : "") + f(+m[1]) + unit;
+}
+let bcDone = null, bcId = null;
+function askBatches(id, name, preset){
+  if(bcDone) bcDone(null);                                  // a second ask replaces the first
+  bcId = id;
+  $("bcItem").textContent = name + " · Recipe Book yield: " + YIELDS[id] + " per batch";
+  $("bcN").textContent = Math.max(1, Math.min(20, parseInt(preset, 10) || 1));
+  bcPaint(); $("bcSheet").hidden = false; $("bcOk").focus();
+  return new Promise(res => { bcDone = n => { bcDone = null; $("bcSheet").hidden = true; res(n); }; });
+}
+function bcPaint(){ const n = +$("bcN").textContent, a = amountMade(bcId, n); $("bcAmt").textContent = a ? "= " + a + " made" : n + (n === 1 ? " batch" : " batches"); }
+$("bcMinus").onclick = () => { $("bcN").textContent = Math.max(1, +$("bcN").textContent - 1); bcPaint(); };
+$("bcPlus").onclick = () => { $("bcN").textContent = Math.min(20, +$("bcN").textContent + 1); bcPaint(); };
+$("bcOk").onclick = () => { if(bcDone) bcDone(+$("bcN").textContent); };
+$("bcCancel").onclick = () => { if(bcDone) bcDone(null); };
+// batches + amount for the log, or null if the person cancelled; items with no yield aren't asked
+async function batchInfo(id, name, preset){
+  if(!id || !YIELDS[id]) return {};
+  const n = await askBatches(id, name, preset);
+  return n ? { batches: n, made: amountMade(id, n) } : null;
 }
 
 /* ---------- safety nets: the printer controls can never get stuck ----------
@@ -1229,7 +1303,7 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => release("hidden"));
 ["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, e => {
   const wasIdle = !state.ch; touch();
-  if(e.target && e.target.closest && e.target.closest("#pchip,#onbConnect,#printBtn,#testBtn,#calBtn,#discBtn,.plp")) return;
+  if(e.target && e.target.closest && e.target.closest("#pchip,#onbConnect,#printBtn,#testBtn,#calBtn,#discBtn,.plp,#bcOk")) return;
   if(wasIdle) autoConnect();                          // a tap from the person using the app takes the printer back
 }, {passive: true, capture: true}));
 setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("idle"); }, 15000);
@@ -1241,7 +1315,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-17.5";
+const APP_VERSION = "2026-10-17.6";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1291,7 +1365,7 @@ window.addEventListener("popstate", () => closeRecipes(true)); // phone Back but
 // Messages from the book: activity pings keep the printer, and "Print prep label" prints one label right away
 // (approved shelf life, made now, this device's name) without leaving the recipe page.
 function replyBook(msg){ try{ $("rbFrame").contentWindow.postMessage(msg, location.origin === "null" ? "*" : location.origin); }catch(e){} }
-async function printFromBook(id, qty){
+async function printFromBook(id, qty, mult){
   qty = Math.max(1, Math.min(50, parseInt(qty, 10) || 1));
   const it = ITEMS.find(i => i.id === id);
   const days = it && SHELF_DAYS[it.id];
@@ -1300,20 +1374,22 @@ async function printFromBook(id, qty){
   if(!it || !days) return done(false, "This item has no label set up yet. Use the Labels page.");
   if(!who) return done(false, "Set up your name first: tap ← Prep Labels and follow the setup.");
   if(state.printing) return done(false, "The printer is busy with another label. Try again in a moment.");
+  const bi = await batchInfo(it.id, it.name, mult);         // starts at the book's Multiply Batch setting
+  if(!bi) return done(false, "Not printed.");
   const now = new Date(), ub = useBy(now, days, startsDayZero(it));
   try{
     await send(buildJob(copies({name: it.name, made: now, ub, ini: who.toUpperCase()}, qty)), null);
     state.recent = [it.id].concat(state.recent.filter(x => x !== it.id)).slice(0, 6);
     store.set("recent", state.recent); renderList();
     done(true, "Printed " + qty + (qty === 1 ? " label" : " labels") + " · use by " + DOW[ub.getDay()] + " " + md(ub));
-    logPrint("recipe book", [{name: it.name, count: qty}], now, ub);
+    logPrint("recipe book", [Object.assign({name: it.name, count: qty}, bi)], now, ub);
   }catch(e){ done(false, (e && e.message) || "Couldn't print."); }
 }
 window.addEventListener("message", e => {
   if(e.source !== $("rbFrame").contentWindow) return;
   const d = e.data || {};
   if(d.type === "ypl-active"){ const wasIdle = !state.ch; touch(); if(wasIdle) autoConnect(); return; }
-  if(d.type === "ypl-print"){ touch(); printFromBook(d.item, d.qty); }
+  if(d.type === "ypl-print"){ touch(); printFromBook(d.item, d.qty, d.mult); }
 });
 
 /* ---------- Prep List: count on hand, Prep = par − on hand, print the label from the row ----------
@@ -1364,13 +1440,15 @@ async function printFromList(key, btn){
   // RULE: a Print tap always shows a result
   if(!who){ toast("Set up your name first: tap ← Prep Labels and follow the setup.", "err", 7000); return; }
   if(state.printing){ toast("The printer is busy with another label. Try again in a moment."); return; }
+  const bi = await batchInfo(f.r.item && f.r.item.id, f.r.name);
+  if(!bi){ toast("Not printed."); return; }
   const now = new Date(), ub = useBy(now, f.r.days, f.r.item ? startsDayZero(f.r.item) : false);
   btn.disabled = true; btn.textContent = "Printing…";
   try{
     await send(buildJob(copies({name: f.r.name, made: now, ub, ini: who.toUpperCase()}, 1)), null);
     const c = plCounts(); c[key] = Object.assign({}, c[key], {done: true}); plSave(c);
     toast("Printed " + f.r.name + " · use by " + DOW[ub.getDay()] + " " + md(ub), "ok");
-    logPrint("prep list", [{name: f.r.name, count: 1}], now, ub);
+    logPrint("prep list", [Object.assign({name: f.r.name, count: 1}, bi)], now, ub);
   }catch(e){ toast((e && e.message) || "Couldn't print.", "err", 9000); }
   renderPrepList();
 }
@@ -1488,7 +1566,7 @@ if(btEnv() !== "ok") setChip("", "Printer help");
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 else autoConnect();
 flushLog();
-window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PARS, PL_SECTIONS };
+window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PARS, PL_SECTIONS, YIELDS, amountMade };
 })();
 </script>
 </body>

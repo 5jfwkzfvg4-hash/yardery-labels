@@ -53,8 +53,13 @@ const zpl = p => p.evaluate(() => window.__bt.zpl);
 const formats = z => z.split('^XZ').filter(f => f.includes('^XA'));
 const toastText = async p => (await p.isVisible('#toast')) ? p.textContent('#toast') : '';
 async function pickItem(p, name) { await p.locator('.item .n').filter({ hasText: new RegExp('^' + name + '$') }).first().click(); await p.waitForTimeout(150); }
-async function printAndWait(p, re = /Printed/) {
+async function printAndWait(p, re = /Printed/, batches) {
   await p.click('#printBtn');
+  await p.waitForTimeout(150);
+  if (await p.isVisible('#bcSheet')) {                 // items with a Recipe Book yield ask how many batches
+    for (let i = 1; i < (batches || 1); i++) await p.click('#bcPlus');
+    await p.click('#bcOk');
+  }
   await p.waitForFunction(r => new RegExp(r).test(document.getElementById('status').textContent), re.source, { timeout: 40000 });
 }
 async function openBook(p) { await p.click('#rbBtn'); await p.waitForTimeout(1200); return p.frames().find(f => /recipes\.html/.test(f.url())); }
@@ -270,8 +275,13 @@ test('Book: Print prep label prints the chosen quantity and stays on the recipe'
   const p = await open({ ...REMEMBERED, getDevices: true });
   const f = await openBook(p), fl = p.frameLocator('#rbFrame');
   await f.evaluate(() => goTo(recipePageIndex['pico-de-gallo'])); await p.waitForTimeout(300);
+  await fl.locator('#batchToggle').click(); await fl.locator('[data-mult="2"]').click(); await p.waitForTimeout(200);
   await fl.locator('[data-lq="1"]').click();
   await fl.locator('a.labelbtn').click();
+  await p.waitForSelector('#bcSheet:not([hidden])');
+  eq(await p.textContent('#bcN'), '2', 'batch count starts at the book\'s Multiply Batch');
+  eq(await p.textContent('#bcAmt'), '= 480 oz made', 'amount from the Recipe Book yield');
+  await p.click('#bcOk');
   await f.waitForFunction(() => /Printed/.test(document.querySelector('a.labelbtn').textContent), null, { timeout: 30000 });
   eq(formats(await zpl(p)).length, 2, 'label count');
   eq(await f.evaluate(() => document.querySelector('.page h2').textContent), 'Pico de Gallo', 'still on the recipe');
@@ -313,6 +323,7 @@ test('Prep List: Print on a row prints one label with the approved date and stay
   const p = await open({ ...REMEMBERED, getDevices: true }, { width: 390, height: 844 });
   await p.click('#plBtn'); await p.waitForTimeout(200);
   await p.click('#pl tr[data-k="pico-de-gallo"] .plp');
+  await p.waitForSelector('#bcSheet:not([hidden])'); await p.click('#bcOk');
   await p.waitForFunction(() => /Printed/.test(document.getElementById('toast').textContent), null, { timeout: 30000 });
   const z = formats(await zpl(p));
   eq(z.length, 1, 'one label');
@@ -323,6 +334,42 @@ test('Prep List: Print on a row prints one label with the approved date and stay
   assert(/done/.test(await p.getAttribute('#pl tr[data-k="pico-de-gallo"]', 'class')), 'row marked printed');
   assert(!(await p.evaluate(() => { const b = document.getElementById('plBody'); return b.scrollWidth > b.clientWidth; })), 'no sideways scroll on a phone');
   eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
+/* ================= Batches & yields ================= */
+
+test('Yields: the label app uses the Recipe Book\'s batch yields', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const app = await p.evaluate(() => ({ Y: window.__ypl.YIELDS, ids: window.__ypl.ITEMS.map(i => i.id) }));
+  const f = await openBook(p);
+  const book = await f.evaluate(ids => Object.fromEntries(ids.filter(id => BATCH_YIELDS[id]).map(id => [id, (BATCH_YIELDS[id].est ? '≈ ' : '') + BATCH_YIELDS[id].v])), app.ids);
+  eq(JSON.stringify(app.Y), JSON.stringify(book), 'YIELDS match BATCH_YIELDS');
+  const am = await p.evaluate(() => { const a = window.__ypl.amountMade; return [a('pico-de-gallo', 2), a('blackened-fish', 2), a('smoked-ribs', 3), a('bama-white-bbq', 2), a('coleslaw', 2), a('fire-marinara', 3)].join(' | '); });
+  eq(am, '480 oz | 36–42 pieces × 2 oz | 3 racks | ≈ 340 oz |  | ≈ 19.5 quarts', 'batches × yield');
+  await p.close2();
+});
+
+test('Batches: Print asks how many batches; the log gets batches and amount made; Cancel prints nothing', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const got = [];
+  await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
+  await pickItem(p, 'Pico de Gallo');
+  await p.click('#printBtn'); await p.waitForSelector('#bcSheet:not([hidden])');
+  await p.click('#bcCancel'); await p.waitForTimeout(200);
+  eq(formats(await zpl(p)).length, 0, 'cancel prints nothing');
+  assert(/Not printed/.test(await p.textContent('#status')), 'cancel is explained');
+  await printAndWait(p, /Printed/, 2);
+  eq(formats(await zpl(p)).length, 1, 'one label');
+  await p.waitForTimeout(300);
+  // until the form has Batches / Amount Made questions, they ride along in Source
+  eq(got.length && got[got.length - 1]['entry.1833039941'], 'labels page · 2 batches · 480 oz', 'source carries batches and amount');
+  await p.evaluate(() => { const L = window.__ypl.LOG; L.formUrl = 'https://docs.google.com/forms/d/e/TEST/formResponse'; Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); }); });
+  await pickItem(p, 'Croutons'); await printAndWait(p, /Croutons/, 3); await p.waitForTimeout(300);
+  const row = got[got.length - 1];
+  eq([row['entry.5'], row['entry.9'], row['entry.11'], row['entry.12']].join(' | '), 'Croutons | labels page | 3 | 3 loaves', 'own columns once the form has them');
+  await pickItem(p, 'Lettuce'); await p.click('#printBtn'); await p.waitForTimeout(200);
+  assert(!(await p.isVisible('#bcSheet')), 'items with no yield are not asked');
   await p.close2();
 });
 
@@ -345,8 +392,7 @@ test('Log: the live form is connected with all 10 questions', async () => {
   const p = await open({ getDevices: false });
   const L = await p.evaluate(() => window.__ypl.LOG);
   assert(/^https:\/\/docs\.google\.com\/forms\/d\/e\/[\w-]+\/formResponse$/.test(L.formUrl), 'form address: ' + L.formUrl);
-  const ids = Object.values(L.fields);
-  eq(ids.length, 10, 'field count');
+  const ids = ['event', 'date', 'time', 'name', 'item', 'labels', 'prep', 'useBy', 'source', 'device'].map(k => L.fields[k]);
   assert(ids.every(v => /^entry\.\d+$/.test(v)), 'every field has an entry id: ' + ids.join());
   eq(new Set(ids).size, 10, 'no two fields share an id');
   await p.close2();

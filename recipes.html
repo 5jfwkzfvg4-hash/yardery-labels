@@ -985,10 +985,6 @@ const RECIPES = [
       "Set a mandoline to about 1/8\" and run the cabbage through with the root facing up.",
       "Toss the shredded cabbage with the slaw sauce."],
     note: "Shelf life: 3 days. Cabbage mix is shredded in-house. Slaw sauce is a purchased, premade product (not the Cilantro Lime Sauce). <strong>Portions:</strong> 6 oz by weight as a side; 2.5 oz on the Pulled Pork Sandwich; 3 oz on the Three Little Pigs (1 oz per slider); 3 oz on the Baja Fish Tacos (about 1 oz per taco)." },
-  { id: "diced-cucumbers", title: "Diced Cucumbers", category: "toppings",
-    ingredients: ["Cucumbers"],
-    steps: ["Cut the ends off each cucumber, then quarter lengthwise.", "Cut into 1/2\" pieces."],
-    note: "Shelf life: 3 days. Make sure cucumbers are in good condition before cutting." },
   { id: "pico-de-gallo", title: "Pico de Gallo", category: "toppings",
     ingredients: ["20 cups diced Roma tomatoes", "5 cups diced red onion", "5 cups chopped cilantro, loosely packed", "1 tbsp lime juice", "2 tbsp sea salt", "1 tbsp pepper", "1/4 cup fresh chopped jalapeños"],
     steps: ["Chop all vegetables using the chopper, and chiffonade-cut the cilantro.",
@@ -1066,7 +1062,7 @@ const RECIPES = [
       "Drizzle with 0.5 oz balsamic glaze.",
       "Serve with 2 cups of balsamic vinaigrette on the side, 1.5 oz each in 2 oz cups (filled 3/4 of the way)."] },
   { id: "plate-house-salad", title: "House", category: "plating",
-    ingredients: ["7 oz romaine lettuce", "2 oz mix cheese blend", "2 oz sliced onion", "2 oz diced tomatoes", "2 oz cucumbers", "2 portion cups house-made ranch, 1.5 oz each"],
+    ingredients: ["7 oz romaine lettuce", "2 oz mix cheese blend", "2 oz sliced onion", "2 oz diced tomatoes", "2 oz sliced cucumbers", "2 portion cups house-made ranch, 1.5 oz each"],
     steps: ["Build in a to-go container.", "Serve with 2 cups of house-made <a href=\"#\" onclick=\"goTo(recipePageIndex['ranch-dressing']);return false;\">ranch</a> on the side, 1.5 oz each in 2 oz cups (filled 3/4 of the way)."] },
   { id: "plate-caesar-salad", title: "Caesar", category: "plating",
     ingredients: ["7 oz romaine lettuce", "8 croutons", "1 oz parmesan cheese"],
@@ -1544,7 +1540,7 @@ const FOOD_MENU = {
     {
       name: "Greens",
       items: [
-        { t: "[[House|plate-house-salad]]", p: "9", d: "Romaine, [[cucumber|diced-cucumbers]], [[red onion|sliced-red-onions]], tomato, cheddar jack, house-made [[ranch|ranch-dressing]]." },
+        { t: "[[House|plate-house-salad]]", p: "9", d: "Romaine, [[sliced cucumber|sliced-cucumbers]], [[red onion|sliced-red-onions]], tomato, cheddar jack, house-made [[ranch|ranch-dressing]]." },
         { t: "[[Caesar|plate-caesar-salad]]", p: "9", d: "Romaine, parmesan, [[croutons|croutons]], Caesar dressing." },
         { t: "[[Strawberry Chicken|plate-strawberry-field-salad]]", p: "16", d: "[[Smoked chicken|smoked-chicken-breast]], [[balsamic strawberries|balsamic-strawberries]], [[glazed pecans|candied-pecans]], feta, balsamic vinaigrette." },
         { t: "[[*Ahi Tuna|plate-ahi-tuna]]", p: "21", hl: true, d: "Seared ahi tuna, field greens, cilantro, crispy wontons, mango-pineapple salsa, mandarin orange ginger dressing." },
@@ -1733,8 +1729,6 @@ const DATA_NEEDED = [
     { name: "Toppings & Prep", items: [
       { id: "start-coleslaw", label: "Coleslaw: starting cabbage weight", rid: "coleslaw", unit: "lb cabbage", kind: "num", hint: "Recipe currently says \"1 head.\"" },
       { id: "yield-coleslaw", label: "Coleslaw", rid: "coleslaw", unit: OZ, kind: "num" },
-      { id: "start-diced-cucumbers", label: "Diced Cucumbers: starting weight", rid: "diced-cucumbers", unit: "lb cucumbers", kind: "num", hint: "Recipe has no amount listed." },
-      { id: "yield-diced-cucumbers", label: "Diced Cucumbers", rid: "diced-cucumbers", unit: OZ, kind: "num" },
       { id: "yield-pickled-jalapenos", label: "Pickled Jalapeños", rid: "pickled-jalapenos", unit: OZ, kind: "num" },
       { id: "start-sliced-red-onions", label: "Sliced Red Onions: starting weight", rid: "sliced-red-onions", unit: "lb onions", kind: "num", hint: "How many lb of whole onions fill one 6 qt batch?" }
     ]},
@@ -1795,7 +1789,7 @@ const DN_REFS = {
   "trim-green-onions": { v: "13.3", pct: "83%", txt: "Root and wilted tips trimmed, green tops kept. Whites only (no tops) is 5.9 oz (37%).", src: ["fbgV"] },
   "trim-roma-tomatoes": { v: "13.9", pct: "87%", txt: "Cored and diced. US Foods says 90%.", src: ["fbgV", "usf"] },
   "trim-jalapenos": { v: "15.7", pct: "98%", txt: "Stems off, seeds kept (pickled jalapeños). If seeded, expect about 12.8 oz (80%), based on USDA's stemmed and seeded chile figure.", src: ["fbgV"] },
-  "trim-cucumbers": { v: "15.7", pct: "98%", txt: "Ends off, skin on (Diced Cucumbers doesn't peel). The US Foods 84% is for peeled cucumbers.", src: ["fbgV", "usf"] },
+  "trim-cucumbers": { v: "15.7", pct: "98%", txt: "Ends off, skin on (Sliced Cucumbers are not peeled). The US Foods 84% is for peeled cucumbers.", src: ["fbgV", "usf"] },
   "trim-green-cabbage": { v: "13.9", pct: "87%", txt: "Outer leaves and core removed. The US Foods 64% matches USDA's figure for red cabbage, not green.", src: ["fbgV", "usf"] },
   "trim-green-beans": { v: "14.1", pct: "88%", txt: "Untrimmed beans, ends snapped. Pre-trimmed beans are 100%.", src: ["fbgV"] },
   "trim-romaine": { v: "10.2", pct: "64%", txt: "Whole untrimmed heads. If you buy romaine hearts, use 13.8 oz (86%, US Foods).", src: ["fbgV", "usf"] },
@@ -1868,6 +1862,7 @@ const conversionsPageIndex = PAGES.findIndex(p => p.type === "conversions");
 // ---------------- Update log (newest first). Add an entry whenever a page changes. ----------------
 const BOOK_UPDATED = "2026-10-17";
 const UPDATE_LOG = [
+  { to: "sliced-cucumbers", date: "2026-10-17", what: "Cucumbers are sliced, not diced: Diced Cucumbers page removed; House salad uses Sliced Cucumbers" },
   { to: "coleslaw", date: "2026-10-17", what: "Slaw sauce changed to 3 cups" },
   { to: "cover", title: "Whole book", date: "2026-10-11", what: "Fix: side swipes no longer close the book" },
   { to: "smoked-ribs", date: "2026-10-11", what: "Renamed Baby Back Ribs (3-2-1 method)" },
@@ -2318,7 +2313,6 @@ const ING_YIELDS = {
   "black-beans": [["Onion", "trim-yellow-onions"], ["Green pepper", "trim-green-bell-peppers"], ["Garlic cloves", "trim-garlic-cloves"]],
   "candied-bacon": [["Bacon, cooked", "trim-bacon"]],
   "coleslaw": [["Green cabbage", "trim-green-cabbage"]],
-  "diced-cucumbers": [["Cucumbers", "trim-cucumbers"]],
   "pico-de-gallo": [["Roma tomatoes", null, TOM_Y], ["Red onion", null, RED_ONION_Y], ["Cilantro", "trim-cilantro"], ["Jalapeños", null, JAL_Y]],
   "pickles": [["Cucumbers", "trim-cucumbers"]],
   "pickled-jalapenos": [["Jalapeños", null, JAL_Y]],
@@ -2378,7 +2372,8 @@ document.addEventListener("click", e => {
   a.setAttribute("aria-disabled", "true"); a.classList.remove("ok", "bad");
   a.textContent = "Printing…";
   const msg = a.parentElement.querySelector(".labelmsg"); if (msg) msg.textContent = "";
-  window.parent.postMessage({ type: "ypl-print", item: a.dataset.item, qty: labelQty(a) }, PARENT_ORIGIN);
+  const mv = document.querySelector("#batchToggle .batchval");   // the page's Multiply Batch setting starts the batch count
+  window.parent.postMessage({ type: "ypl-print", item: a.dataset.item, qty: labelQty(a), mult: mv ? parseInt(mv.textContent, 10) || 1 : 1 }, PARENT_ORIGIN);
 });
 window.addEventListener("message", e => {
   if (!IN_LABELS_APP || e.source !== window.parent) return;
