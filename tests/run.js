@@ -208,11 +208,13 @@ test('Labels: every Line Set item has its own button, with no repeats', async ()
     const y = window.__ypl, key = n => n.toLowerCase().replace(/ de gallo$/, '');
     const names = y.ITEMS.map(i => key(i.name));
     return { missing: y.BATCH.items.filter(n => !names.includes(key(n))), dupes: names.filter((n, i) => names.indexOf(n) !== i),
-      days: y.ITEMS.filter(i => i.cat === 'line').map(i => y.SHELF_DAYS[i.id]) };
+      days: Object.fromEntries(y.ITEMS.filter(i => i.cat === 'line').map(i => [i.id, y.SHELF_DAYS[i.id]])) };
   });
   eq(r.missing.join(', '), '', 'Line Set items without a button');
   eq(r.dupes.join(', '), '', 'repeated buttons');
-  assert(r.days.length === 11 && r.days.every(d => d === 2), 'line items keep the 2-day Line Set shelf life');
+  // Food Code 3-501.17 (Florida): TCS items 7 days max; parmesan (hard cheese) exempt
+  eq(JSON.stringify(r.days), JSON.stringify({ feta: 7, parmesan: 14, 'sliced-tomatoes': 3, american: 7, beef: 4, sausage: 4, pepperoni: 7,
+    'sliced-mozzarella': 7, pineapple: 5, 'shredded-mozzarella': 7, 'mix-cheese-blend': 7 }), 'line item shelf lives');
   await p.close2();
 });
 
