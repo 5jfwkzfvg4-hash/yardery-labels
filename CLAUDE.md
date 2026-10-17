@@ -19,3 +19,9 @@ The kitchen depends on this page to print legally required date labels. Keep it 
 7. **Bump `APP_VERSION`** (near the Recipe Book code in `index.html`) on every change to `index.html` or
    `recipes.html`. Open tablets compare it with the server every 5 minutes and reload when idle; without a
    bump, devices that never close the app keep the old version.
+8. **Prep list doc stays in step with the label buttons.** Whenever a label button is added, renamed, removed or
+   its shelf life changes, update the Google Doc "Yardery Sanford — Line Item Prep List"
+   (id `15GWG2fqwkSGYDuniQI_gNhSUw4pXfIPPDSCz6zbedCQ`) in place with the Google Docs connector: same link,
+   grids only (section heading + table, no other text), columns Item | Shelf life | Par | On Hand | Prep |
+   Initials | Notes (Line Set table has no Shelf life column), items alphabetical within each section, Item column
+   150pt. Never create a new doc. If the Docs connector isn't available, tell the owner the doc still needs the change.
