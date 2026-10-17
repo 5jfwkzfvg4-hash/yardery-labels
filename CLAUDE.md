@@ -30,9 +30,10 @@ The kitchen depends on this page to print legally required date labels. Keep it 
    The in-app Prep List builds itself from the same data; par levels live in `PARS` (owner-set only).
 9. **The Claude artifacts and the staff link are always identical, both directions (owner rule, 100% of the time).**
    `tools/sync.js` does the work; README "Keeping Claude and the staff link the same" has the exact steps.
-   - **Start every task with a sync check:** read the Recipe Book (Artifact read, url
-     https://claude.ai/artifact/6o8JrPZsbJkYeFggZnd58w, then again with path `index.html`) and Prep Labels
-     (url https://claude.ai/artifact/MQuRyZNgYr9HPpFo5dL6hb, then paths `index.html` and `recipes.html`), run
+   - **Start every task with a sync check:** Artifact read with a path saves the file without loading it into the
+     conversation: Recipe Book https://claude.ai/artifact/6o8JrPZsbJkYeFggZnd58w path `index.html`, Prep Labels
+     https://claude.ai/artifact/MQuRyZNgYr9HPpFo5dL6hb paths `index.html` and `recipes.html`. (A read with no path is
+     needed only right before publishing to that artifact.) Run
      `node tools/sync.js status <book> <labels> <labels-recipes>` and `pull` if anything says "pull".
    - **Change** the label page in `index.html`, the Recipe Book in `artifacts/recipe-book.html`. Then `node tools/sync.js build`,
      `npm test`, publish `.sync/recipe-book.html` to the Recipe Book url (omit capabilities) and `.sync/prep-labels.html` with
