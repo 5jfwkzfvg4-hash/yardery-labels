@@ -980,7 +980,7 @@ const RECIPES = [
       "<strong>For chopped bacon</strong> (Loaded Fries, Southern Chicken salad): cut the candied bacon into 1/4-inch strips."],
     note: "Shelf life: 4 days (cooked). Aim for even coverage over the bacon; cooking it while the oven preheats works well. The Yardery Burger gets 1 slice, cut in half. \"Chopped bacon\" anywhere in the book means this candied bacon cut into 1/4-inch strips." },
   { id: "coleslaw", title: "Coleslaw", category: "toppings",
-    ingredients: ["1 batch cabbage mix (1 head green cabbage, shredded)", "2 cups slaw sauce (purchased, premade)"],
+    ingredients: ["1 batch cabbage mix (1 head green cabbage, shredded)", "3 cups slaw sauce (purchased, premade)"],
     steps: ["Peel off any loose outer leaves and quarter the cabbage from the root end.",
       "Set a mandoline to about 1/8\" and run the cabbage through with the root facing up.",
       "Toss the shredded cabbage with the slaw sauce."],
@@ -1866,8 +1866,9 @@ PAGES.forEach((p, i) => { if (p.type === "divider") dividerPageIndex[p.cat] = i;
 const menuPageIndex = PAGES.findIndex(p => p.type === "menu");
 const conversionsPageIndex = PAGES.findIndex(p => p.type === "conversions");
 // ---------------- Update log (newest first). Add an entry whenever a page changes. ----------------
-const BOOK_UPDATED = "2026-10-11";
+const BOOK_UPDATED = "2026-10-17";
 const UPDATE_LOG = [
+  { to: "coleslaw", date: "2026-10-17", what: "Slaw sauce changed to 3 cups" },
   { to: "cover", title: "Whole book", date: "2026-10-11", what: "Fix: side swipes no longer close the book" },
   { to: "smoked-ribs", date: "2026-10-11", what: "Renamed Baby Back Ribs (3-2-1 method)" },
   { to: "ranch-dressing", date: "2026-10-11", what: "Shelf life 7 days; label and date step added" },
@@ -2403,7 +2404,7 @@ let lastPing = 0;
   const now = Date.now(); if (now - lastPing < 5000) return; lastPing = now;
   window.parent.postMessage({ type: "ypl-active" }, PARENT_ORIGIN);
 }, { passive: true, capture: true }));
-const PREP_LABEL_IDS = new Set(["ahi-tuna-prep","smoked-ribs","blackened-fish","crab-cakes","fried-cod","hamburger-patty","marinated-chicken-tenders","wing-marinade","pulled-pork","smoked-chicken-breast","bama-white-bbq","buffalo-sauce","cilantro-lime-sauce","fire-marinara","fire-sauce","honey-mustard","hot-honey-chicken-marinade","hot-honey-sauce","pickling-liquid","ranch-dressing","tartar-sauce","yardery-sauce","bbq-dry-rub","burger-seasoning","hot-honey-dredge","poultry-seasoning","seafood-breading","black-beans","cavatappi","street-corn-batch","balsamic-strawberries","breaded-avocado","candied-bacon","candied-pecans","caramelized-onions","chopped-green-onions","chopped-romaine","coleslaw","crispy-wontons","croutons","diced-tomatoes","roasted-cherry-tomatoes","fried-onions","mango-pico","mango-pineapple-salsa","pickled-jalapenos","pickles","pico-de-gallo","roasted-peppers","sliced-cucumbers","sliced-jalapenos","sliced-red-onions","tortilla-chips","berry-compote","brownies"]);
+const PREP_LABEL_IDS = new Set(["ahi-tuna-prep","smoked-ribs","blackened-fish","crab-cakes","fried-cod","hamburger-patty","marinated-chicken-tenders","wing-marinade","pulled-pork","smoked-chicken-breast","bama-white-bbq","buffalo-sauce","cilantro-lime-sauce","fire-marinara","fire-sauce","honey-mustard","hot-honey-chicken-marinade","hot-honey-sauce","pickling-liquid","ranch-dressing","tartar-sauce","yardery-sauce","bbq-dry-rub","burger-seasoning","hot-honey-dredge","poultry-seasoning","seafood-breading","black-beans","cavatappi","street-corn-batch","balsamic-strawberries","breaded-avocado","candied-bacon","candied-pecans","caramelized-onions","chopped-green-onions","chopped-romaine","coleslaw","crispy-wontons","croutons","diced-cucumbers","diced-tomatoes","roasted-cherry-tomatoes","fried-onions","mango-pico","mango-pineapple-salsa","pickled-jalapenos","pickles","pico-de-gallo","roasted-peppers","sliced-cucumbers","sliced-jalapenos","sliced-red-onions","tortilla-chips","berry-compote","brownies"]);
 
 function buildRecipeInner(r, cat, mult) {
   let body = `<div class="recipe-top"><div class="recipe-cat-tag"><span class="dot"></span>${cat.label}${r.was && catByKey[r.was] ? ` · formerly ${catByKey[r.was].label}` : ""}</div>${batchControlHTML(mult)}</div>`;
