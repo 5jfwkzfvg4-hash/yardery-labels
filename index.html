@@ -479,6 +479,7 @@ const CATS = [
   {id:"sides",    name:"Sides", c:"--side"},
   {id:"toppings", name:"Toppings & Prep", c:"--topping"},
   {id:"desserts", name:"Desserts", c:"--dessert"},
+  {id:"line",     name:"Line Set Items", c:"--side"},
   {id:"freezer",  name:"Frozen & Thawing", c:"--other"}
 ];
 const ITEMS = [
@@ -508,7 +509,11 @@ const ITEMS = [
   ["basil","Basil","toppings"],["cilantro","Cilantro","toppings"],
   ["shrimp-raw-frozen","ShrimpRawFrzn","freezer"],["ribs-thawing","Ribs Thawing","freezer"],["beef-thawing","Beef Thawing","freezer"],["ground-beef-thawing","Ground Beef Thawing","freezer"],
   ["ribs-frozen","Ribs Frozen","freezer"],["beef-frozen","Beef Frozen","freezer"],["ground-beef-frozen","Ground Beef Frozen","freezer"],
-  ["breaded-avocado","Frozen Breaded Avocado","freezer"]
+  ["breaded-avocado","Frozen Breaded Avocado","freezer"],
+  // Line Set items that had no button of their own (Clay 2026-10-17); same 2-day shelf life as the Line Set
+  ["feta","Feta","line"],["parmesan","Parmesan","line"],["sliced-tomatoes","Sliced Tomatoes","line"],["american","American","line"],
+  ["beef","Beef","line"],["sausage","Sausage","line"],["pepperoni","Pepperoni","line"],["sliced-mozzarella","Sliced Mozzarella","line"],
+  ["pineapple","Pineapple","line"],["shredded-mozzarella","Shredded Mozzarella","line"],["mix-cheese-blend","Mix Cheese Blend","line"]
 ].map(([id,name,cat]) => ({id,name,cat}));
 
 /* ===== SHELF LIFE IN DAYS (KM-approved 2026-10-14, frozen items added 2026-10-15; prep day = day 1) =====
@@ -528,6 +533,8 @@ const SHELF_DAYS = {
   "berry-compote":7, "brownies":4,
   /* added 2026-10-15 (Clay): frozen quality date */
   "shrimp-raw-frozen":90, "ribs-frozen":90, "beef-frozen":90, "ground-beef-frozen":90, "breaded-avocado":90,
+  "feta":2, "parmesan":2, "sliced-tomatoes":2, "american":2, "beef":2, "sausage":2, "pepperoni":2, "sliced-mozzarella":2,
+  "pineapple":2, "shredded-mozzarella":2, "mix-cheese-blend":2,
   "basil":3, "cilantro":3,
   "ribs-thawing":5, "beef-thawing":5, "ground-beef-thawing":4, "lettuce":5, "shredded-lettuce":5, "spring-mix":5
 };
@@ -1315,7 +1322,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-17.6";
+const APP_VERSION = "2026-10-17.7";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1398,6 +1405,7 @@ const PL_SECTIONS = (() => {
   const az = (a, b) => a.name.localeCompare(b.name);
   const secs = [{name: BATCH.name, line: true, rows: BATCH.items.map(n => ({key: n, name: n, days: BATCH.days}))}];
   CATS.forEach(c => {
+    if(c.id === "line") return;                             // already rows of the Line Set table above
     const list = ITEMS.filter(i => i.cat === c.id && SHELF_DAYS[i.id]);
     if(c.id !== "freezer") list.sort(az);
     if(list.length) secs.push({name: c.name, rows: list.map(i => ({key: i.id, name: i.name, days: SHELF_DAYS[i.id], item: i}))});

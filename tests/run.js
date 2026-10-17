@@ -202,6 +202,20 @@ test('Labels: no Diced Cucumbers label (owner, 2026-10-17: we only slice cucumbe
   await p.close2();
 });
 
+test('Labels: every Line Set item has its own button, with no repeats', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const r = await p.evaluate(() => {
+    const y = window.__ypl, key = n => n.toLowerCase().replace(/ de gallo$/, '');
+    const names = y.ITEMS.map(i => key(i.name));
+    return { missing: y.BATCH.items.filter(n => !names.includes(key(n))), dupes: names.filter((n, i) => names.indexOf(n) !== i),
+      days: y.ITEMS.filter(i => i.cat === 'line').map(i => y.SHELF_DAYS[i.id]) };
+  });
+  eq(r.missing.join(', '), '', 'Line Set items without a button');
+  eq(r.dupes.join(', '), '', 'repeated buttons');
+  assert(r.days.length === 11 && r.days.every(d => d === 2), 'line items keep the 2-day Line Set shelf life');
+  await p.close2();
+});
+
 test('Labels: quantity 3 prints 3 labels fed straight through (^XB on all but last, gap sync, 1x1)', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await pickItem(p, 'Pico de Gallo'); await p.click('#qPlus'); await p.click('#qPlus');
@@ -304,7 +318,7 @@ test('Book: Data Needed is read-only outside Claude; book opened alone links to 
 test('Prep List: lists the Line Set and every labeled item; on-hand counts kept today; Prep = par − on hand', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await p.click('#plBtn'); await p.waitForTimeout(200);
-  const want = await p.evaluate(() => window.__ypl.BATCH.items.length + window.__ypl.ITEMS.filter(i => window.__ypl.SHELF_DAYS[i.id]).length);
+  const want = await p.evaluate(() => window.__ypl.BATCH.items.length + window.__ypl.ITEMS.filter(i => window.__ypl.SHELF_DAYS[i.id] && i.cat !== 'line').length);
   eq(await p.locator('#pl tr[data-k]').count(), want, 'rows');
   eq(await p.textContent('#pl tr[data-k="pico-de-gallo"] .need'), '—', 'no par yet');
   await p.fill('#pl tr[data-k="pico-de-gallo"] input', '0.5');
