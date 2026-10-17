@@ -25,8 +25,23 @@ Bump `APP_VERSION` in `index.html` with every change (including `recipes.html`),
 The **Recipes** button opens it over the label page so the printer stays connected; **Print prep label** in a recipe
 prints one label right away without leaving the page. Differences from the original: label buttons print in place,
 a **Labels** button shows when `recipes.html` is opened on its own, and **Data Needed** is read-only here
-(its shared saving only works inside Claude). When the original Recipe Book changes, re-copy it into
-`recipes.html` and re-apply those three changes.
+(its shared saving only works inside Claude). Those changes live in `tools/book-patches.json`; `recipes.html` is
+generated, so never edit it by hand (see below).
+
+## Keeping Claude and the staff link the same
+The owner's rule: an edit in either place shows up in the other, every time.
+- **In the repo:** `index.html` (label page) and `artifacts/recipe-book.html` (mirror of the Claude Recipe Book) are the
+  sources. `recipes.html` and the Prep Labels artifact are made from them by `node tools/sync.js build`.
+- **In Claude:** Recipe Book https://claude.ai/artifact/6o8JrPZsbJkYeFggZnd58w and Prep Labels
+  https://claude.ai/artifact/MQuRyZNgYr9HPpFo5dL6hb (its page + `recipes.html`).
+- `artifacts/published.json` remembers what each artifact held at the last sync, so `node tools/sync.js status`
+  can say per artifact: **in sync**, **publish** (the repo changed), **pull** (the artifact was edited in Claude), or
+  **conflict** (both changed: merge by hand).
+- Repo change: `node tools/sync.js build` → `npm test` → publish `.sync/recipe-book.html` and `.sync/prep-labels.html`
+  (+ `recipes.html` from `.sync/`) → `node tools/sync.js mark` → commit and push.
+- Edit made in Claude: read both artifacts with the Artifact tool → `node tools/sync.js pull <book> <labels> <labels-recipes>`
+  (bumps `APP_VERSION`) → `npm test` → publish whatever `status` still says "publish" → `mark` → commit and push.
+- A scheduled task ("Yardery labels sync") does this every hour from 6 AM to 11 PM.
 
 ## Automatic checks
 `npm install` once, then `npm test` runs every check in `tests/run.js` against a simulated Zebra ZD411:

@@ -373,6 +373,28 @@ test('Batches: Print asks how many batches; the log gets batches and amount made
   await p.close2();
 });
 
+/* ================= Sync with the Claude artifacts (tools/sync.js) ================= */
+
+const sync = require('../tools/sync');
+test('Sync: recipes.html is made from the Claude Recipe Book (edit artifacts/recipe-book.html, then node tools/sync.js build)', async () => {
+  const book = fs.readFileSync(path.join(ROOT, 'artifacts/recipe-book.html'), 'utf8');
+  assert(sync.unwrap(fs.readFileSync(path.join(ROOT, 'recipes.html'), 'utf8')) === sync.bookToCopy(book), 'recipes.html differs from the Recipe Book mirror + tools/book-patches.json');
+});
+
+test('Sync: label page and Recipe Book convert both ways without losing anything', async () => {
+  const book = sync.unwrap(fs.readFileSync(path.join(ROOT, 'artifacts/recipe-book.html'), 'utf8'));
+  const index = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  assert(sync.copyToBook(sync.bookToCopy(book)) === book, 'Recipe Book round trip');
+  assert(sync.labelsFromPage(sync.labelsPage(index), index) === index, 'label page round trip');
+  assert(/^<title>[^\n]+\n<meta name="claude:viewport-fit-sides"/.test(sync.labelsPage(index)), 'artifact page starts with title + viewport meta');
+});
+
+test('Sync: the Claude artifacts were published for this version (README > Keeping Claude and the staff link the same)', async () => {
+  const o = sync.outputs(), pub = sync.published();
+  const stale = ['book', 'labels', 'labelsRecipes'].filter(k => sync.hash(o[k]) !== pub[k]);
+  eq(stale.join(', '), '', 'not yet published to Claude (then run node tools/sync.js mark)');
+});
+
 /* ================= Layout ================= */
 
 test('Layout: no sideways scrolling and Print always on screen (phone, tablet)', async () => {

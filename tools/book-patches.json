@@ -1,0 +1,141 @@
+[
+ {
+  "why": "robots meta and header note",
+  "anchor": "<meta charset=\"UTF-8\">",
+  "original": [],
+  "copy": [
+   "<meta name=\"robots\" content=\"noindex,nofollow\">",
+   "<!-- Copy of the Recipe Book for the Prep Labels link (GitHub Pages). The original lives in Claude:",
+   "     https://claude.ai/artifact/6o8JrPZsbJkYeFggZnd58w  Changes here: label buttons open the label page",
+   "     in place, a Labels button when opened on its own, and Data Needed points to the Claude copy (its",
+   "     shared saving only works inside Claude). -->"
+  ]
+ },
+ {
+  "why": "read-only Data Needed style",
+  "anchor": "  .labelbtn { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; min-height: 44px; padding: 0 16px; border-radius: 10px; background: var(--catcolor2); color: #fff; font-weight: 700; font-size: 14px; text-decoration: none; }",
+  "original": [],
+  "copy": [
+   "  .dn-ro input[data-dn] { pointer-events: none; opacity: .55; }"
+  ]
+ },
+ {
+  "why": "label row and quantity styles",
+  "anchor": "  .labelbtn:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }",
+  "original": [
+   "  @media print { .labelbtn { display: none; } }"
+  ],
+  "copy": [
+   "  .labelrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }",
+   "  .labelrow .labelbtn { margin-top: 0; }",
+   "  .labelrow .labelmsg { flex-basis: 100%; margin-top: 0; }",
+   "  .lqty { display: flex; align-items: center; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }",
+   "  .lqty button { border: 0; background: var(--catbg2, #F1F4EC); min-width: 44px; min-height: 44px; font-size: 20px; font-weight: 700; color: var(--ink); cursor: pointer; }",
+   "  .lqty output { min-width: 40px; text-align: center; font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; }",
+   "  .labelbtn.ok { background: #2E6B3A; }",
+   "  .labelbtn[aria-disabled=\"true\"] { opacity: .7; cursor: progress; }",
+   "  .labelmsg { margin-top: 8px; font-size: 13.5px; font-weight: 600; color: #2E6B3A; }",
+   "  .labelmsg.bad { color: #A3322A; }",
+   "  @media print { .labelrow, .labelbtn, .labelmsg { display: none; } }"
+  ]
+ },
+ {
+  "why": "Labels button when opened alone",
+  "anchor": "    <button class=\"tbtn\" id=\"azBtn\">A–Z</button>",
+  "original": [],
+  "copy": [
+   "    <button class=\"tbtn\" id=\"labelsBtn\" hidden onclick=\"location.href='index.html'\">Labels</button>"
+  ]
+ },
+ {
+  "why": "in-app printing and activity pings",
+  "anchor": "/* Prep Labels app: recipes with a printable prep label get a button that opens the app on that item. */",
+  "original": [
+   "const PREP_LABELS_URL = \"https://5jfwkzfvg4-hash.github.io/yardery-labels/\";"
+  ],
+  "copy": [
+   "const PREP_LABELS_URL = \"index.html\";",
+   "const IN_LABELS_APP = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();",
+   "if (!IN_LABELS_APP) document.getElementById(\"labelsBtn\").hidden = false;",
+   "// Inside the label page, \"Print prep label\" asks it to print right away; the book stays on this page.",
+   "const PARENT_ORIGIN = location.origin === \"null\" ? \"*\" : location.origin;",
+   "function labelQty(a){ const o = a.parentElement.querySelector(\".lqty output\"); return o ? parseInt(o.textContent, 10) || 1 : 1; }",
+   "function labelText(n){ return n === 1 ? \"Print prep label\" : \"Print \" + n + \" labels\"; }",
+   "document.addEventListener(\"click\", e => {",
+   "  const q = e.target.closest && e.target.closest(\"[data-lq]\");",
+   "  if (q && IN_LABELS_APP) {",
+   "    const row = q.closest(\".labelrow\"), o = row.querySelector(\".lqty output\"), a = row.querySelector(\"a.labelbtn\");",
+   "    const n = Math.max(1, Math.min(50, (parseInt(o.textContent, 10) || 1) + parseInt(q.dataset.lq, 10)));",
+   "    o.textContent = n;",
+   "    if (a.getAttribute(\"aria-disabled\") !== \"true\") { a.classList.remove(\"ok\", \"bad\"); a.textContent = labelText(n); }",
+   "    return;",
+   "  }",
+   "  const a = e.target.closest && e.target.closest(\"a.labelbtn[data-item]\");",
+   "  if (!a || !IN_LABELS_APP) return;",
+   "  e.preventDefault();",
+   "  if (a.getAttribute(\"aria-disabled\") === \"true\") return;",
+   "  a.setAttribute(\"aria-disabled\", \"true\"); a.classList.remove(\"ok\", \"bad\");",
+   "  a.textContent = \"Printing…\";",
+   "  const msg = a.parentElement.querySelector(\".labelmsg\"); if (msg) msg.textContent = \"\";",
+   "  const mv = document.querySelector(\"#batchToggle .batchval\");   // the page's Multiply Batch setting starts the batch count",
+   "  window.parent.postMessage({ type: \"ypl-print\", item: a.dataset.item, qty: labelQty(a), mult: mv ? parseInt(mv.textContent, 10) || 1 : 1 }, PARENT_ORIGIN);",
+   "});",
+   "window.addEventListener(\"message\", e => {",
+   "  if (!IN_LABELS_APP || e.source !== window.parent) return;",
+   "  const d = e.data || {};",
+   "  if (d.type !== \"ypl-printed\") return;",
+   "  document.querySelectorAll('a.labelbtn[data-item=\"' + d.item + '\"]').forEach(a => {",
+   "    a.removeAttribute(\"aria-disabled\");",
+   "    a.classList.add(d.ok ? \"ok\" : \"bad\");",
+   "    const o = a.parentElement.querySelector(\".lqty output\");",
+   "    if (d.ok && o) o.textContent = \"1\";               // back to 1 so a second tap doesn't repeat a big batch by accident",
+   "    a.textContent = d.ok ? \"Printed ✓\" : labelText(labelQty(a));",
+   "    let msg = a.parentElement.querySelector(\".labelmsg\");",
+   "    if (!msg) { msg = document.createElement(\"div\"); msg.className = \"labelmsg\"; msg.setAttribute(\"role\", \"status\"); a.after(msg); }",
+   "    msg.textContent = d.text || \"\";",
+   "    msg.classList.toggle(\"bad\", !d.ok);",
+   "    if (d.ok) setTimeout(() => { a.classList.remove(\"ok\"); a.textContent = labelText(labelQty(a)); }, 4000);",
+   "  });",
+   "});",
+   "// Taps in the book count as using the app, so the label page keeps (or takes back) the printer.",
+   "let lastPing = 0;",
+   "[\"pointerdown\", \"keydown\"].forEach(ev => document.addEventListener(ev, () => {",
+   "  if (!IN_LABELS_APP) return;",
+   "  const now = Date.now(); if (now - lastPing < 5000) return; lastPing = now;",
+   "  window.parent.postMessage({ type: \"ypl-active\" }, PARENT_ORIGIN);",
+   "}, { passive: true, capture: true }));"
+  ]
+ },
+ {
+  "why": "label button with quantity",
+  "anchor": "  if (r.note) body += `<div class=\"note\"><strong>Note — </strong>${r.note}</div>`;",
+  "original": [
+   "  if (PREP_LABEL_IDS.has(r.id)) body += `<a class=\"labelbtn\" href=\"${PREP_LABELS_URL}?item=${encodeURIComponent(r.id)}\" target=\"_blank\" rel=\"noopener\">Print prep label</a>`;"
+  ],
+  "copy": [
+   "  if (PREP_LABEL_IDS.has(r.id)) body += `<div class=\"labelrow\">` +",
+   "    (IN_LABELS_APP ? `<div class=\"lqty\" role=\"group\" aria-label=\"How many labels\"><button type=\"button\" data-lq=\"-1\" aria-label=\"One fewer\">−</button><output aria-label=\"Labels to print\">1</output><button type=\"button\" data-lq=\"1\" aria-label=\"One more\">+</button></div>` : ``) +",
+   "    `<a class=\"labelbtn\" data-item=\"${r.id}\" href=\"${PREP_LABELS_URL}?item=${encodeURIComponent(r.id)}\">Print prep label</a></div>`;"
+  ]
+ },
+ {
+  "why": "Data Needed read-only message",
+  "anchor": "  if (dnConn === \"live\") return { cls: \"\", t: \"Live. Entries save automatically for everyone and stay after refresh.\" };",
+  "original": [
+   "  if (dnConn === \"offline\") return { cls: \"warn\", t: \"Saving isn't available in this view. Open the book from your claude.ai link while signed in, or write the measurements down and send them to Clay.\" };"
+  ],
+  "copy": [
+   "  if (dnConn === \"offline\") return { cls: \"warn\", t: \"Read-only here. Entries are saved and shown only in the Recipe Book on Claude (claude.ai/artifact/6o8JrPZsbJkYeFggZnd58w). Open it there while signed in, or write the measurements down and send them to Clay.\" };"
+  ]
+ },
+ {
+  "why": "Data Needed read-only flag",
+  "anchor": "  try { db = (window.claude && window.claude.use) ? await window.claude.use(\"db\") : null; } catch (e) { db = null; }",
+  "original": [
+   "  if (!db) { dnConn = \"offline\"; dnRefreshUI(); return; }"
+  ],
+  "copy": [
+   "  if (!db) { dnConn = \"offline\"; document.documentElement.classList.add(\"dn-ro\"); dnRefreshUI(); return; }"
+  ]
+ }
+]
