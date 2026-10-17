@@ -189,6 +189,14 @@ test('Labels: every item has an approved shelf life and its name fits in 2 lines
   await p.close2();
 });
 
+test('Labels: no Diced Cucumbers label (owner, 2026-10-17: we only slice cucumbers)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  assert(!(await p.evaluate(() => window.__ypl.ITEMS.some(i => /diced cucumber/i.test(i.name) || window.__ypl.SHELF_DAYS['diced-cucumbers']))), 'label app');
+  const f = await openBook(p);
+  assert(!(await f.evaluate(() => PREP_LABEL_IDS.has('diced-cucumbers'))), 'Recipe Book label button');
+  await p.close2();
+});
+
 test('Labels: quantity 3 prints 3 labels fed straight through (^XB on all but last, gap sync, 1x1)', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await pickItem(p, 'Pico de Gallo'); await p.click('#qPlus'); await p.click('#qPlus');
