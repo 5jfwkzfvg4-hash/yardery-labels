@@ -26,3 +26,4 @@ The kitchen depends on this page to print legally required date labels. Keep it 
    Initials | Notes (Line Set table has no Shelf life column), items alphabetical within each section (Line Set and Frozen & Thawing
    follow the app's order), Item column
    150pt. Never create a new doc. If the Docs connector isn't available, tell the owner the doc still needs the change.
+   The in-app Prep List builds itself from the same data; par levels live in `PARS` (owner-set only).

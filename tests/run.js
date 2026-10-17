@@ -281,6 +281,43 @@ test('Book: Data Needed is read-only outside Claude; book opened alone links to 
   await p.close2();
 });
 
+/* ================= Prep List ================= */
+
+test('Prep List: lists the Line Set and every labeled item; on-hand counts kept today; Prep = par − on hand', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  await p.click('#plBtn'); await p.waitForTimeout(200);
+  const want = await p.evaluate(() => window.__ypl.BATCH.items.length + window.__ypl.ITEMS.filter(i => window.__ypl.SHELF_DAYS[i.id]).length);
+  eq(await p.locator('#pl tr[data-k]').count(), want, 'rows');
+  eq(await p.textContent('#pl tr[data-k="pico-de-gallo"] .need'), '—', 'no par yet');
+  await p.fill('#pl tr[data-k="pico-de-gallo"] input', '0.5');
+  await p.reload(); await p.waitForTimeout(300);
+  await p.click('#plBtn'); await p.waitForTimeout(200);
+  eq(await p.inputValue('#pl tr[data-k="pico-de-gallo"] input'), '0.5', 'count kept after reload');
+  await p.evaluate(() => { window.__ypl.PARS['pico-de-gallo'] = [2, 'qt']; });
+  await p.click('#plClose'); await p.click('#plBtn'); await p.waitForTimeout(200);
+  eq(await p.textContent('#pl tr[data-k="pico-de-gallo"] .need'), '1.5 qt', 'prep amount');
+  await p.fill('#pl tr[data-k="pico-de-gallo"] input', '3');
+  eq(await p.textContent('#pl tr[data-k="pico-de-gallo"] .need'), '0 qt', 'over par needs nothing');
+  await p.close2();
+});
+
+test('Prep List: Print on a row prints one label with the approved date and stays on the list', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true }, { width: 390, height: 844 });
+  await p.click('#plBtn'); await p.waitForTimeout(200);
+  await p.click('#pl tr[data-k="pico-de-gallo"] .plp');
+  await p.waitForFunction(() => /Printed/.test(document.getElementById('toast').textContent), null, { timeout: 30000 });
+  const z = formats(await zpl(p));
+  eq(z.length, 1, 'one label');
+  assert(/pico de gallo/i.test(z[0]), 'item name on label');
+  const ub = await p.evaluate(() => { const y = window.__ypl, d = y.useBy(new Date(), y.SHELF_DAYS['pico-de-gallo']); return (d.getMonth() + 1) + '/' + d.getDate(); });
+  assert(z[0].includes(ub), 'approved use-by date ' + ub);
+  assert(await p.isVisible('#pl'), 'still on the prep list');
+  assert(/done/.test(await p.getAttribute('#pl tr[data-k="pico-de-gallo"]', 'class')), 'row marked printed');
+  assert(!(await p.evaluate(() => { const b = document.getElementById('plBody'); return b.scrollWidth > b.clientWidth; })), 'no sideways scroll on a phone');
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
 /* ================= Layout ================= */
 
 test('Layout: no sideways scrolling and Print always on screen (phone, tablet)', async () => {
