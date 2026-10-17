@@ -518,8 +518,10 @@ const BATCH = { id: "line-set", name: "Line Set", days: 2, items: [
    Form questions, in order: Event, Date, Time, Printed By, Item (Recipe Book name), # Labels,
    Prep Date, Use-By Date, Source, Device. */
 const LOG = {
-  formUrl: "",          // https://docs.google.com/forms/d/e/<id>/formResponse
-  fields: { event: "", date: "", time: "", name: "", item: "", labels: "", prep: "", useBy: "", source: "", device: "" }
+  formUrl: "https://docs.google.com/forms/d/e/1FAIpQLSdLhgegb5Xw-Nwvo4RwO1xX8BCZSUA_wQbqR8G9-ez6LJ0k4A/formResponse",
+  fields: { event: "entry.444009407", date: "entry.258515554", time: "entry.1463676766", name: "entry.405834225",
+            item: "entry.1743752289", labels: "entry.92420478", prep: "entry.1430001378", useBy: "entry.1281263933",
+            source: "entry.1833039941", device: "entry.1932382082" }
 };
 
 /* ===== Zebra Bluetooth LE (Zebra Parser Service) ===== */
@@ -1203,7 +1205,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-17.2";
+const APP_VERSION = "2026-10-17.3";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){

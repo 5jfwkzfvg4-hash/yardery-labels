@@ -35,6 +35,8 @@ let browser, BASE;
 async function open(opts = {}, { width = 1024, height = 760, clock = false, ua, path: p = '/' } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height }, userAgent: ua });
   await ctx.addInitScript(mockPrinter(opts));
+  // never post to the owner's real Google Form from a test; log tests add their own route on top
+  await ctx.route('**/formResponse', r => r.abort());
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -294,6 +296,17 @@ test('Layout: no sideways scrolling and Print always on screen (phone, tablet)',
 
 /* ================= Manager log ================= */
 
+test('Log: the live form is connected with all 10 questions', async () => {
+  const p = await open({ getDevices: false });
+  const L = await p.evaluate(() => window.__ypl.LOG);
+  assert(/^https:\/\/docs\.google\.com\/forms\/d\/e\/[\w-]+\/formResponse$/.test(L.formUrl), 'form address: ' + L.formUrl);
+  const ids = Object.values(L.fields);
+  eq(ids.length, 10, 'field count');
+  assert(ids.every(v => /^entry\.\d+$/.test(v)), 'every field has an entry id: ' + ids.join());
+  eq(new Set(ids).size, 10, 'no two fields share an id');
+  await p.close2();
+});
+
 test('Log: names and prints are sent to the form; offline prints are kept and sent later', async () => {
   const p = await open({ getDevices: false });
   const got = []; let offline = false;
@@ -321,7 +334,8 @@ test('Log: prints made before the form is set up are kept and sent once it is', 
   const p = await open({ ...REMEMBERED, getDevices: true });
   const got = [];
   await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
-  await pickItem(p, 'Coleslaw'); await printAndWait(p);              // logging not configured yet
+  await p.evaluate(() => { window.__ypl.LOG.formUrl = ''; });         // an app version with no form yet
+  await pickItem(p, 'Coleslaw'); await printAndWait(p);
   eq(got.length, 0, 'nothing can be sent without a form');
   await p.evaluate(() => {                                            // form gets connected (next app version)
     const L = window.__ypl.LOG; L.formUrl = 'https://docs.google.com/forms/d/e/TEST/formResponse';
