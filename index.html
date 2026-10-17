@@ -494,7 +494,7 @@ const ITEMS = [
   ["yardery-sauce","Yardery Sauce","sauces"],
   ["bbq-dry-rub","BBQ Dry Rub","rubs"],["burger-seasoning","Burger Seasoning","rubs"],["hot-honey-dredge","Hot Honey Dredge","rubs"],
   ["poultry-seasoning","Poultry Seasoning","rubs"],["seafood-breading","Seafood Breading","rubs"],
-  ["black-beans","Black Beans","sides"],["cavatappi","Cavatappi","sides"],["street-corn-batch","Twisted Street Corn (Cooked Corn)","sides"],
+  ["black-beans","Black Beans","sides"],["brussels-sprouts","Brussels Sprouts","sides"],["cavatappi","Cavatappi","sides"],["street-corn-batch","Twisted Street Corn (Cooked Corn)","sides"],
   ["balsamic-strawberries","Balsamic Glazed Strawberries","toppings"],["candied-bacon","Candied Bacon","toppings"],
   ["candied-pecans","Candied Pecans","toppings"],["caramelized-onions","Caramelized Onions","toppings"],["chopped-green-onions","Chopped Green Onions","toppings"],
   ["chopped-romaine","Chopped Romaine","toppings"],["coleslaw","Coleslaw","toppings"],["crispy-wontons","Crispy Wontons","toppings"],
@@ -524,7 +524,7 @@ const SHELF_DAYS = {
   "bama-white-bbq":5, "buffalo-sauce":7, "cilantro-lime-sauce":5, "fire-marinara":5, "fire-sauce":5,
   "honey-mustard":5, "hot-honey-chicken-marinade":2, "hot-honey-sauce":14, "pickling-liquid":14,
   "ranch-dressing":7, "tartar-sauce":5, "yardery-sauce":5, "bbq-dry-rub":30, "burger-seasoning":10,
-  "hot-honey-dredge":30, "poultry-seasoning":30, "seafood-breading":30, "black-beans":4, "cavatappi":3,
+  "hot-honey-dredge":30, "poultry-seasoning":30, "seafood-breading":30, "black-beans":4, "brussels-sprouts":7 /* Clay 2026-10-17 */, "cavatappi":3,
   "street-corn-batch":4, "balsamic-strawberries":5, "candied-bacon":4, "candied-pecans":7,
   "caramelized-onions":3, "chopped-green-onions":2, "chopped-romaine":3, "coleslaw":3, "crispy-wontons":7,
   "croutons":7, "diced-tomatoes":3, "roasted-cherry-tomatoes":4, "fried-onions":1,
@@ -1335,7 +1335,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-17.9";
+const APP_VERSION = "2026-10-17.10";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){

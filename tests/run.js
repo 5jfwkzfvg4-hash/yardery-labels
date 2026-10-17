@@ -202,6 +202,13 @@ test('Labels: no Diced Cucumbers label (owner, 2026-10-17: we only slice cucumbe
   await p.close2();
 });
 
+test('Labels: Brussels Sprouts button in Sides with a 7-day shelf life (owner, 2026-10-17)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const r = await p.evaluate(() => { const it = window.__ypl.ITEMS.find(i => i.id === 'brussels-sprouts'); return it && [it.name, it.cat, window.__ypl.SHELF_DAYS[it.id]]; });
+  eq(JSON.stringify(r), JSON.stringify(['Brussels Sprouts', 'sides', 7]), 'Brussels Sprouts item');
+  await p.close2();
+});
+
 test('Labels: every Line Flip Labels item has its own button, with no repeats', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const r = await p.evaluate(() => {
