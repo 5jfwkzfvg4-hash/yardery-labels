@@ -159,7 +159,7 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .sheet h4{font:700 1rem var(--display);margin:6px 0 0}
 .sheet ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px}
 .hdrbtn{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;border-radius:12px;min-height:44px;padding:0 14px;font-weight:700;font-size:.95rem}
-.rb{position:fixed;inset:0;z-index:45;background:var(--paper);display:flex;flex-direction:column}
+.rb{position:fixed;inset:0;z-index:46;background:var(--paper);display:flex;flex-direction:column}
 .rbbar{display:flex;align-items:center;gap:12px;background:#1F3A24;color:#fff;
   padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px))}
 .rbbar b{font:700 1rem var(--display)}
@@ -183,10 +183,15 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .pltab{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .pltab th{background:var(--green);color:var(--green-ink);text-align:left;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;padding:6px 8px}
 .pltab td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:middle}
-.pltab td.n{width:100%} .pltab td.n b{display:block;font-weight:600;line-height:1.2} .pltab td.n small{color:var(--ink-soft);font-size:.78rem}
+.pltab td.n{width:100%} .pltab td.n b{display:block;font-weight:600;line-height:1.2} .pltab td.n small{display:block;color:var(--ink-soft);font-size:.78rem}
 .pltab td.c{text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
-.pltab td.need{font-weight:800}
-.pltab input{width:58px;min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--paper);text-align:center;font-variant-numeric:tabular-nums}
+.pltab td.st{white-space:nowrap;font-size:.85rem;color:var(--ink-soft)} .pltab td.st b{color:var(--good)}
+.pltab .plr{display:block;border:0;background:none;padding:0;color:inherit;font:inherit;font-weight:600;text-align:left;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;cursor:pointer}
+.pladd{max-width:900px;margin:22px auto 0;background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.pladd label{display:flex;flex-direction:column;gap:3px;font-size:.78rem;font-weight:700;color:var(--ink-soft);flex:1 1 140px}
+.pladd input,.pladd select{min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:0 8px;font-size:1rem;color:var(--ink)}
+.pladd button{flex:0 0 auto;border:0;border-radius:10px;background:var(--green);color:var(--green-ink);min-height:40px;padding:0 14px;font-weight:700}
+.pladd p{flex-basis:100%;margin:0;font-size:.82rem;color:var(--ink-soft)}
 .pltab .plp{border:0;border-radius:10px;background:var(--green);color:var(--green-ink);min-height:40px;padding:0 12px;font-weight:700;white-space:nowrap}
 .pltab tr.done td{background:var(--good-bg)}
 /* batch count, asked before printing an item that has a Recipe Book yield; sits above the book and Prep List */
@@ -194,7 +199,7 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .bcsheet .qty{margin:0 auto} .bcsheet .qty button{min-height:52px}
 .bcsheet .bcamt{margin:0;text-align:center;font-weight:700;min-height:1.4em}
 .pltab tr.done .plp{background:var(--good)}
-@media (max-width:420px){ .pltab th,.pltab td{padding:6px 5px} .pltab input{width:50px} .pltab .plp{padding:0 9px} }
+@media (max-width:420px){ .pltab th,.pltab td{padding:6px 5px} .pltab .plp{padding:0 9px} .pltab td.st{white-space:normal} }
 .toast{position:fixed;z-index:60;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 74px);width:min(520px,calc(100% - 32px));
   background:var(--ink);color:var(--paper);border-radius:12px;padding:12px 16px;font-weight:600;font-size:.92rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .toast.ok{background:var(--good);color:#fff} .toast.err{background:var(--bad);color:#fff}
@@ -576,10 +581,6 @@ const BATCH = { id: "line-set", name: "Line Flip Labels", days: 2, items: [
   "Pickles","Sliced American Cheese","Beef","Roasted Peppers","Sausage","Pepperoni","Sliced Jalapeños","Sliced Mozzarella","Pineapple",
   "Fire Marinara","Shredded Mozzarella","Mix Cheese Blend"
 ] };
-
-/* ===== PREP LIST PARS: set by the owner. Key = item id (or the Line Flip Labels name), value = [amount, "unit"],
-   e.g. "pico-de-gallo": [2, "qt"], "Feta": [1, "1/6 pan"]. No par = the Prep column shows "—". ===== */
-const PARS = {};
 
 /* ===== BATCH YIELDS, copied from the Recipe Book (BATCH_YIELDS in recipes.html; a check keeps them equal; "≈" = kitchen
    to verify). Printing a label for one of these items asks how many batches were made; the log records batches × yield. ===== */
@@ -1221,6 +1222,7 @@ window.addEventListener("online", flushLog);
 function logPrint(source, labels, made, ub){
   // one row per item per print (labels: [{name, count, batches?, made?}])
   const who = store.get("name", "") || "(no name)";
+  labels.forEach(l => plMarkDone(l.name, who, new Date()));   // a printed label is what completes a Prep List item
   labels.forEach(l => logEvent(Object.assign({ event: "print", name: who, source, item: l.name, labels: l.count,
     prep: made ? fmtDate(made) + " " + fmtTime(made) : "", useBy: ub ? fmtDate(ub) : "" },
     l.batches ? { batches: l.batches, made: l.made || "" } : {})));
@@ -1336,7 +1338,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-17.11";
+const APP_VERSION = "2026-10-18.1";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1381,7 +1383,7 @@ function closeRecipes(fromHistory){
 }
 $("rbBtn").onclick = openRecipes;
 $("rbClose").onclick = () => closeRecipes(false);
-window.addEventListener("popstate", () => closeRecipes(true)); // phone Back button closes the book
+window.addEventListener("popstate", e => { if(!(e.state && e.state.rb)) closeRecipes(true); }); // phone Back closes the book
 // "Print prep label" inside the book: close it and open that item, ready to print
 // Messages from the book: activity pings keep the printer, and "Print prep label" prints one label right away
 // (approved shelf life, made now, this device's name) without leaving the recipe page.
@@ -1413,49 +1415,127 @@ window.addEventListener("message", e => {
   if(d.type === "ypl-print"){ touch(); printFromBook(d.item, d.qty, d.mult); }
 });
 
-/* ---------- Prep List: count on hand, Prep = par − on hand, print the label from the row ----------
-   Same items and order as the "Line Item Prep List" Google Doc. Counts are kept on this device for today only. */
+/* ---------- Prep List (Clay 2026-10-18) ----------
+   The same list every day. Anyone can add an item; nobody can remove one or un-check it. An item is complete only when a
+   label prints for it (any screen, any device), and shows who printed it and when. Devices share the list through the
+   print log: they write to the Google Form (LOG) and read back today's prints and every added item from the sheet's
+   "Prep Feed" tab, published as CSV (PREP_FEED_URL; empty = this device only). A scheduled task archives each day to Drive.
+   Item names link to their Recipe Book page. Same sections and order as the "Line Item Prep List" Google Doc. */
+let PREP_FEED_URL = "";
+// label items with a Recipe Book page (= the book's PREP_LABEL_IDS; a check keeps them equal)
+const RECIPE_PAGES = new Set([
+  "ahi-tuna-prep","smoked-ribs","blackened-fish","crab-cakes","fried-cod","hamburger-patty",
+  "marinated-chicken-tenders","wing-marinade","pulled-pork","smoked-chicken-breast","bama-white-bbq","buffalo-sauce",
+  "cilantro-lime-sauce","fire-marinara","fire-sauce","honey-mustard","hot-honey-chicken-marinade","hot-honey-sauce",
+  "pickling-liquid","ranch-dressing","tartar-sauce","yardery-sauce","bbq-dry-rub","burger-seasoning",
+  "hot-honey-dredge","poultry-seasoning","seafood-breading","black-beans","cavatappi","street-corn-batch",
+  "balsamic-strawberries","breaded-avocado","candied-bacon","candied-pecans","caramelized-onions",
+  "chopped-green-onions","chopped-romaine","coleslaw","crispy-wontons","croutons","diced-tomatoes",
+  "roasted-cherry-tomatoes","fried-onions","mango-pico","mango-pineapple-salsa","pickled-jalapenos","pickles",
+  "pico-de-gallo","roasted-peppers","sliced-cucumbers","sliced-jalapenos","sliced-red-onions","tortilla-chips",
+  "berry-compote","brownies"
+]);
+const plKey = n => String(n || "").trim().toLowerCase();
 const PL_SECTIONS = (() => {
   const az = (a, b) => a.name.localeCompare(b.name);
-  const secs = [{name: BATCH.name, line: true, rows: BATCH.items.map(n => ({key: n, name: n, days: BATCH.days}))}];
+  // Line Flip names like "Pico" open the full item's recipe ("Pico de Gallo")
+  const lineItem = n => ITEMS.find(i => plKey(i.name) === plKey(n) || plKey(i.name) === plKey(n + " de Gallo"));
+  const secs = [{name: BATCH.name, line: true, rows: BATCH.items.map(n => { const it = lineItem(n);
+    return {key: plKey(n), name: n, days: BATCH.days, recipe: it && RECIPE_PAGES.has(it.id) ? it.id : null}; })}];
   CATS.forEach(c => {
     if(c.id === "line") return;                             // already rows of the Line Flip Labels table above
     const list = ITEMS.filter(i => i.cat === c.id && SHELF_DAYS[i.id]);
     if(c.id !== "freezer") list.sort(az);
-    if(list.length) secs.push({name: c.name, rows: list.map(i => ({key: i.id, name: i.name, days: SHELF_DAYS[i.id], item: i}))});
+    if(list.length) secs.push({name: c.name, rows: list.map(i => ({key: plKey(i.name), name: i.name, days: SHELF_DAYS[i.id], item: i,
+      recipe: RECIPE_PAGES.has(i.id) ? i.id : null}))});
   });
   return secs;
 })();
-const todayKey = () => { const d = new Date(); return "prep:" + d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
-function plCounts(){ return store.get(todayKey(), {}); }
-function plSave(c){
-  store.set(todayKey(), c);
-  try{ Object.keys(localStorage).forEach(k => { if(/^ypl:prep:/.test(k) && k !== "ypl:" + todayKey()) localStorage.removeItem(k); }); }catch(e){}
+const plToday = () => fmtDate(new Date());
+// completions on this device: {key: {by, time}} for today; the first label printed is when it was finished
+function plDoneLocal(){ return store.get("prepDone:" + plToday(), {}); }
+function plMarkDone(name, by, when){
+  const k = plKey(name), d = plDoneLocal();
+  if(d[k]) return;                                          // finished already: the first print stands
+  d[k] = {by, time: fmtTime(when)}; store.set("prepDone:" + plToday(), d);
+  try{ Object.keys(localStorage).forEach(x => { if(/^ypl:prepDone:/.test(x) && x !== "ypl:prepDone:" + plToday()) localStorage.removeItem(x); }); }catch(e){}
+  if(!$("pl").hidden) renderPrepList();
 }
-function plNeed(key, onHand){
-  const par = PARS[key];
-  if(!par) return "—";
-  if(onHand === "" || onHand == null || !isFinite(+onHand)) return "?";
-  const n = Math.max(0, Math.round((par[0] - +onHand) * 100) / 100);
-  return n + (par[1] ? " " + par[1] : "");
+// shared feed rows: {event, date, time, by, item, labels, source}
+let plFeed = [];
+function parseCSV(text){
+  const rows = []; let row = [], f = "", q = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(q){ if(c === '"'){ if(text[i + 1] === '"'){ f += '"'; i++; } else q = false; } else f += c; }
+    else if(c === '"') q = true;
+    else if(c === ","){ row.push(f); f = ""; }
+    else if(c === "\n" || c === "\r"){ if(c === "\r" && text[i + 1] === "\n") i++; row.push(f); rows.push(row); row = []; f = ""; }
+    else f += c;
+  }
+  if(f !== "" || row.length){ row.push(f); rows.push(row); }
+  return rows;
 }
-function plRow(r, c, sec){
-  const par = PARS[r.key], v = c[r.key] || {};
-  return '<tr data-k="' + esc(r.key) + '"' + (v.done ? ' class="done"' : '') + '><td class="n"><b>' + esc(r.name) + '</b>' +
-    (sec.line ? '' : '<small>' + r.days + (r.days === 1 ? ' day' : ' days') + '</small>') + '</td>' +
-    '<td class="c">' + (par ? esc(par[0] + (par[1] ? " " + par[1] : "")) : "—") + '</td>' +
-    '<td class="c"><input type="text" inputmode="decimal" maxlength="6" aria-label="On hand: ' + esc(r.name) + '" value="' + esc(v.oh == null ? "" : v.oh) + '"></td>' +
-    '<td class="c need">' + esc(plNeed(r.key, v.oh)) + '</td>' +
-    '<td class="c"><button class="plp" type="button">' + (v.done ? "✓ Printed" : "Print") + '</button></td></tr>';
+async function plLoadFeed(){
+  if(!PREP_FEED_URL) return;
+  try{
+    const r = await fetch(PREP_FEED_URL + (PREP_FEED_URL.includes("?") ? "&" : "?") + "t=" + Date.now(), {cache: "no-store"});
+    if(!r.ok) return;
+    plFeed = parseCSV(await r.text()).slice(1).filter(x => x.length >= 7 && x[0])
+      .map(x => ({event: x[0], date: x[1], time: x[2], by: x[3], item: x[4], labels: x[5], source: x[6]}));
+    store.set("prepFeed", plFeed);
+    if(!$("pl").hidden) renderPrepList();
+  }catch(e){}                                               // offline: keep the last copy
+}
+const plMins = t => { const m = /(\d+):(\d+)\s*([AP])/i.exec(t || ""); return m ? (+m[1] % 12 + (/p/i.test(m[3]) ? 12 : 0)) * 60 + +m[2] : 1e9; };
+function plDone(){
+  const d = Object.assign({}, plDoneLocal()), today = plToday();
+  plFeed.filter(e => e.event === "print" && e.date === today).forEach(e => {
+    const k = plKey(e.item);
+    if(!d[k] || plMins(e.time) < plMins(d[k].time)) d[k] = {by: e.by, time: e.time};
+  });
+  return d;
+}
+// items anyone added (this device's + everyone's from the feed); they stay for good
+function plAdds(){
+  const all = store.get("prepAdds", []).concat(plFeed.filter(e => e.event === "prep add")
+    .map(e => ({name: e.item, sec: e.source, days: parseInt(e.labels, 10) || 3, by: e.by})));
+  const seen = new Set(PL_SECTIONS.flatMap(s => s.rows.map(r => r.key)));
+  return all.filter(a => { const k = plKey(a.name); if(!k || seen.has(k)) return false; seen.add(k); return true; });
+}
+function plSections(){
+  const secs = PL_SECTIONS.map(s => Object.assign({}, s, {rows: s.rows.slice()}));
+  plAdds().forEach(a => {
+    let s = secs.find(x => x.name === a.sec && !x.line);
+    if(!s){ s = secs.find(x => x.name === "Added items"); if(!s){ s = {name: "Added items", rows: []}; secs.push(s); } }
+    s.rows.push({key: plKey(a.name), name: a.name, days: Math.max(1, Math.min(7, a.days)), added: a.by || "", recipe: null});
+  });
+  return secs;
+}
+function plRow(r, done, sec){
+  const v = done[r.key], meta = [];
+  if(!sec.line) meta.push(r.days + (r.days === 1 ? " day" : " days"));
+  if(r.added != null) meta.push("added" + (r.added ? " by " + esc(r.added) : ""));
+  return '<tr data-k="' + esc(r.key) + '"' + (v ? ' class="done"' : '') + '><td class="n">' +
+    (r.recipe ? '<button class="plr" type="button" data-recipe="' + esc(r.recipe) + '">' + esc(r.name) + '</button>' : '<b>' + esc(r.name) + '</b>') +
+    '<small>' + meta.join(" · ") + '</small></td>' +
+    '<td class="st">' + (v ? '<b>✓ ' + esc(v.by) + '</b><br>' + esc(v.time) : "Not done") + '</td>' +
+    '<td class="c"><button class="plp" type="button">' + (v ? "Print again" : "Print") + '</button></td></tr>';
 }
 function renderPrepList(){
-  const c = plCounts(), now = new Date();
+  const done = plDone(), now = new Date(), secs = plSections();
   $("plDate").textContent = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][now.getDay()] + " " + md(now);
-  $("plBody").innerHTML = (Object.keys(PARS).length ? "" : '<p class="plnote plsec">Par levels aren\'t set yet, so Prep shows “—”. Count On Hand and print labels as usual.</p>') +
-    PL_SECTIONS.map(sec => '<section class="plsec"><h2>' + esc(sec.name) + '</h2><table class="pltab"><thead><tr><th>Item</th><th>Par</th><th>On hand</th><th>Prep</th><th></th></tr></thead><tbody>' +
-      sec.rows.map(r => plRow(r, c, sec)).join("") + '</tbody></table></section>').join("");
+  const n = secs.reduce((t, s) => t + s.rows.length, 0), k = secs.reduce((t, s) => t + s.rows.filter(r => done[r.key]).length, 0);
+  $("plBody").innerHTML = '<p class="plnote plsec" id="plCount"><b>' + k + " of " + n + " done.</b> An item is done when its label prints. " +
+      (PREP_FEED_URL ? "Shows every device's prints." : "Shows this device's prints.") + "</p>" +
+    secs.map(sec => '<section class="plsec"><h2>' + esc(sec.name) + '</h2><table class="pltab"><thead><tr><th>Item</th><th>Done</th><th></th></tr></thead><tbody>' +
+      sec.rows.map(r => plRow(r, done, sec)).join("") + '</tbody></table></section>').join("") +
+    '<form class="pladd" id="plAdd"><label>Add an item<input id="plAddName" maxlength="40" autocomplete="off" placeholder="e.g. Diced Celery"></label>' +
+    '<label>Section<select id="plAddSec">' + PL_SECTIONS.filter(s => !s.line).map(s => "<option>" + esc(s.name) + "</option>").join("") + '</select></label>' +
+    '<label style="flex:0 1 110px">Shelf life<select id="plAddDays">' + [1, 2, 3, 4, 5, 6, 7].map(d => '<option value="' + d + '"' + (d === 3 ? " selected" : "") + ">" + d + (d === 1 ? " day" : " days") + "</option>").join("") + '</select></label>' +
+    '<button type="submit">Add</button><p>Added items stay on the list every day and can\'t be removed. Cold, ready-to-eat food: 7 days max.</p></form>';
 }
-function plFind(key){ for(const sec of PL_SECTIONS){ const r = sec.rows.find(x => x.key === key); if(r) return {r, sec}; } return null; }
+function plFind(key){ for(const sec of plSections()){ const r = sec.rows.find(x => x.key === key); if(r) return {r, sec}; } return null; }
 async function printFromList(key, btn){
   const f = plFind(key); if(!f) return;
   const who = store.get("name", "");
@@ -1468,29 +1548,49 @@ async function printFromList(key, btn){
   btn.disabled = true; btn.textContent = "Printing…";
   try{
     await send(buildJob(copies({name: f.r.name, made: now, ub, ini: who.toUpperCase()}, 1)), null);
-    const c = plCounts(); c[key] = Object.assign({}, c[key], {done: true}); plSave(c);
     toast("Printed " + f.r.name + " · use by " + DOW[ub.getDay()] + " " + md(ub), "ok");
     logPrint("prep list", [Object.assign({name: f.r.name, count: 1}, bi)], now, ub);
   }catch(e){ toast((e && e.message) || "Couldn't print.", "err", 9000); }
   renderPrepList();
 }
-function openPrepList(){ renderPrepList(); $("pl").hidden = false; try{ history.pushState({pl: 1}, ""); }catch(e){} }
+function plAddItem(){
+  const name = $("plAddName").value.replace(/\s+/g, " ").trim(), sec = $("plAddSec").value, days = +$("plAddDays").value;
+  const who = store.get("name", "");
+  if(!who){ toast("Set up your name first: tap ← Prep Labels and follow the setup.", "err", 7000); return; }
+  if(name.length < 2){ toast("Type the item's name first."); $("plAddName").focus(); return; }
+  if(plFind(plKey(name))){ toast(name + " is already on the list."); return; }
+  if(!confirm("Add " + name + " (" + days + (days === 1 ? " day" : " days") + ") to " + sec + "? Added items stay on the list for good.")) return;
+  const adds = store.get("prepAdds", []); adds.push({name, sec, days, by: who}); store.set("prepAdds", adds);
+  logEvent({event: "prep add", name: who, item: name, labels: days, source: sec});
+  toast(name + " added to the Prep List.", "ok");
+  renderPrepList();
+}
+// open the Recipe Book at an item's recipe, above the Prep List
+function openRecipeFor(id){
+  openRecipes();
+  // the book's page index is a top-level const, so it's read inside the book's own scope
+  const f = $("rbFrame"), go = () => { try{ const w = f.contentWindow, i = w.goTo && w.eval("typeof recipePageIndex === 'object' ? recipePageIndex[" + JSON.stringify(id) + "] : undefined");
+    if(i != null){ w.goTo(i); return true; } }catch(e){} return false; };
+  if(go()) return;
+  let n = 0; const t = setInterval(() => { if(go()) return clearInterval(t); if(++n > 40){ clearInterval(t); toast("Couldn't open that recipe. Find it in the Recipe Book."); } }, 150);
+}
+let plTimer = null;
+function openPrepList(){
+  plFeed = store.get("prepFeed", []); renderPrepList(); $("pl").hidden = false;
+  try{ history.pushState({pl: 1}, ""); }catch(e){}
+  plLoadFeed(); clearInterval(plTimer); plTimer = setInterval(plLoadFeed, 60000);
+}
 function closePrepList(fromHistory){
   if($("pl").hidden) return;
-  $("pl").hidden = true;
+  $("pl").hidden = true; clearInterval(plTimer);
   if(!fromHistory){ try{ if(history.state && history.state.pl) history.back(); }catch(e){} }
 }
 $("plBtn").onclick = openPrepList;
 $("plClose").onclick = () => closePrepList(false);
-window.addEventListener("popstate", () => closePrepList(true));
-$("plBody").addEventListener("input", e => {
-  const tr = e.target.closest("tr[data-k]"); if(!tr || e.target.tagName !== "INPUT") return;
-  const v = e.target.value.replace(/[^0-9.]/g, ""); if(v !== e.target.value) e.target.value = v;
-  const c = plCounts(); c[tr.dataset.k] = Object.assign({}, c[tr.dataset.k], {oh: v}); plSave(c);
-  tr.querySelector(".need").textContent = plNeed(tr.dataset.k, v);
-  touch();
-});
+window.addEventListener("popstate", e => { if(!(e.state && (e.state.pl || e.state.rb))) closePrepList(true); });
+$("plBody").addEventListener("submit", e => { e.preventDefault(); touch(); plAddItem(); });
 $("plBody").addEventListener("click", e => {
+  const r = e.target.closest(".plr"); if(r){ touch(); openRecipeFor(r.dataset.recipe); return; }
   const b = e.target.closest(".plp"); if(!b) return;
   touch(); printFromList(b.closest("tr").dataset.k, b);
 });
@@ -1588,7 +1688,7 @@ if(btEnv() !== "ok") setChip("", "Printer help");
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 else autoConnect();
 flushLog();
-window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PARS, PL_SECTIONS, YIELDS, amountMade };
+window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
 })();
 </script>
 </body>

@@ -332,28 +332,49 @@ test('Book: Data Needed is read-only outside Claude; book opened alone links to 
 
 /* ================= Prep List ================= */
 
-test('Prep List: lists the Line Flip Labels and every labeled item; on-hand counts kept today; Prep = par − on hand', async () => {
+const plRows = p => p.locator('#pl tr[data-k]').count();
+test('Prep List: every item every day, each links to its recipe; nothing can be removed or un-checked', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await p.click('#plBtn'); await p.waitForTimeout(200);
   const want = await p.evaluate(() => window.__ypl.BATCH.items.length + window.__ypl.ITEMS.filter(i => window.__ypl.SHELF_DAYS[i.id] && i.cat !== 'line').length);
-  eq(await p.locator('#pl tr[data-k]').count(), want, 'rows');
-  eq(await p.textContent('#pl tr[data-k="pico-de-gallo"] .need'), '—', 'no par yet');
-  await p.fill('#pl tr[data-k="pico-de-gallo"] input', '0.5');
-  await p.reload(); await p.waitForTimeout(300);
+  eq(await plRows(p), want, 'rows');
+  eq(await p.locator('#pl td.st:has-text("Not done")').count(), want, 'nothing done before any label prints');
+  eq(await p.locator('#pl input[type=checkbox], #pl [data-remove], #pl [data-undo]').count(), 0, 'no check boxes, remove or undo controls');
+  assert(!/remove|delete|undo|uncheck/i.test(await p.textContent('#plBody').then(t => t.replace(/can't be removed/g, ''))), 'no remove/undo wording');
+  // recipe links: the item and its Line Flip row both open Pico de Gallo, over the list
+  eq(await p.getAttribute('#pl tr[data-k="pico"] .plr', 'data-recipe'), 'pico-de-gallo', 'Line Flip row links to the recipe');
+  await p.click('#pl tr[data-k="pico de gallo"] .plr'); await p.waitForTimeout(1500);
+  const f = p.frames().find(x => /recipes\.html/.test(x.url()));
+  eq(await f.evaluate(() => document.querySelector('.page h2').textContent), 'Pico de Gallo', 'opens its recipe page');
+  assert(await p.isVisible('#rb'), 'book on screen');
+  await p.click('#rbClose'); await p.waitForTimeout(200);
+  assert(await p.isVisible('#pl') && !(await p.isVisible('#rb')), 'closing the book returns to the list');
+  const book = await f.evaluate(() => [...PREP_LABEL_IDS].sort().join());
+  eq(await p.evaluate(() => [...window.__ypl.RECIPE_PAGES].sort().join()), book, 'RECIPE_PAGES = the book\'s pages with labels');
+  await p.close2();
+});
+
+test('Prep List: done only when a label prints (any screen), showing who and when; each day starts fresh', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  await pickItem(p, 'Coleslaw'); await printAndWait(p);
   await p.click('#plBtn'); await p.waitForTimeout(200);
-  eq(await p.inputValue('#pl tr[data-k="pico-de-gallo"] input'), '0.5', 'count kept after reload');
-  await p.evaluate(() => { window.__ypl.PARS['pico-de-gallo'] = [2, 'qt']; });
+  const st = await p.textContent('#pl tr[data-k="coleslaw"] td.st');
+  assert(/✓ Maria\s*\d{1,2}:\d\d [AP]M/.test(st), 'done by Maria with the time: ' + st);
+  assert(/Print again/.test(await p.textContent('#pl tr[data-k="coleslaw"] .plp')), 'can still print more');
+  assert(/[1-9]\d* of \d+ done/.test(await p.textContent('#plCount')), 'count');  // Coleslaw is also a Line Flip row
+  await p.reload(); await p.waitForTimeout(300); await p.click('#plBtn'); await p.waitForTimeout(200);
+  assert(/✓ Maria/.test(await p.textContent('#pl tr[data-k="coleslaw"] td.st')), 'kept after reload');
+  // the next day: yesterday's completions don't count
+  await p.evaluate(() => { const k = Object.keys(localStorage).find(x => /^ypl:prepDone:/.test(x)); localStorage.setItem('ypl:prepDone:1/1/2020', localStorage.getItem(k)); localStorage.removeItem(k); });
   await p.click('#plClose'); await p.click('#plBtn'); await p.waitForTimeout(200);
-  eq(await p.textContent('#pl tr[data-k="pico-de-gallo"] .need'), '1.5 qt', 'prep amount');
-  await p.fill('#pl tr[data-k="pico-de-gallo"] input', '3');
-  eq(await p.textContent('#pl tr[data-k="pico-de-gallo"] .need'), '0 qt', 'over par needs nothing');
+  eq(await p.textContent('#pl tr[data-k="coleslaw"] td.st'), 'Not done', 'new day starts fresh');
   await p.close2();
 });
 
 test('Prep List: Print on a row prints one label with the approved date and stays on the list', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true }, { width: 390, height: 844 });
   await p.click('#plBtn'); await p.waitForTimeout(200);
-  await p.click('#pl tr[data-k="pico-de-gallo"] .plp');
+  await p.click('#pl tr[data-k="pico de gallo"] .plp');
   await p.waitForSelector('#bcSheet:not([hidden])'); await p.click('#bcOk');
   await p.waitForFunction(() => /Printed/.test(document.getElementById('toast').textContent), null, { timeout: 30000 });
   const z = formats(await zpl(p));
@@ -362,9 +383,63 @@ test('Prep List: Print on a row prints one label with the approved date and stay
   const ub = await p.evaluate(() => { const y = window.__ypl, d = y.useBy(new Date(), y.SHELF_DAYS['pico-de-gallo']); return (d.getMonth() + 1) + '/' + d.getDate(); });
   assert(z[0].includes(ub), 'approved use-by date ' + ub);
   assert(await p.isVisible('#pl'), 'still on the prep list');
-  assert(/done/.test(await p.getAttribute('#pl tr[data-k="pico-de-gallo"]', 'class')), 'row marked printed');
+  assert(/done/.test(await p.getAttribute('#pl tr[data-k="pico de gallo"]', 'class')), 'row marked done');
   assert(!(await p.evaluate(() => { const b = document.getElementById('plBody'); return b.scrollWidth > b.clientWidth; })), 'no sideways scroll on a phone');
   eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
+test('Prep List: anyone can add an item; it stays for good and is logged; no duplicates', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const got = [];
+  await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
+  await p.evaluate(() => { const L = window.__ypl.LOG; Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); }); });
+  p.on('dialog', d => d.accept());
+  await p.click('#plBtn'); await p.waitForTimeout(200);
+  const before = await plRows(p);
+  await p.fill('#plAddName', 'Diced Celery'); await p.selectOption('#plAddSec', 'Sides'); await p.selectOption('#plAddDays', '5');
+  await p.click('#plAdd button'); await p.waitForTimeout(400);
+  eq(await plRows(p), before + 1, 'one row added');
+  assert(/5 days · added by Maria/.test(await p.textContent('#pl tr[data-k="diced celery"]')), 'shows shelf life and who added it');
+  const row = got.find(g => g['entry.1'] === 'prep add');
+  assert(row && row['entry.5'] === 'Diced Celery' && row['entry.6'] === '5' && row['entry.9'] === 'Sides' && row['entry.4'] === 'Maria', 'logged for everyone');
+  await p.fill('#plAddName', 'coleslaw'); await p.click('#plAdd button'); await p.waitForTimeout(200);
+  eq(await plRows(p), before + 1, 'duplicate refused');
+  assert(/already on the list/.test(await toastText(p)), 'duplicate explained');
+  await p.reload(); await p.waitForTimeout(300); await p.click('#plBtn'); await p.waitForTimeout(200);
+  eq(await plRows(p), before + 1, 'added item stays after reload');
+  await p.close2();
+});
+
+test('Prep List: shows every device\'s prints and additions from the shared feed', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const today = await p.evaluate(() => { const d = new Date(); return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear(); });
+  const csv = ['Event,Date,Time,Printed By,Item,#Labels,Source', `print,${today},9:05 AM,Caleb,Pickles,1,labels page`,
+    `print,${today},8:40 AM,Debo,Pickles,1,Line Flip Labels`, 'print,1/2/2020,7:00 AM,Debo,Croutons,1,labels page',
+    'prep add,1/2/2020,7:00 AM,Debo,"Brussels Garnish",4,Sides'].join('\n');
+  await p.context().route('**/prep-feed.csv*', r => r.fulfill({ status: 200, body: csv, contentType: 'text/csv' }));
+  await p.evaluate(() => window.__ypl.setPrepFeed(location.origin + '/prep-feed.csv'));
+  await p.click('#plBtn'); await p.waitForTimeout(600);
+  assert(/✓ Debo\s*8:40 AM/.test(await p.textContent('#pl tr[data-k="pickles"] td.st')), 'earliest print today wins');
+  eq(await p.textContent('#pl tr[data-k="croutons"] td.st'), 'Not done', 'an old day\'s print doesn\'t count');
+  assert(/4 days · added by Debo/.test(await p.textContent('#pl tr[data-k="brussels garnish"]')), 'item added on another device');
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
+test('Prep List archive: same items and sections as the screen; done = first print of that day', async () => {
+  const arch = require('../tools/prep-archive');
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const app = await p.evaluate(() => window.__ypl.PL_SECTIONS.map(s => s.name + ': ' + s.rows.map(r => r.name).join('|')).join('\n'));
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  eq(arch.sections(arch.appData(html)).map(s => s.name + ': ' + s.rows.map(r => r.name).join('|')).join('\n'), app, 'archive sections = Prep List sections');
+  const H = ['Timestamp', 'Event', 'Date', 'Time', 'Printed By', 'Item(Recipe Book Name)', '#Labels', 'Prep Date', 'Use By Date', 'Source', 'Device'];
+  const out = arch.build([H, ['', 'print', '10/17/2026', '4:07 PM', 'Caleb', 'Coleslaw', '1', '', '', 'labels page', ''],
+    ['', 'print', '10/17/2026', '1:47 PM', 'Debo', 'Coleslaw', '2', '', '', 'labels page', ''], ['', 'prep add', '10/17/2026', '5:00 PM', 'Debo', 'Diced Celery', '4', '', '', 'Sides', ''],
+    ['', 'print', '10/16/2026', '1:00 PM', 'Debo', 'Croutons', '1', '', '', 'labels page', ''], ['', 'prep add', '10/19/2026', '5:00 PM', 'Debo', 'Later Item', '4', '', '', 'Sides', '']], '10/17/2026', html);
+  assert(/Coleslaw<\/td><td>✓ Debo<\/td><td>1:47 PM<\/td><td>3</.test(out), 'earliest print, labels counted');
+  assert(/Diced Celery \(added by Debo\)/.test(out) && !/Later Item/.test(out), 'items added by that day only');
+  assert(/Croutons<\/td><td>Not done/.test(out), 'another day\'s print doesn\'t count');
   await p.close2();
 });
 

@@ -27,7 +27,7 @@ The kitchen depends on this page to print legally required date labels. Keep it 
    Initials | Notes (Line Flip Labels table has no Shelf life column), items alphabetical within each section (Line Flip Labels and Frozen & Thawing
    follow the app's order), Item column
    150pt. Never create a new doc. If the Docs connector isn't available, tell the owner the doc still needs the change.
-   The in-app Prep List builds itself from the same data; par levels live in `PARS` (owner-set only).
+   The in-app Prep List builds itself from the same data.
 9. **The Claude artifacts and the staff link are always identical, both directions (owner rule, 100% of the time).**
    `tools/sync.js` does the work; README "Keeping Claude and the staff link the same" has the exact steps.
    - **Start every task with a sync check:** Artifact read with a path saves the file without loading it into the
@@ -41,3 +41,7 @@ The kitchen depends on this page to print legally required date labels. Keep it 
      The check "Sync: the Claude artifacts were published" fails until that's done.
    - "conflict" = both sides changed: merge by hand, never overwrite either one, and tell the owner.
    - The hourly scheduled task "Yardery labels sync" runs the same check and fixes drift on its own.
+10. **Prep List rules (owner, 2026-10-18):** the same list every day; anyone can add an item, nobody can remove an item or
+    un-check one (no remove/undo/uncheck controls, ever); an item is complete only when a label prints for it, and shows
+    who printed it and when (first print of the day). Every item with a Recipe Book page links to it. Each day is archived
+    (`tools/prep-archive.js`, Drive folder "Prep List Archive" id `1p7Fg1TkNJGr0crpQgfhFqHjs9PQGkaXY`).
