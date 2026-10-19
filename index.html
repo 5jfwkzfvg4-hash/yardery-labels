@@ -589,7 +589,7 @@ const YIELDS = {
   "crab-cakes": "≈ 4 cakes × 4 oz", "hamburger-patty": "40 patties × 4 oz", "wing-marinade": "40 lb wings",
   "pulled-pork": "256 oz (16 lb)", "smoked-chicken-breast": "≈ 58 portions × 4 oz", "bama-white-bbq": "≈ 170 oz",
   "buffalo-sauce": "176 oz", "cilantro-lime-sauce": "152 oz", "fire-marinara": "≈ 6.5 quarts", "fire-sauce": "176 oz",
-  "honey-mustard": "56 oz", "hot-honey-chicken-marinade": "TBD", "hot-honey-sauce": "≈ 192 oz",
+  "honey-mustard": "56 oz", "hot-honey-chicken-marinade": "3 cups marinade (before chicken)", "hot-honey-sauce": "≈ 192 oz",
   "pickling-liquid": "12 cups", "ranch-dressing": "1.5 gallons", "tartar-sauce": "≈ 57 oz", "yardery-sauce": "164 oz",
   "bbq-dry-rub": "96 oz", "burger-seasoning": "8 oz", "hot-honey-dredge": "412 oz", "poultry-seasoning": "7 cups",
   "seafood-breading": "25 lb", "black-beans": "TBD", "cavatappi": "≈ 16 portions × 10 oz",
@@ -1338,7 +1338,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-18.1";
+const APP_VERSION = "2026-10-19.1";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){

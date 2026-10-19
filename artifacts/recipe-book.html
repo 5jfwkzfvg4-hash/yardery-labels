@@ -1700,7 +1700,6 @@ const DATA_NEEDED = [
     ]},
     { name: "Sauces", items: [
       { id: "yield-bama-white-bbq", label: "Bama White BBQ Sauce", rid: "bama-white-bbq", unit: OZ, kind: "num", hint: "Re-measure. The owner's 160 oz was for a different version; use the Recipe Book version." },
-      { id: "yield-hot-honey-chicken-marinade", label: "Hot Honey Chicken Marinade", rid: "hot-honey-chicken-marinade", unit: OZ, kind: "num" },
       { id: "yield-hot-honey-sauce", label: "Hot Honey Sauce", rid: "hot-honey-sauce", unit: OZ, kind: "num" }
     ]},
     { name: "Rubs", items: [
@@ -1843,8 +1842,9 @@ PAGES.forEach((p, i) => { if (p.type === "divider") dividerPageIndex[p.cat] = i;
 const menuPageIndex = PAGES.findIndex(p => p.type === "menu");
 const conversionsPageIndex = PAGES.findIndex(p => p.type === "conversions");
 // ---------------- Update log (newest first). Add an entry whenever a page changes. ----------------
-const BOOK_UPDATED = "2026-10-17";
+const BOOK_UPDATED = "2026-10-19";
 const UPDATE_LOG = [
+  { to: "hot-honey-chicken-marinade", date: "2026-10-19", what: "Batch yield added: 3 cups marinade before chicken" },
   { to: "sliced-cucumbers", date: "2026-10-17", what: "Cucumbers are sliced, not diced: Diced Cucumbers page removed; House salad uses Sliced Cucumbers" },
   { to: "coleslaw", date: "2026-10-17", what: "Slaw sauce changed to 3 cups" },
   { to: "cover", title: "Whole book", date: "2026-10-11", what: "Fix: side swipes no longer close the book" },
@@ -2235,7 +2235,7 @@ const BATCH_YIELDS = {
   "smoked-chicken-breast": { v: "58 portions × 4 oz", est: true, note: "Diced at 1/4 inch. Estimate uses USDA's 73% cooked yield for boneless breast: 20 lb raw makes about 234 oz smoked. The v5 sheet's \"10 lb makes 40 portions\" is 10 lb of smoked chicken, not a 10 lb raw bag." },
   "smoked-ribs": { v: "1 rack" },
   "wing-marinade": { v: "40 lb wings", note: "About 40–53 orders at 8 wings per order." },
-  "hot-honey-chicken-marinade": { v: "TBD", note: "Batch yield is changing with the new chicken product. Breasts are trimmed to 5 oz; trim goes to Smoked Chicken." },
+  "hot-honey-chicken-marinade": { v: "3 cups marinade (before chicken)", note: "Covers one case of chicken breast. Breasts are trimmed to 5 oz; trim goes to Smoked Chicken." },
   "bama-white-bbq": { v: "170 oz", est: true },
   "buffalo-sauce": { v: "176 oz" },
   "honey-mustard": { v: "56 oz", note: "About 0.44 gallon." },
