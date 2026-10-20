@@ -503,7 +503,7 @@ const ITEMS = [
   ["balsamic-strawberries","Balsamic Glazed Strawberries","toppings"],["candied-bacon","Candied Bacon","toppings"],
   ["candied-pecans","Candied Pecans","toppings"],["caramelized-onions","Caramelized Onions","toppings"],["chopped-green-onions","Chopped Green Onions","toppings"],
   ["chopped-romaine","Chopped Romaine","toppings"],["coleslaw","Coleslaw","toppings"],["crispy-wontons","Crispy Wontons","toppings"],
-  ["croutons","Croutons","toppings"],["diced-tomatoes","Diced Tomatoes","toppings"],
+  ["croutons","Croutons","toppings"],["diced-tomatoes","Diced Tomatoes","toppings"],["dough","Dough","toppings"],
   ["roasted-cherry-tomatoes","Fire-Roasted Cherry Tomatoes","toppings"],["fried-onions","Fried Onions","toppings"],
   ["mango-pico","Mango Pico de Gallo","toppings"],["mango-pineapple-salsa","Mango Pineapple Salsa","toppings"],["pickled-jalapenos","Pickled Jalapeños","toppings"],
   ["pickles","Pickles","toppings"],["pico-de-gallo","Pico de Gallo","toppings"],["roasted-peppers","Roasted Peppers","toppings"],
@@ -542,7 +542,7 @@ const SHELF_DAYS = {
   // or below = 7 days max, day opened/made = day 1; hard and semi-soft cheeses and shelf-stable dry sausage are exempt.
   "feta":7, "parmesan":14, "sliced-tomatoes":3, "american":7, "beef":4, "sausage":4, "pepperoni":7, "sliced-mozzarella":7,
   "pineapple":5, "shredded-mozzarella":7, "mix-cheese-blend":7,
-  "basil":3, "cilantro":3, "sour-cream":7 /* Clay 2026-10-17 */,
+  "basil":3, "cilantro":3, "sour-cream":7 /* Clay 2026-10-17 */, "dough":5 /* Clay 2026-10-20 */,
   "ribs-thawing":5, "beef-thawing":5, "ground-beef-thawing":4, "lettuce":5, "shredded-lettuce":5, "spring-mix":5
 };
 /* extra instructions shown when the item is picked */
@@ -1339,7 +1339,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-20.1";
+const APP_VERSION = "2026-10-20.2";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
