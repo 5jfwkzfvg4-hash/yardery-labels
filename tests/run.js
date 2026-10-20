@@ -217,6 +217,13 @@ test('Labels: Sour Cream (7 days) added; American renamed Sliced American Cheese
   await p.close2();
 });
 
+test('Labels: Corn Dogs button in Proteins with a 7-day shelf life (owner, 2026-10-20)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const r = await p.evaluate(() => { const it = window.__ypl.ITEMS.find(i => i.id === 'corn-dogs'); return it && [it.name, it.cat, window.__ypl.SHELF_DAYS[it.id]]; });
+  eq(JSON.stringify(r), JSON.stringify(['Corn Dogs', 'proteins', 7]), 'Corn Dogs item');
+  await p.close2();
+});
+
 test('Labels: every Line Flip Labels item has its own button, with no repeats', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const r = await p.evaluate(() => {

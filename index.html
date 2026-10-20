@@ -489,7 +489,7 @@ const CATS = [
 ];
 const ITEMS = [
   ["ahi-tuna-prep","Ahi Tuna Prep","proteins"],["smoked-ribs","Baby Back Ribs","proteins"],["blackened-fish","Blackened Fish","proteins"],
-  ["crab-cakes","Crab Cakes","proteins"],["fried-cod","Fried Cod","proteins"],["hamburger-patty","Hamburger Patty","proteins"],
+  ["corn-dogs","Corn Dogs","proteins"],["crab-cakes","Crab Cakes","proteins"],["fried-cod","Fried Cod","proteins"],["hamburger-patty","Hamburger Patty","proteins"],
   ["marinated-chicken-tenders","Marinated Chicken Tenders","proteins"],["wing-marinade","Marinated Wings","proteins"],
   ["pulled-pork","Pulled Pork (Smoked)","proteins"],["smoked-chicken-breast","Smoked Chicken Breast","proteins"],
   ["bama-white-bbq","Bama White BBQ Sauce","sauces"],["buffalo-sauce","Buffalo Sauce","sauces"],["cilantro-lime-sauce","Cilantro Lime Sauce","sauces"],
@@ -524,7 +524,7 @@ const ITEMS = [
 /* ===== SHELF LIFE IN DAYS (KM-approved 2026-10-14, frozen items added 2026-10-15; prep day = day 1) =====
    Keep in sync with the Recipe Book. Items left out ask the cook to pick. */
 const SHELF_DAYS = {
-  "ahi-tuna-prep":2, "smoked-ribs":4, "blackened-fish":2, "crab-cakes":2, "fried-cod":2, "hamburger-patty":2,
+  "ahi-tuna-prep":2, "smoked-ribs":4, "blackened-fish":2, "corn-dogs":7 /* Clay 2026-10-20 */, "crab-cakes":2, "fried-cod":2, "hamburger-patty":2,
   "marinated-chicken-tenders":2, "wing-marinade":2, "pulled-pork":4, "smoked-chicken-breast":4,
   "bama-white-bbq":5, "buffalo-sauce":7, "cilantro-lime-sauce":5, "fire-marinara":5, "fire-sauce":5,
   "honey-mustard":5, "hot-honey-chicken-marinade":2, "hot-honey-sauce":14, "pickling-liquid":14,
@@ -550,6 +550,7 @@ const ITEM_NOTES = {
   "feta": "Opened package: day opened is day 1, and never past the package date.",
   "parmesan": "Hard cheese: the 7-day date-mark rule doesn't apply. House limit 14 days, and never past the package date.",
   "sliced-tomatoes": "Cut tomatoes must stay at 41°F or below. Same 3 days as Diced Tomatoes.",
+  "corn-dogs": "Pulled from the freezer or package opened: that day is day 1, and never past the package date. Hold at 41°F or below.",
   "sour-cream": "Opened package: day opened is day 1, and never past the package date.",
   "american": "Opened package: day opened is day 1, and never past the package date.",
   "beef": "Cooked beef: cool from 135°F to 70°F within 2 hours and to 41°F within 6 hours total. Same 4 days as our other cooked proteins.",
@@ -1338,7 +1339,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-19.1";
+const APP_VERSION = "2026-10-20.1";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
