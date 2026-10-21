@@ -194,6 +194,15 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .pladd p{flex-basis:100%;margin:0;font-size:.82rem;color:var(--ink-soft)}
 .pltab .plp{border:0;border-radius:10px;background:var(--green);color:var(--green-ink);min-height:40px;padding:0 12px;font-weight:700;white-space:nowrap}
 .pltab tr.done td{background:var(--good-bg)}
+.plpick h3{font:700 .95rem var(--display);margin:14px 0 6px;display:flex;align-items:center;gap:8px}
+.plall{margin-left:auto;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);min-height:32px;padding:0 12px;font-size:.8rem;font-weight:700}
+.plchips{display:flex;flex-wrap:wrap;gap:6px}
+.plchip{border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);min-height:40px;padding:0 14px;font:inherit;font-size:.92rem}
+.plchip[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:var(--green-ink);font-weight:700}
+.plchip[aria-pressed="true"]::before{content:"✓ "}
+.plpickbar{position:sticky;bottom:0;padding:10px 0 4px;background:linear-gradient(transparent,var(--paper) 30%)}
+.plpickadd{width:100%;border:0;border-radius:12px;background:var(--green);color:var(--green-ink);min-height:48px;font-weight:700;font-size:1rem}
+.plpickadd:disabled{background:var(--paper-soft);color:var(--ink-soft)}
 /* batch count, asked before printing an item that has a Recipe Book yield; sits above the book and Prep List */
 .bcsheet{z-index:52;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
 .bcsheet .qty{margin:0 auto} .bcsheet .qty button{min-height:52px}
@@ -1339,7 +1348,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-20.2";
+const APP_VERSION = "2026-10-21.1";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1416,11 +1425,12 @@ window.addEventListener("message", e => {
   if(d.type === "ypl-print"){ touch(); printFromBook(d.item, d.qty, d.mult); }
 });
 
-/* ---------- Prep List (Clay 2026-10-18) ----------
-   The same list every day. Anyone can add an item; nobody can remove one or un-check it. An item is complete only when a
+/* ---------- Prep List (Clay 2026-10-18; picked fresh each day since 2026-10-21) ----------
+   Each day starts empty. Anyone picks today's items one by one from every label item (or adds a new item, which joins the
+   pick list for good); nobody can remove a picked item or un-check one. An item is complete only when a
    label prints for it (any screen, any device), and shows who printed it and when. Devices share the list through the
    print log: they write to the Google Form (LOG) and read back today's prints and every added item from the sheet's
-   "Prep Feed" tab, published as CSV (PREP_FEED_URL; empty = this device only). A scheduled task archives each day to Drive.
+   "Prep Feed" tab, published as CSV (PREP_FEED_URL; empty = this device only). Picks are "prep pick" rows (item, section). A scheduled task archives each day to Drive.
    Item names link to their Recipe Book page. Same sections and order as the "Line Item Prep List" Google Doc. */
 let PREP_FEED_URL = "";
 // label items with a Recipe Book page (= the book's PREP_LABEL_IDS; a check keeps them equal)
@@ -1504,6 +1514,7 @@ function plAdds(){
   const seen = new Set(PL_SECTIONS.flatMap(s => s.rows.map(r => r.key)));
   return all.filter(a => { const k = plKey(a.name); if(!k || seen.has(k)) return false; seen.add(k); return true; });
 }
+// every item that can be picked: the label items plus items people added
 function plSections(){
   const secs = PL_SECTIONS.map(s => Object.assign({}, s, {rows: s.rows.slice()}));
   plAdds().forEach(a => {
@@ -1513,32 +1524,65 @@ function plSections(){
   });
   return secs;
 }
+// today's picks, as "section|key" (Line Flip "Coleslaw" and the Toppings one are separate picks): this device's + the feed's
+const plPickId = (sec, name) => sec + "|" + plKey(name);
+function plPicksLocal(){ return store.get("prepPicks:" + plToday(), []); }
+function plPicks(){
+  const today = plToday();
+  return new Set(plPicksLocal().concat(plFeed.filter(e => e.event === "prep pick" && e.date === today).map(e => plPickId(e.source, e.item))));
+}
+// today's list: the picked rows, in the catalog's sections and order
+function plTodaySections(secs, picks){
+  return secs.map(s => Object.assign({}, s, {rows: s.rows.filter(r => picks.has(plPickId(s.name, r.name)))})).filter(s => s.rows.length);
+}
 function plRow(r, done, sec){
   const v = done[r.key], meta = [];
   if(!sec.line) meta.push(r.days + (r.days === 1 ? " day" : " days"));
   if(r.added != null) meta.push("added" + (r.added ? " by " + esc(r.added) : ""));
-  return '<tr data-k="' + esc(r.key) + '"' + (v ? ' class="done"' : '') + '><td class="n">' +
+  return '<tr data-k="' + esc(r.key) + '" data-s="' + esc(sec.name) + '"' + (v ? ' class="done"' : '') + '><td class="n">' +
     (r.recipe ? '<button class="plr" type="button" data-recipe="' + esc(r.recipe) + '">' + esc(r.name) + '</button>' : '<b>' + esc(r.name) + '</b>') +
     '<small>' + meta.join(" · ") + '</small></td>' +
     '<td class="st">' + (v ? '<b>✓ ' + esc(v.by) + '</b><br>' + esc(v.time) : "Not done") + '</td>' +
     '<td class="c"><button class="plp" type="button">' + (v ? "Print again" : "Print") + '</button></td></tr>';
 }
+let plSel = new Set();                                      // picker taps not yet added (a draft, not the list)
+function plPickBtn(){
+  const b = $("plPickAdd"); if(!b) return;
+  b.disabled = !plSel.size;
+  b.textContent = plSel.size ? "Add " + plSel.size + (plSel.size === 1 ? " item" : " items") + " to today's list" : "Tap items above to pick them";
+}
 function renderPrepList(){
-  const done = plDone(), now = new Date(), secs = plSections();
+  const done = plDone(), now = new Date(), all = plSections(), picks = plPicks(), secs = plTodaySections(all, picks);
   $("plDate").textContent = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][now.getDay()] + " " + md(now);
   const n = secs.reduce((t, s) => t + s.rows.length, 0), k = secs.reduce((t, s) => t + s.rows.filter(r => done[r.key]).length, 0);
-  $("plBody").innerHTML = '<p class="plnote plsec" id="plCount"><b>' + k + " of " + n + " done.</b> An item is done when its label prints. " +
-      (PREP_FEED_URL ? "Shows every device's prints." : "Shows this device's prints.") + "</p>" +
+  const left = all.map(s => Object.assign({}, s, {rows: s.rows.filter(r => !picks.has(plPickId(s.name, r.name)))})).filter(s => s.rows.length);
+  plSel = new Set([...plSel].filter(id => !picks.has(id)));
+  const scroll = $("plBody").scrollTop;                     // a refresh from the feed keeps your place
+  $("plBody").innerHTML = '<p class="plnote plsec" id="plCount">' + (n ? "<b>" + k + " of " + n + " done.</b> An item is done when its label prints. " +
+      (PREP_FEED_URL ? "Shows every device's picks and prints." : "Shows this device's picks and prints.")
+      : "<b>Nothing on today's list yet.</b> Pick today's items below. The list starts empty every morning.") + "</p>" +
     secs.map(sec => '<section class="plsec"><h2>' + esc(sec.name) + '</h2><table class="pltab"><thead><tr><th>Item</th><th>Done</th><th></th></tr></thead><tbody>' +
       sec.rows.map(r => plRow(r, done, sec)).join("") + '</tbody></table></section>').join("") +
-    '<form class="pladd" id="plAdd"><label>Add an item<input id="plAddName" maxlength="40" autocomplete="off" placeholder="e.g. Diced Celery"></label>' +
+    '<section class="plsec plpick" id="plPick"><h2>Add to today\'s list</h2><p class="plnote">Tap each item to prep today, then tap Add. ' +
+      'Picked items stay on today\'s list and can\'t be removed.</p>' +
+      (left.length ? left.map(sec => '<h3>' + esc(sec.name) + ' <button class="plall" type="button" data-s="' + esc(sec.name) + '">Pick all ' + sec.rows.length + '</button></h3><div class="plchips">' +
+        sec.rows.map(r => { const id = plPickId(sec.name, r.name);
+          return '<button class="plchip" type="button" data-id="' + esc(id) + '" data-k="' + esc(r.key) + '" aria-pressed="' + plSel.has(id) + '">' + esc(r.name) + '</button>'; }).join("") +
+        '</div>').join("") : '<p class="plnote">Every item is on today\'s list.</p>') +
+      '<div class="plpickbar"><button class="plpickadd" id="plPickAdd" type="button"></button></div></section>' +
+    '<form class="pladd" id="plAdd"><label>Not in the list? Add a new item<input id="plAddName" maxlength="40" autocomplete="off" placeholder="e.g. Diced Celery"></label>' +
     '<label>Section<select id="plAddSec">' + PL_SECTIONS.filter(s => !s.line).map(s => "<option>" + esc(s.name) + "</option>").join("") + '</select></label>' +
     '<label style="flex:0 1 110px">Shelf life<select id="plAddDays">' + [1, 2, 3, 4, 5, 6, 7].map(d => '<option value="' + d + '"' + (d === 3 ? " selected" : "") + ">" + d + (d === 1 ? " day" : " days") + "</option>").join("") + '</select></label>' +
-    '<button type="submit">Add</button><p>Added items stay on the list every day and can\'t be removed. Cold, ready-to-eat food: 7 days max.</p></form>';
+    '<button type="submit">Add</button><p>A new item goes on today\'s list and joins the items you can pick every day; it can\'t be removed. Cold, ready-to-eat food: 7 days max.</p></form>';
+  $("plBody").scrollTop = scroll;
+  plPickBtn();
 }
-function plFind(key){ for(const sec of plSections()){ const r = sec.rows.find(x => x.key === key); if(r) return {r, sec}; } return null; }
-async function printFromList(key, btn){
-  const f = plFind(key); if(!f) return;
+function plFind(key, sec){
+  for(const s of plSections()){ if(sec && s.name !== sec) continue; const r = s.rows.find(x => x.key === key); if(r) return {r, sec: s}; }
+  return null;
+}
+async function printFromList(key, btn, sec){
+  const f = plFind(key, sec) || plFind(key); if(!f) return;
   const who = store.get("name", "");
   // RULE: a Print tap always shows a result
   if(!who){ toast("Set up your name first: tap ← Prep Labels and follow the setup.", "err", 7000); return; }
@@ -1554,16 +1598,39 @@ async function printFromList(key, btn){
   }catch(e){ toast((e && e.message) || "Couldn't print.", "err", 9000); }
   renderPrepList();
 }
+// put rows on today's list: saved here, logged for every device; never taken off
+function plPick(rows, who){
+  const today = plToday(), mine = plPicksLocal(), have = plPicks();
+  rows.forEach(({sec, name}) => { const id = plPickId(sec, name); if(have.has(id)) return; have.add(id); mine.push(id);
+    logEvent({event: "prep pick", name: who, item: name, labels: "", source: sec}); });
+  store.set("prepPicks:" + today, mine);
+  try{ Object.keys(localStorage).forEach(x => { if(/^ypl:prepPicks:/.test(x) && x !== "ypl:prepPicks:" + today) localStorage.removeItem(x); }); }catch(e){}
+}
+function plAddPicked(){
+  const who = store.get("name", "");
+  // RULE: an Add tap always shows a result
+  if(!who){ toast("Set up your name first: tap ← Prep Labels and follow the setup.", "err", 7000); return; }
+  if(!plSel.size){ toast("Tap the items to prep today first."); return; }
+  const rows = [];
+  plSections().forEach(s => s.rows.forEach(r => { if(plSel.has(plPickId(s.name, r.name))) rows.push({sec: s.name, name: r.name}); }));
+  if(!confirm("Add " + rows.length + (rows.length === 1 ? " item" : " items") + " to today's list? They stay on today's list.\n\n" +
+    rows.slice(0, 25).map(x => "• " + x.name).join("\n") + (rows.length > 25 ? "\n…and " + (rows.length - 25) + " more" : ""))){ toast("Nothing added."); return; }
+  plPick(rows, who); plSel.clear();
+  toast(rows.length + (rows.length === 1 ? " item" : " items") + " added to today's list.", "ok");
+  renderPrepList();
+  $("plBody").scrollTop = 0;                                // show the list the items went onto
+}
 function plAddItem(){
   const name = $("plAddName").value.replace(/\s+/g, " ").trim(), sec = $("plAddSec").value, days = +$("plAddDays").value;
   const who = store.get("name", "");
   if(!who){ toast("Set up your name first: tap ← Prep Labels and follow the setup.", "err", 7000); return; }
   if(name.length < 2){ toast("Type the item's name first."); $("plAddName").focus(); return; }
-  if(plFind(plKey(name))){ toast(name + " is already on the list."); return; }
-  if(!confirm("Add " + name + " (" + days + (days === 1 ? " day" : " days") + ") to " + sec + "? Added items stay on the list for good.")) return;
+  if(plFind(plKey(name))){ toast(name + " is already an item. Pick it in \"Add to today's list\"."); return; }
+  if(!confirm("Add " + name + " (" + days + (days === 1 ? " day" : " days") + ") to " + sec + "? It goes on today's list and stays an item for good.")) return;
   const adds = store.get("prepAdds", []); adds.push({name, sec, days, by: who}); store.set("prepAdds", adds);
   logEvent({event: "prep add", name: who, item: name, labels: days, source: sec});
-  toast(name + " added to the Prep List.", "ok");
+  plPick([{sec, name}], who);
+  toast(name + " added to today's list.", "ok");
   renderPrepList();
 }
 // open the Recipe Book at an item's recipe, above the Prep List
@@ -1592,8 +1659,14 @@ window.addEventListener("popstate", e => { if(!(e.state && (e.state.pl || e.stat
 $("plBody").addEventListener("submit", e => { e.preventDefault(); touch(); plAddItem(); });
 $("plBody").addEventListener("click", e => {
   const r = e.target.closest(".plr"); if(r){ touch(); openRecipeFor(r.dataset.recipe); return; }
+  const c = e.target.closest(".plchip");
+  if(c){ touch(); const id = c.dataset.id; plSel.has(id) ? plSel.delete(id) : plSel.add(id); c.setAttribute("aria-pressed", plSel.has(id)); plPickBtn(); return; }
+  const all = e.target.closest(".plall");
+  if(all){ touch(); const want = all.dataset.s + "|";
+    $("plBody").querySelectorAll(".plchip").forEach(x => { if(x.dataset.id.startsWith(want)){ plSel.add(x.dataset.id); x.setAttribute("aria-pressed", "true"); } }); plPickBtn(); return; }
+  if(e.target.closest("#plPickAdd")){ touch(); plAddPicked(); return; }
   const b = e.target.closest(".plp"); if(!b) return;
-  touch(); printFromList(b.closest("tr").dataset.k, b);
+  const tr = b.closest("tr"); touch(); printFromList(tr.dataset.k, b, tr.dataset.s);
 });
 
 /* ---------- first-time setup ---------- */

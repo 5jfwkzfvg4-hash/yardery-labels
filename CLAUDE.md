@@ -41,7 +41,8 @@ The kitchen depends on this page to print legally required date labels. Keep it 
      The check "Sync: the Claude artifacts were published" fails until that's done.
    - "conflict" = both sides changed: merge by hand, never overwrite either one, and tell the owner.
    - The hourly scheduled task "Yardery labels sync" runs the same check and fixes drift on its own.
-10. **Prep List rules (owner, 2026-10-18):** the same list every day; anyone can add an item, nobody can remove an item or
+10. **Prep List rules (owner, 2026-10-18; updated 2026-10-21):** the list starts empty every day and anyone picks today's items
+    individually from every label item (or adds a new item, which stays pickable for good); nobody can remove a picked item or
     un-check one (no remove/undo/uncheck controls, ever); an item is complete only when a label prints for it, and shows
     who printed it and when (first print of the day). Every item with a Recipe Book page links to it. Each day is archived
     (`tools/prep-archive.js`, Drive folder "Prep List Archive" id `1p7Fg1TkNJGr0crpQgfhFqHjs9PQGkaXY`).

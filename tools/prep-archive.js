@@ -1,8 +1,9 @@
 // Daily Prep List archive: one day's list as it stood at close, from the print log.
 //   node tools/prep-archive.js <form-responses.json> <M/D/YYYY>  > archive.html
 // <form-responses.json> = the "Form Responses 1" tab as rows (the Sheets get_values result, or just its "values" array).
-// Uses the same items, sections and rules as the Prep List screen in index.html: every item every day, items people
-// added stay, an item is done when its first label printed that day (who + time), Line Flip rows by name.
+// Uses the same items, sections and rules as the Prep List screen in index.html: the day's list is the items picked that
+// day ("prep pick" rows: item + section), items people added stay pickable, an item is done when its first label printed
+// that day (who + time), Line Flip rows by name.
 const fs = require('fs');
 const path = require('path');
 
@@ -48,18 +49,21 @@ function build(rows, day, indexHtml) {
     if (!s) { s = secs.find(x => x.name === 'Added items'); if (!s) { s = { name: 'Added items', rows: [] }; secs.push(s); } }
     s.rows.push({ key: k, name: e.item, days: parseInt(e.labels, 10) || 3, added: e.by || '' });
   });
+  // that day's list: only the rows picked that day, in the screen's sections and order
+  const picks = new Set(ev.filter(e => e.event === 'prep pick' && e.date === day).map(e => e.source + '|' + key(e.item)));
+  const list = secs.map(s => Object.assign({}, s, { rows: s.rows.filter(r => picks.has(s.name + '|' + r.key)) })).filter(s => s.rows.length);
   const done = {}, count = {};
   ev.filter(e => e.event === 'print' && e.date === day).forEach(e => {
     const k = key(e.item);
     count[k] = (count[k] || 0) + (parseInt(e.labels, 10) || 1);
     if (!done[k] || mins(e.time) < mins(done[k].time)) done[k] = { by: e.by, time: e.time };
   });
-  const n = secs.reduce((t, s) => t + s.rows.length, 0), k = secs.reduce((t, s) => t + s.rows.filter(r => done[r.key]).length, 0);
+  const n = list.reduce((t, s) => t + s.rows.length, 0), k = list.reduce((t, s) => t + s.rows.filter(r => done[r.key]).length, 0);
   const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayD.getDay()];
   const title = `Prep List — ${dow} ${day}`;
   return `<html><head><meta charset="utf-8"><title>${esc(title)}</title></head><body style="font-family:Arial">` +
-    `<h1>${esc(title)}</h1><p><b>${k} of ${n} done.</b> An item is done when its label prints; the first print of the day is shown.</p>` +
-    secs.map(s => `<h2>${esc(s.name)}</h2><table border="1" cellpadding="4" style="border-collapse:collapse;width:100%">` +
+    `<h1>${esc(title)}</h1><p>` + (n ? `<b>${k} of ${n} done.</b> An item is done when its label prints; the first print of the day is shown.` : '<b>No items were picked for this day.</b>') + '</p>' +
+    list.map(s => `<h2>${esc(s.name)}</h2><table border="1" cellpadding="4" style="border-collapse:collapse;width:100%">` +
       `<tr><th bgcolor="#2F5233" style="color:#ffffff">Item</th><th bgcolor="#2F5233" style="color:#ffffff">Done by</th><th bgcolor="#2F5233" style="color:#ffffff">Time</th><th bgcolor="#2F5233" style="color:#ffffff">Labels</th></tr>` +
       s.rows.map(r => { const v = done[r.key];
         return `<tr><td>${esc(r.name)}${r.added != null ? ' (added' + (r.added ? ' by ' + esc(r.added) : '') + ')' : ''}</td>` +

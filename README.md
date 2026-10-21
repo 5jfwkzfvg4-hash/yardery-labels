@@ -15,10 +15,12 @@ Everything lives in `index.html`. Near the top of the `<script>`:
 - `ITEMS` – prep items (from the Recipe Book).
 - `SHELF_DAYS` – KM-approved shelf life per item (approved 2026-10-14), e.g. `"pico-de-gallo":3`. Keep it matching the Recipe Book.
 - `ITEM_NOTES` – extra instruction shown when an item is picked (e.g. Fried Onions 4-hour rule). Prep day counts as day 1; cold-held ready-to-eat food maxes at 7 days (FL Admin. Code 61C-4.010 / FDA Food Code 3-501.17).
-- **Prep List** screen (owner rules, 2026-10-18): the same list every day; anyone can add an item, nobody can remove one
-  or un-check it; an item is done only when a label prints for it (any screen), showing who and when. Devices share it
-  through the print log: the Form gets every print and every "prep add", and the sheet's **Prep Feed** tab (today's and
-  yesterday's prints + all added items) is read back as published CSV from `PREP_FEED_URL`. `RECIPE_PAGES` (items with a
+- **Prep List** screen (owner rules, 2026-10-18; updated 2026-10-21): the list starts empty every day; anyone picks today's
+  items one by one (or a whole section) from every label item, or adds a new item (it goes on today's list and stays
+  pickable for good); nobody can remove a picked item or un-check it; an item is done only when a label prints for it (any
+  screen), showing who and when. Devices share it through the print log: the Form gets every print, every "prep pick"
+  (item + section) and every "prep add", and the sheet's **Prep Feed** tab (today's and yesterday's prints and picks + all
+  added items) is read back as published CSV from `PREP_FEED_URL`. `RECIPE_PAGES` (items with a
   Recipe Book page, linked from the list) must equal the book's `PREP_LABEL_IDS`. Each day is archived to Drive folder
   "Prep List Archive" by `tools/prep-archive.js` (`node tools/prep-archive.js <form-responses.json> <M/D/YYYY>`).
 - `YIELDS` – batch yield per item, copied from the Recipe Book's `BATCH_YIELDS` (a check keeps them equal). Printing an item with a yield asks how many batches were made; the log records batches and batches × yield. Until the Google Form has "Batches" and "Amount Made" questions (`LOG.fields.batches` / `made`), they are added to the Source column.
