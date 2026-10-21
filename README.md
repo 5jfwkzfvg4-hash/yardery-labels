@@ -23,6 +23,9 @@ Everything lives in `index.html`. Near the top of the `<script>`:
   added items) is read back as published CSV from `PREP_FEED_URL`. `RECIPE_PAGES` (items with a
   Recipe Book page, linked from the list) must equal the book's `PREP_LABEL_IDS`. Each day is archived to Drive folder
   "Prep List Archive" by `tools/prep-archive.js` (`node tools/prep-archive.js <form-responses.json> <M/D/YYYY>`).
+- **Custom labels, not buttons yet** (Clay 2026-10-21): every dated custom label printed is listed at the bottom of the
+  label page (name, usual shelf life, times printed, last by) until a button with that name exists, so the owner can pick
+  which to add for good. Text-only labels aren't listed. Source: this device's prints + the feed's `custom` prints.
 - `YIELDS` – batch yield per item, copied from the Recipe Book's `BATCH_YIELDS` (a check keeps them equal). Printing an item with a yield asks how many batches were made; the log records batches and batches × yield. Until the Google Form has "Batches" and "Amount Made" questions (`LOG.fields.batches` / `made`), they are added to the Source column.
 
 Bump `APP_VERSION` in `index.html` with every change (including `recipes.html`), then commit to `main`. The link updates in about a minute, and tablets that leave the app open pick it up within about 5 minutes once nobody is using the screen (or right away when the app is reopened).

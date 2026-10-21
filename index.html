@@ -96,6 +96,10 @@ button{cursor:pointer}
 .batchbtn span{font-size:.85rem;opacity:.9}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
 .chips span{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:3px 9px;font-size:.8rem;font-weight:600}
+.reqs{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.reqs h2{font:700 1rem var(--display);margin:0 0 2px} .reqs p{margin:0 0 8px;font-size:.82rem;color:var(--ink-soft)}
+.reqs ul{list-style:none;margin:0;padding:0} .reqs li{border-top:1px solid var(--line);padding:7px 0;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline}
+.reqs li b{font-weight:600} .reqs li small{color:var(--ink-soft);font-size:.8rem}
 .custom{margin-top:14px;width:100%;border:1.5px dashed var(--line);background:transparent;border-radius:12px;padding:14px;font-weight:600;color:var(--ink-soft);min-height:52px}
 
 /* panel */
@@ -274,6 +278,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     <div class="pills" id="pills" role="toolbar" aria-label="Categories"></div>
     <div id="lists"></div>
     <button class="custom" id="customBtn" type="button">+ Item not listed? Make a custom label</button>
+    <section class="reqs" id="reqs" hidden aria-labelledby="reqsH"></section>
   </section>
 
   <aside class="panel" id="panel" aria-label="Label">
@@ -1137,6 +1142,7 @@ $("printBtn").onclick = async () => {
     await send(buildJob(copies(L, state.qty)), $("status"));
     say($("status"), "Printed " + state.qty + (state.qty === 1 ? " label" : " labels") + " for " + L.name + ".", "ok");
     logPrint(state.custom ? (L.textOnly ? "custom text" : "custom") : "labels page", [Object.assign({name: L.name, count: state.qty}, bi)], L.textOnly ? null : L.made, L.textOnly ? null : L.ub);
+    if(state.custom && !L.textOnly){ noteCustomItem(L.name, state.days, store.get("name", "")); renderRequests(); }
     if(state.item){
       state.recent = [state.item.id].concat(state.recent.filter(x => x !== state.item.id)).slice(0, 6);
       store.set("recent", state.recent);
@@ -1236,6 +1242,38 @@ function logPrint(source, labels, made, ub){
   labels.forEach(l => logEvent(Object.assign({ event: "print", name: who, source, item: l.name, labels: l.count,
     prep: made ? fmtDate(made) + " " + fmtTime(made) : "", useBy: ub ? fmtDate(ub) : "" },
     l.batches ? { batches: l.batches, made: l.made || "" } : {})));
+}
+
+/* ---------- items without a button (Clay 2026-10-21) ----------
+   Every dated custom label (an item someone couldn't find) is listed at the bottom of the label page until it becomes a
+   button, so the manager can be asked which to add for good. From this device's prints and the shared feed's custom prints.
+   Text-only labels ("GLUTEN FREE") aren't items and aren't listed. */
+function noteCustomItem(name, days, by){
+  const l = store.get("labelRequests", []);
+  l.push({name, days, by, date: fmtDate(new Date())});
+  store.set("labelRequests", l.slice(-300));
+}
+function labelRequests(){
+  const known = new Set(ITEMS.map(i => plKey(i.name)).concat(BATCH.items.map(plKey)));
+  const all = store.get("labelRequests", []).concat(store.get("prepFeed", []).filter(e => e.event === "print" && e.source === "custom")
+    .map(e => ({name: e.item, days: null, by: e.by, date: e.date})));
+  const by = new Map();
+  all.forEach(x => {
+    const k = plKey(x.name); if(!k || known.has(k)) return;    // it's a button now
+    const r = by.get(k) || {name: String(x.name).trim(), n: 0, days: {}, last: x};
+    r.n++; if(x.days) r.days[x.days] = (r.days[x.days] || 0) + 1;
+    if(new Date(x.date) >= new Date(r.last.date)) r.last = x;
+    by.set(k, r);
+  });
+  return [...by.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+}
+function renderRequests(){
+  const list = labelRequests(), box = $("reqs");
+  box.hidden = !list.length; if(!list.length){ box.innerHTML = ""; return; }
+  box.innerHTML = '<h2 id="reqsH">Custom labels, not buttons yet</h2><p>Items printed as custom labels. Your manager reviews this list and decides which become buttons.</p><ul>' +
+    list.map(r => { const d = Object.keys(r.days).sort((a, b) => r.days[b] - r.days[a])[0];
+      return '<li data-k="' + esc(plKey(r.name)) + '"><b>' + esc(r.name) + '</b><small>' + (d ? d + (d === "1" ? " day" : " days") + " · " : "") +
+        "printed " + r.n + (r.n === 1 ? " time" : " times") + " · last " + esc(r.last.date.replace(/\/\d{4}$/, "")) + (r.last.by ? " by " + esc(r.last.by) : "") + '</small></li>'; }).join("") + '</ul>';
 }
 
 /* ---------- batch count: asked before printing an item with a Recipe Book yield ---------- */
@@ -1348,7 +1386,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-21.1";
+const APP_VERSION = "2026-10-21.2";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1751,7 +1789,7 @@ $("rerunSetup").onclick = () => {
 
 /* ---------- start ---------- */
 $("made").value = toLocalInput(new Date());
-renderPills(); renderList(); renderPanel();
+renderPills(); renderList(); renderPanel(); renderRequests();
 // opened from the Recipe Book's "Print prep label" button: jump straight to that item
 try{
   const want = new URLSearchParams(location.search).get("item");

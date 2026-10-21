@@ -287,6 +287,24 @@ test('Labels: text-only custom label prints with no dates', async () => {
   await p.close2();
 });
 
+test('Labels: dated custom labels are listed at the bottom until they become buttons; text-only ones aren\'t (owner, 2026-10-21)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  assert(await p.isHidden('#reqs'), 'no list before any custom label');
+  for (const n of ['Diced Celery', 'diced celery']) {
+    await p.click('#customTop'); await p.fill('#customName', n); await p.click('#days button[aria-label="4 days"]');
+    await printAndWait(p);
+  }
+  await p.click('#customTop'); await p.click('#cText'); await p.fill('#customName', 'Gluten Free'); await printAndWait(p);
+  await p.click('#customTop'); await p.click('#cDated'); await p.fill('#customName', 'Coleslaw'); await p.click('#days button[aria-label="3 days"]'); await printAndWait(p);
+  assert(await p.isVisible('#reqs'), 'list shows');
+  eq(await p.locator('#reqs li').count(), 1, 'one entry: same name once, no text-only label, no item that has a button');
+  assert(/Diced Celery\s*4 days · printed 2 times · last \d+\/\d+ by Maria/.test(await p.textContent('#reqs li[data-k="diced celery"]')), 'name, shelf life, times, who');
+  await p.reload(); await p.waitForTimeout(300);
+  eq(await p.locator('#reqs li').count(), 1, 'kept after reload');
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
 /* ================= People and setup ================= */
 
 test('Setup: new device asks first name, then printer; skipped printer step returns next time', async () => {
