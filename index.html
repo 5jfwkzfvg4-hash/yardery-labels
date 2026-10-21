@@ -1253,13 +1253,15 @@ function noteCustomItem(name, days, by){
   l.push({name, days, by, date: fmtDate(new Date())});
   store.set("labelRequests", l.slice(-300));
 }
+// "Corn Dog" = "Corn Dogs", "Brussel sprouts" = "Brussels Sprouts": letters only, no plural s
+const reqKey = n => plKey(n).replace(/[^a-z0-9 ]/g, "").split(/\s+/).filter(Boolean).map(w => w.length > 3 ? w.replace(/s$/, "") : w).join(" ");
 function labelRequests(){
-  const known = new Set(ITEMS.map(i => plKey(i.name)).concat(BATCH.items.map(plKey)));
+  const known = new Set(ITEMS.map(i => reqKey(i.name)).concat(BATCH.items.map(reqKey)));
   const all = store.get("labelRequests", []).concat(store.get("prepFeed", []).filter(e => e.event === "print" && e.source === "custom")
     .map(e => ({name: e.item, days: null, by: e.by, date: e.date})));
   const by = new Map();
   all.forEach(x => {
-    const k = plKey(x.name); if(!k || known.has(k)) return;    // it's a button now
+    const k = reqKey(x.name); if(!k || known.has(k)) return;   // it's a button now
     const r = by.get(k) || {name: String(x.name).trim(), n: 0, days: {}, last: x};
     r.n++; if(x.days) r.days[x.days] = (r.days[x.days] || 0) + 1;
     if(new Date(x.date) >= new Date(r.last.date)) r.last = x;
@@ -1272,7 +1274,7 @@ function renderRequests(){
   box.hidden = !list.length; if(!list.length){ box.innerHTML = ""; return; }
   box.innerHTML = '<h2 id="reqsH">Custom labels, not buttons yet</h2><p>Items printed as custom labels. Your manager reviews this list and decides which become buttons.</p><ul>' +
     list.map(r => { const d = Object.keys(r.days).sort((a, b) => r.days[b] - r.days[a])[0];
-      return '<li data-k="' + esc(plKey(r.name)) + '"><b>' + esc(r.name) + '</b><small>' + (d ? d + (d === "1" ? " day" : " days") + " · " : "") +
+      return '<li data-k="' + esc(reqKey(r.name)) + '"><b>' + esc(r.name) + '</b><small>' + (d ? d + (d === "1" ? " day" : " days") + " · " : "") +
         "printed " + r.n + (r.n === 1 ? " time" : " times") + " · last " + esc(r.last.date.replace(/\/\d{4}$/, "")) + (r.last.by ? " by " + esc(r.last.by) : "") + '</small></li>'; }).join("") + '</ul>';
 }
 
@@ -1386,7 +1388,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-21.2";
+const APP_VERSION = "2026-10-21.3";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
