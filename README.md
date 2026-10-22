@@ -26,6 +26,9 @@ Everything lives in `index.html`. Near the top of the `<script>`:
 - **Custom labels, not buttons yet** (Clay 2026-10-21): every dated custom label printed is listed at the bottom of the
   label page (name, usual shelf life, times printed, last by) until a button with that name exists, so the owner can pick
   which to add for good. Text-only labels aren't listed. Source: this device's prints + the feed's `custom` prints.
+- **Recipe Book PDF** (Clay 2026-10-22): `npm run pdf` (`tools/book-pdf.js`) prints every page of `recipes.html` except
+  Data Needed into `Yardery-Recipe-Book.pdf` (Letter, contents links work), served at the staff link
+  `/Yardery-Recipe-Book.pdf`. Rebuild and commit it after every Recipe Book change.
 - `YIELDS` – batch yield per item, copied from the Recipe Book's `BATCH_YIELDS` (a check keeps them equal). Printing an item with a yield asks how many batches were made; the log records batches and batches × yield. Until the Google Form has "Batches" and "Amount Made" questions (`LOG.fields.batches` / `made`), they are added to the Source column.
 
 Bump `APP_VERSION` in `index.html` with every change (including `recipes.html`), then commit to `main`. The link updates in about a minute, and tablets that leave the app open pick it up within about 5 minutes once nobody is using the screen (or right away when the app is reopened).

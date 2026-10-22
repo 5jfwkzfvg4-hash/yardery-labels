@@ -17,6 +17,8 @@ The kitchen depends on this page to print legally required date labels. Keep it 
    items: the day it goes in doesn't count.
 6. `recipes.html` is **generated** from `artifacts/recipe-book.html` (mirror of the Claude Recipe Book) by
    `node tools/sync.js build`; never edit it by hand. Its in-app differences are in `tools/book-patches.json`.
+   After any Recipe Book change, rebuild the PDF copy with `npm run pdf` (writes `Yardery-Recipe-Book.pdf`, served on
+   the staff link) and commit it with the change.
 7. **Bump `APP_VERSION`** (near the Recipe Book code in `index.html`) on every change to `index.html` or
    `recipes.html`. Open tablets compare it with the server every 5 minutes and reload when idle; without a
    bump, devices that never close the app keep the old version.
