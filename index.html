@@ -198,6 +198,15 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .pladd p{flex-basis:100%;margin:0;font-size:.82rem;color:var(--ink-soft)}
 .pltab .plp{border:0;border-radius:10px;background:var(--green);color:var(--green-ink);min-height:40px;padding:0 12px;font-weight:700;white-space:nowrap}
 .pltab tr.done td{background:var(--good-bg)}
+.yltag{display:inline-block;border-radius:999px;padding:1px 8px;font-size:.72rem;font-weight:700;margin-left:6px;vertical-align:1px}
+.yltag.m{background:var(--good-bg);color:var(--good)} .yltag.e{background:var(--warn-bg);color:var(--warn)}
+.yltag.n{background:var(--bad-bg);color:var(--bad)} .yltag.p{background:var(--yellow-soft);color:var(--warn)}
+.pltab td.yv{white-space:normal;font-weight:600;overflow-wrap:anywhere;width:34%}
+#yl .pltab{table-layout:fixed} #yl .pltab th:last-child,#yl .pltab td.c{width:84px} #yl .pltab td.n{width:auto;overflow-wrap:anywhere} #yl .plp{padding:0 10px;min-width:68px}
+.ylform{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ylform input{flex:1 1 100%;min-width:0;width:100%;box-sizing:border-box;min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:0 8px;font-size:1rem;color:var(--ink)}
+.ylform button{border:0;border-radius:10px;min-height:40px;padding:0 14px;font-weight:700;background:var(--green);color:var(--green-ink)}
+.ylform button.ylno{background:var(--paper-soft);color:var(--ink)}
 .plpick h3{font:700 .95rem var(--display);margin:14px 0 6px;display:flex;align-items:center;gap:8px}
 .plall{margin-left:auto;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);min-height:32px;padding:0 12px;font-size:.8rem;font-weight:700}
 .plchips{display:flex;flex-wrap:wrap;gap:6px}
@@ -378,6 +387,15 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   <div class="plbody" id="plBody"></div>
 </div>
 
+<!-- Yields: what one batch of each label item makes; managers change them here -->
+<div class="pl" id="yl" hidden role="dialog" aria-modal="true" aria-label="Yields">
+  <div class="rbbar">
+    <button class="rbback" id="ylClose" type="button">← Prep Labels</button>
+    <b>Yields</b>
+  </div>
+  <div class="plbody" id="ylBody"></div>
+</div>
+
 <!-- First-time setup on a new device: first name, then connect the printer. Shown until this device connects once. -->
 <div class="sheet onb" id="onbSheet" hidden role="dialog" aria-modal="true" aria-labelledby="onbH">
   <div id="onbName" class="onbstep">
@@ -474,6 +492,11 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     <button class="btn" id="discBtn" type="button">Disconnect</button>
   </div>
   <div class="status" id="setStatus" role="status"></div>
+  <div>
+    <h4>Yields</h4>
+    <p class="hint">How much product one batch of each label item makes. Managers can change them here.</p>
+    <button class="btn" id="ylBtn" type="button" style="margin-top:8px">Yields: how much each label makes</button>
+  </div>
   <div>
     <h4>This device</h4>
     <p class="hint" id="devInfo"></p>
@@ -1405,7 +1428,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-23.2";
+const APP_VERSION = "2026-10-23.3";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1726,6 +1749,76 @@ $("plBody").addEventListener("click", e => {
   const tr = b.closest("tr"); touch(); printFromList(tr.dataset.k, b, tr.dataset.s);
 });
 
+/* ---------- Yields (Clay 2026-10-23) ----------
+   What one batch of each label item makes (one printed label = one batch container; the batch count asks how many).
+   A change is logged to the print log as a "yield set" row ("yield <id> = <value>" in Source). Changes by YIELD_APPROVERS
+   apply on this device at once and reach every device and the Recipe Book within the hour (the sync runs
+   tools/yields.js, CLAUDE.md rule 11); anyone else's change waits for the owner's OK. */
+const YIELD_APPROVERS = ["Clay"];
+const YIELDS_APP = Object.assign({}, YIELDS);           // the yields this version of the app carries
+const canApprove = who => YIELD_APPROVERS.some(a => a.toLowerCase() === String(who || "").trim().toLowerCase());
+// this device's changes still on their way into the app: {id: {v, by, at, ok}}; dropped once the app carries them
+function ylEdits(){
+  const e = store.get("yieldEdits", {}); let changed = false;
+  Object.keys(e).forEach(id => { if(YIELDS_APP[id] === e[id].v){ delete e[id]; changed = true; } });
+  if(changed) store.set("yieldEdits", e);
+  return e;
+}
+function ylApplyLocal(){ const e = ylEdits(); Object.keys(e).forEach(id => { if(e[id].ok) YIELDS[id] = e[id].v; }); }
+ylApplyLocal();
+let ylOpenId = null;
+function ylRow(it, edits){
+  const y = YIELDS[it.id], e = edits[it.id], set = y && !/^TBD$/i.test(y);
+  const tag = e ? (e.ok ? '<span class="yltag p">Updating</span>' : '<span class="yltag p">Waiting for ' + esc(YIELD_APPROVERS[0]) + '</span>')
+    : !set ? '<span class="yltag n">Not set</span>' : /^≈/.test(y) ? '<span class="yltag e">Estimate</span>' : '<span class="yltag m">Measured</span>';
+  const shown = e && !e.ok ? esc(y || "Not set") + '<br><small>Asked: ' + esc(e.v) + '</small>' : set ? esc(y) : "—";
+  return '<tr data-id="' + esc(it.id) + '"><td class="n"><b>' + esc(it.name) + tag + '</b><small>' + (SHELF_DAYS[it.id] ? SHELF_DAYS[it.id] + (SHELF_DAYS[it.id] === 1 ? " day" : " days") + " shelf life" : "") + '</small>' +
+    (ylOpenId === it.id ? '<form class="ylform"><input id="ylIn" maxlength="40" autocomplete="off" value="' + esc(String(e ? e.v : set ? y : "").replace(/^≈\s*/, "")) + '" placeholder="e.g. 240 oz or 40 patties × 4 oz" aria-label="What one batch makes"><button type="submit">Save</button><button type="button" class="ylno">Cancel</button></form>' : '') +
+    '</td><td class="yv">' + shown + '</td><td class="c"><button class="plp ylchg" type="button">' + (set || e ? "Change" : "Set") + '</button></td></tr>';
+}
+function renderYields(){
+  const edits = ylEdits(), scroll = $("ylBody").scrollTop;
+  const items = ITEMS.filter(i => SHELF_DAYS[i.id]);
+  const n = items.filter(i => YIELDS[i.id] && !/^TBD$/i.test(YIELDS[i.id])).length;
+  $("ylBody").innerHTML = '<p class="plnote plsec"><b>' + n + ' of ' + items.length + ' label items have a yield.</b> Each printed label is one batch; when you print, the app asks how many batches and logs the total. ' +
+      (canApprove(store.get("name", "")) ? 'Your changes reach every device and the Recipe Book within the hour.' : 'Changes you make are sent to ' + esc(YIELD_APPROVERS[0]) + ' to approve.') + '</p>' +
+    CATS.map(c => { const rows = items.filter(i => i.cat === c.id); if(!rows.length) return "";
+      return '<section class="plsec"><h2>' + esc(c.name) + '</h2><table class="pltab"><thead><tr><th>Item</th><th>One batch makes</th><th></th></tr></thead><tbody>' +
+        rows.map(it => ylRow(it, edits)).join("") + '</tbody></table></section>'; }).join("");
+  $("ylBody").scrollTop = scroll;
+  const inp = $("ylIn"); if(inp){ inp.focus(); inp.select(); }
+}
+function ylSave(id){
+  const it = ITEMS.find(i => i.id === id), who = store.get("name", "");
+  const v = $("ylIn").value.replace(/\s+/g, " ").trim();
+  // RULE: Save always shows a result
+  if(!who){ toast("Set up your name first: tap ← Prep Labels and follow the setup.", "err", 7000); return; }
+  if(v.length < 2){ toast("Type what one batch makes, e.g. 240 oz."); $("ylIn").focus(); return; }
+  if(!/\d/.test(v) && !confirm('"' + v + '" has no number in it, so the app can\'t total batches. Save it anyway?')) return;
+  const ok = canApprove(who);
+  if(!confirm("Change " + it.name + " to: one batch makes " + v + "?" + (ok ? "" : "\n\n" + YIELD_APPROVERS[0] + " will be asked to approve it."))) return;
+  const e = store.get("yieldEdits", {}); e[id] = {v, by: who, at: fmtDate(new Date()), ok}; store.set("yieldEdits", e);
+  if(ok) YIELDS[id] = v;
+  logEvent({event: "yield set", name: who, item: it.name, labels: "", source: "yield " + id + " = " + v});
+  ylOpenId = null; renderYields();
+  toast(ok ? it.name + " updated. Every device and the Recipe Book get it within the hour." : "Sent to " + YIELD_APPROVERS[0] + " to approve.", "ok", 6000);
+}
+function openYields(){ closeSheets(); ylOpenId = null; renderYields(); $("yl").hidden = false; try{ history.pushState({yl: 1}, ""); }catch(e){} }
+function closeYields(fromHistory){
+  if($("yl").hidden) return;
+  $("yl").hidden = true;
+  if(!fromHistory){ try{ if(history.state && history.state.yl) history.back(); }catch(e){} }
+}
+$("ylBtn").onclick = openYields;
+$("ylClose").onclick = () => closeYields(false);
+window.addEventListener("popstate", e => { if(!(e.state && e.state.yl)) closeYields(true); });
+$("ylBody").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-id]"); if(!tr) return;
+  if(e.target.closest(".ylchg")){ touch(); ylOpenId = tr.dataset.id; renderYields(); return; }
+  if(e.target.closest(".ylno")){ touch(); ylOpenId = null; renderYields(); }
+});
+$("ylBody").addEventListener("submit", e => { e.preventDefault(); touch(); const tr = e.target.closest("tr[data-id]"); if(tr) ylSave(tr.dataset.id); });
+
 /* ---------- first-time setup ---------- */
 function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
 function printerLabel(){ return LOCATION.printerName || store.get("printerName", ""); }
@@ -1819,7 +1912,7 @@ if(btEnv() !== "ok") setChip("", "Printer help");
 else setChip("", freeText());
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 flushLog();
-window.__ypl = { HOLD_MS, buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
+window.__ypl = { HOLD_MS, YIELD_APPROVERS, buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
 })();
 </script>
 </body>

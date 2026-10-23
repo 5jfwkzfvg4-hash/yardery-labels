@@ -29,6 +29,10 @@ Everything lives in `index.html`. Near the top of the `<script>`:
 - **Recipe Book PDF** (Clay 2026-10-22): `npm run pdf` (`tools/book-pdf.js`) prints every page of `recipes.html` except
   Data Needed into `Yardery-Recipe-Book.pdf` (Letter, contents links work), served at the staff link
   `/Yardery-Recipe-Book.pdf`. Rebuild and commit it after every Recipe Book change.
+- **Yields screen** (Clay 2026-10-23, ⚙ → Yields): every label item with what one batch makes (Measured / Estimate / Not set).
+  A change logs a "yield set" row (Source `yield <id> = <value>`); changes by `YIELD_APPROVERS` apply on that device at once,
+  and the sync's `node tools/yields.js apply <form-responses.json>` writes them into `BATCH_YIELDS` (Recipe Book) and `YIELDS`
+  (CLAUDE.md rule 11). Others' changes wait for the owner.
 - `YIELDS` – batch yield per item, copied from the Recipe Book's `BATCH_YIELDS` (a check keeps them equal). Printing an item with a yield asks how many batches were made; the log records batches and batches × yield. Until the Google Form has "Batches" and "Amount Made" questions (`LOG.fields.batches` / `made`), they are added to the Source column.
 
 Bump `APP_VERSION` in `index.html` with every change (including `recipes.html`), then commit to `main`. The link updates in about a minute, and tablets that leave the app open pick it up within about 5 minutes once nobody is using the screen (or right away when the app is reopened).

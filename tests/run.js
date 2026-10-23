@@ -559,6 +559,68 @@ test('Prep List archive: the day\'s picked items, same sections as the screen; d
 
 /* ================= Batches & yields ================= */
 
+async function openYields(p) { await p.click('#setBtn'); await p.click('#ylBtn'); await p.waitForTimeout(200); }
+test('Yields: every label item shows what one batch makes; the owner\'s change applies at once and is logged (owner, 2026-10-23)', async () => {
+  const p = await open({ name: 'Clay', setup: true, getDevices: true });
+  const got = [];
+  await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
+  await p.evaluate(() => { const L = window.__ypl.LOG; Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); }); });
+  await openYields(p);
+  eq(await p.locator('#yl tr[data-id]').count(), await p.evaluate(() => window.__ypl.ITEMS.filter(i => window.__ypl.SHELF_DAYS[i.id]).length), 'one row per label item');
+  assert(/240 oz/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')) && /Measured/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')), 'Pico: 240 oz, measured');
+  assert(/Estimate/.test(await p.textContent('#yl tr[data-id="crab-cakes"]')), 'estimates marked');
+  assert(/Not set/.test(await p.textContent('#yl tr[data-id="coleslaw"]')), 'TBD shows as not set');
+  p.on('dialog', d => d.accept());
+  await p.click('#yl tr[data-id="pico-de-gallo"] .ylchg');
+  await p.fill('#ylIn', '250 oz'); await p.click('#yl tr[data-id="pico-de-gallo"] .ylform button[type=submit]'); await p.waitForTimeout(400);
+  assert(/250 oz/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')) && /Updating/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')), 'shows the new yield');
+  const row = got.find(g => g['entry.1'] === 'yield set');
+  assert(row && row['entry.9'] === 'yield pico-de-gallo = 250 oz' && row['entry.4'] === 'Clay' && row['entry.5'] === 'Pico de Gallo', 'logged for the sync: ' + JSON.stringify(row));
+  eq(await p.evaluate(() => window.__ypl.amountMade('pico-de-gallo', 2)), '500 oz', 'batch totals use it on this device');
+  await p.reload(); await p.waitForTimeout(300);
+  eq(await p.evaluate(() => window.__ypl.amountMade('pico-de-gallo', 1)), '250 oz', 'kept after reload until the app carries it');
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
+test('Yields: anyone else\'s change waits for the owner and changes nothing yet; Save always answers', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  await openYields(p);
+  await p.click('#yl tr[data-id="coleslaw"] .ylchg');
+  await p.fill('#ylIn', ''); await p.click('#yl tr[data-id="coleslaw"] .ylform button[type=submit]'); await p.waitForTimeout(200);
+  assert(/Type what one batch makes/.test(await toastText(p)), 'empty Save explained');
+  p.on('dialog', d => d.accept());
+  await p.fill('#ylIn', '96 oz'); await p.click('#yl tr[data-id="coleslaw"] .ylform button[type=submit]'); await p.waitForTimeout(300);
+  assert(/Waiting for Clay/.test(await p.textContent('#yl tr[data-id="coleslaw"]')), 'waiting for approval');
+  assert(/Sent to Clay/.test(await toastText(p)), 'says who approves');
+  eq(await p.evaluate(() => window.__ypl.YIELDS['coleslaw']), 'TBD', 'not applied');
+  await p.close2();
+});
+
+test('Yields tool: the owner\'s changes go into the Recipe Book and the app, others are listed; each row once', async () => {
+  const yields = require('../tools/yields');
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ypl-'));
+  const files = { BOOK: path.join(tmp, 'book.html'), APP: path.join(tmp, 'index.html'), STATE: path.join(tmp, 'state.json') };
+  fs.copyFileSync(path.join(ROOT, 'artifacts', 'recipe-book.html'), files.BOOK); fs.copyFileSync(path.join(ROOT, 'index.html'), files.APP);
+  const H = ['Timestamp', 'Event', 'Date', 'Time', 'Printed By', 'Item(Recipe Book Name)', '#Labels', 'Prep Date', 'Use By Date', 'Source', 'Device'];
+  const rows = [H, ['t1', 'yield set', '10/23/2026', '9:00 AM', 'Clay', 'Crab Cakes', '', '', '', 'yield crab-cakes = 5 cakes × 4 oz', ''],
+    ['t2', 'yield set', '10/23/2026', '9:01 AM', 'clay', 'Dough', '', '', '', 'yield dough = 20 dough balls', ''],
+    ['t3', 'yield set', '10/23/2026', '9:02 AM', 'Maria', 'Coleslaw', '', '', '', 'yield coleslaw = 96 oz', ''],
+    ['t4', 'print', '10/23/2026', '9:03 AM', 'Clay', 'Coleslaw', '1', '', '', 'labels page', '']];
+  const r = yields.apply(rows, files);
+  eq(r.applied.map(x => x.id).join(), 'crab-cakes,dough', 'owner changes applied');
+  eq(r.suggested.map(x => x.id + '=' + x.value).join(), 'coleslaw=96 oz', 'others listed');
+  const book = fs.readFileSync(files.BOOK, 'utf8'), app = fs.readFileSync(files.APP, 'utf8');
+  assert(/"crab-cakes": \{ v: "5 cakes × 4 oz", note: /.test(book), 'book value set, estimate flag dropped, note kept');
+  assert(/"dough": \{ v: "20 dough balls" \}/.test(book), 'new book entry');
+  assert(/"crab-cakes": "5 cakes × 4 oz"/.test(app) && /"dough": "20 dough balls"/.test(app), 'app values set');
+  assert(!app.includes(/const APP_VERSION = "([^"]+)"/.exec(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'))[0]), 'APP_VERSION bumped');
+  for (const f of [files.BOOK, files.APP]) { const src = fs.readFileSync(f, 'utf8'); new Function(src.slice(src.indexOf(f === files.BOOK ? 'const BATCH_YIELDS = {' : 'const YIELDS = {'), src.indexOf('\n};', src.indexOf(f === files.BOOK ? 'const BATCH_YIELDS = {' : 'const YIELDS = {')) + 3)); }
+  const again = yields.apply(rows, files);
+  eq(again.applied.length + again.suggested.length, 0, 'nothing applied or reported twice');
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
 test('Yields: the label app uses the Recipe Book\'s batch yields', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const app = await p.evaluate(() => ({ Y: window.__ypl.YIELDS, ids: window.__ypl.ITEMS.map(i => i.id) }));
