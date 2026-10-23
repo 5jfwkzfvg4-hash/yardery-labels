@@ -134,7 +134,7 @@ test('Connect: remembered printer never answers -> clear message, next Print ope
   await pickItem(p, 'Pico de Gallo');
   await p.click('#printBtn'); await p.waitForTimeout(150);
   if (await p.isVisible('#bcSheet')) await p.click('#bcOk');
-  for (let i = 0; i < 12; i++) { await p.clock.fastForward(4000); await p.waitForTimeout(100); }
+  for (let i = 0; i < 20; i++) { await p.clock.fastForward(4000); await p.waitForTimeout(100); }
   assert(/Tap Print again to pick it/.test(await p.textContent('#status')), 'says what to do: ' + await p.textContent('#status'));
   await printAndWait(p);
   assert((await btLog(p)).includes('picker'), 'second Print opens the list');
@@ -157,7 +157,7 @@ test('Hand-off: after printing, the printer is let go within seconds; the next P
   await pickItem(p, 'Pico de Gallo');
   await printAndWait(p);
   eq(await chip(p), 'Printer: DFJ235305204', 'connected while printing');
-  await p.clock.fastForward(5000); await p.waitForTimeout(100);
+  await p.clock.fastForward(await p.evaluate(() => window.__ypl.HOLD_MS - 1500)); await p.waitForTimeout(100);
   eq(await chip(p), 'Printer: DFJ235305204', 'kept for back-to-back prints');
   await p.clock.fastForward(await p.evaluate(() => window.__ypl.HOLD_MS)); await p.waitForTimeout(200);
   eq(await chip(p), 'Printer ready', 'let go so another device can print');
@@ -176,7 +176,7 @@ test('Hand-off: printer busy with another device -> Print waits, retries and pri
   await p.click('#printBtn'); await p.waitForTimeout(150);
   if (await p.isVisible('#bcSheet')) await p.click('#bcOk');
   await p.clock.fastForward(8500); await p.waitForTimeout(200);
-  assert(/busy with another device/i.test(await p.textContent('#status')), 'says it is waiting: ' + await p.textContent('#status'));
+  assert(/Another device is printing/i.test(await p.textContent('#status')), 'says it is waiting: ' + await p.textContent('#status'));
   await p.clock.fastForward(2500); await p.waitForTimeout(400);
   assert(/Printed/.test(await p.textContent('#status')), 'printed after the other device let go');
   eq(formats(await zpl(p)).length, 1, 'one label printed');

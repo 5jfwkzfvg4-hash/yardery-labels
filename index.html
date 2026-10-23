@@ -1101,7 +1101,7 @@ async function send(text, statusEl){
 }
 // Print connects by itself: to the printer it already has, else the one the browser remembers (no list), else the list.
 // The printer takes one device at a time; if another device is printing, wait for it to let go and try again.
-const BUSY_TRIES = 3;
+const BUSY_TRIES = 5;                         // ~50 s: covers another device finishing a long batch (21 Line Flip labels)
 async function connectForPrint(){
   if(!isLive() && !state.device && !state.pickNext) await rememberedPrinter();
   if(state.pickNext){ state.pickNext = false; state.device = null; return await connect("pick"); }
@@ -1115,7 +1115,7 @@ async function connectForPrint(){
         }
         throw e;
       }
-      step("The printer is busy with another device. Waiting for it… (try " + (i + 1) + " of " + BUSY_TRIES + ")");
+      step("Another device is printing. Your label prints as soon as it finishes…");
       await wait(2000);
     }
   }
@@ -1371,7 +1371,7 @@ window.addEventListener("unhandledrejection", e => {
    connects (to the remembered printer, no list), prints, and lets go HOLD_MS after its last print or connect. Back-to-back
    prints reuse the connection; another device can print a few seconds later. Opening the app or tapping around never
    grabs the printer, and an app sent to the background lets go at once. */
-const HOLD_MS = 15 * 1000;
+const HOLD_MS = 4 * 1000;                     // long enough for back-to-back taps, short enough that the next device never waits
 let lastActive = Date.now(), holdTimer = null;
 function touch(){ lastActive = Date.now(); }
 function holdThenRelease(){ clearTimeout(holdTimer); holdTimer = setTimeout(() => release("done"), HOLD_MS); }
@@ -1405,7 +1405,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-23.1";
+const APP_VERSION = "2026-10-23.2";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
