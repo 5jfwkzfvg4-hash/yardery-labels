@@ -67,23 +67,15 @@ const REMEMBERED = { name: 'Maria', setup: true };
 
 /* ================= Connect printer: the button must always work ================= */
 
-test('Connect: remembered printer unreachable, tap after background attempt fails -> list opens, connects', async () => {
-  const p = await open({ ...REMEMBERED, getDevices: true, remembered: 'hang' }, { clock: true });
-  await p.clock.fastForward(9000); await p.waitForTimeout(200);
-  eq(await chip(p), 'Connect printer', 'chip after failed background attempt');
+test('Connect: opening the app never grabs the printer (another device may be printing); chip says ready', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  await p.mouse.click(300, 500); await p.waitForTimeout(300);
+  eq(await btLog(p), '', 'no connect on open or on a tap');
+  eq(await chip(p), 'Printer ready', 'chip');
   await p.click('#pchip'); await p.waitForTimeout(500);
-  assert((await btLog(p)).includes('picker'), 'printer list should open');
+  assert((await btLog(p)).includes('picker'), 'Connect tap opens the list');
   eq(await chip(p), 'Printer: DFJ235305204', 'chip after connect');
   assert(/connected/i.test(await toastText(p)), 'success message should show');
-  await p.close2();
-});
-
-test('Connect: tap DURING a background attempt -> list opens immediately (the original bug)', async () => {
-  const p = await open({ ...REMEMBERED, getDevices: true, remembered: 'hang' }, { width: 390, height: 844 });
-  eq(await chip(p), 'Connecting…', 'background attempt should be running');
-  await p.click('#pchip'); await p.waitForTimeout(500);
-  assert((await btLog(p)).includes('picker'), 'printer list should open right away');
-  eq(await chip(p), 'Printer: DFJ235305204', 'chip after connect');
   await p.close2();
 });
 
@@ -128,17 +120,24 @@ test('Connect: person closes the list -> explained, next try shows all devices',
   await p.close2();
 });
 
-test('Connect: remembered + reachable -> connects by itself on open, no list', async () => {
+test('Connect: Print connects to the remembered printer by itself (no list) and prints', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
-  eq(await chip(p), 'Printer: DFJ235305204', 'auto-connected');
+  await pickItem(p, 'Pico de Gallo');
+  await printAndWait(p);
   eq(await btLog(p), 'connect:remembered', 'no list shown');
+  eq(formats(await zpl(p)).length, 1, 'one label printed');
   await p.close2();
 });
 
-test('Connect: Print without tapping Connect, remembered printer unreachable -> still prints', async () => {
-  const p = await open({ ...REMEMBERED, getDevices: true, remembered: 'hang' });
+test('Connect: remembered printer never answers -> clear message, next Print opens the list and prints', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true, remembered: 'hang' }, { clock: true });
   await pickItem(p, 'Pico de Gallo');
+  await p.click('#printBtn'); await p.waitForTimeout(150);
+  if (await p.isVisible('#bcSheet')) await p.click('#bcOk');
+  for (let i = 0; i < 12; i++) { await p.clock.fastForward(4000); await p.waitForTimeout(100); }
+  assert(/Tap Print again to pick it/.test(await p.textContent('#status')), 'says what to do: ' + await p.textContent('#status'));
   await printAndWait(p);
+  assert((await btLog(p)).includes('picker'), 'second Print opens the list');
   eq(formats(await zpl(p)).length, 1, 'one label printed');
   await p.close2();
 });
@@ -153,26 +152,47 @@ test('Connect: no Bluetooth (iPad Safari) -> Connect opens help, never hangs', a
 
 /* ================= Sharing the printer ================= */
 
-test('Hand-off: app to background releases printer; back on screen reconnects', async () => {
-  const p = await open({ ...REMEMBERED, getDevices: true });
-  await p.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')); });
-  eq(await chip(p), 'Connect printer', 'released');
-  await p.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }); document.dispatchEvent(new Event('visibilitychange')); });
-  await p.waitForTimeout(300);
-  eq(await chip(p), 'Printer: DFJ235305204', 'reconnected');
+test('Hand-off: after printing, the printer is let go within seconds; the next Print reconnects with no list (owner, 2026-10-23)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true }, { clock: true });
+  await pickItem(p, 'Pico de Gallo');
+  await printAndWait(p);
+  eq(await chip(p), 'Printer: DFJ235305204', 'connected while printing');
+  await p.clock.fastForward(5000); await p.waitForTimeout(100);
+  eq(await chip(p), 'Printer: DFJ235305204', 'kept for back-to-back prints');
+  await p.clock.fastForward(await p.evaluate(() => window.__ypl.HOLD_MS)); await p.waitForTimeout(200);
+  eq(await chip(p), 'Printer ready', 'let go so another device can print');
+  assert((await btLog(p)).endsWith('disconnect'), 'disconnected');
+  await p.mouse.click(300, 500); await p.waitForTimeout(200);
+  assert((await btLog(p)).endsWith('disconnect'), 'a tap does not grab it back');
+  await printAndWait(p);
+  eq(await btLog(p), 'connect:remembered,disconnect,connect:remembered', 'reconnected on Print, never the list');
+  eq(formats(await zpl(p)).length, 2, 'both printed');
   await p.close2();
 });
 
-test('Hand-off: 3 idle minutes releases; a tap takes it back; Disconnect stays off until Connect', async () => {
-  const p = await open({ ...REMEMBERED, getDevices: true }, { clock: true });
+test('Hand-off: printer busy with another device -> Print waits, retries and prints with no extra taps', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true, busy: 1 }, { clock: true });
+  await pickItem(p, 'Pico de Gallo');
+  await p.click('#printBtn'); await p.waitForTimeout(150);
+  if (await p.isVisible('#bcSheet')) await p.click('#bcOk');
+  await p.clock.fastForward(8500); await p.waitForTimeout(200);
+  assert(/busy with another device/i.test(await p.textContent('#status')), 'says it is waiting: ' + await p.textContent('#status'));
+  await p.clock.fastForward(2500); await p.waitForTimeout(400);
+  assert(/Printed/.test(await p.textContent('#status')), 'printed after the other device let go');
+  eq(formats(await zpl(p)).length, 1, 'one label printed');
+  assert(!(await btLog(p)).includes('picker'), 'no list');
+  await p.close2();
+});
+
+test('Hand-off: app to background lets go of the printer at once', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  await pickItem(p, 'Pico de Gallo');
+  await printAndWait(p);
+  await p.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')); });
+  eq(await chip(p), 'Printer ready', 'released');
+  await p.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }); document.dispatchEvent(new Event('visibilitychange')); });
   await p.waitForTimeout(300);
-  await p.clock.fastForward(4 * 60 * 1000); await p.waitForTimeout(200);
-  eq(await chip(p), 'Printer free · tap to use', 'released after idle');
-  await p.mouse.click(300, 500); await p.waitForTimeout(300);
-  eq(await chip(p), 'Printer: DFJ235305204', 'tap takes it back');
-  await p.click('#setBtn'); await p.click('#discBtn'); await p.keyboard.press('Escape');
-  await p.mouse.click(300, 500); await p.waitForTimeout(300);
-  eq(await chip(p), 'Connect printer', 'Disconnect stays off on ordinary taps');
+  eq(await chip(p), 'Printer ready', 'coming back does not grab it');
   await p.close2();
 });
 

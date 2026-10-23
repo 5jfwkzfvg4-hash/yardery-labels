@@ -656,7 +656,7 @@ const state = {
   cat: "all", q: "", item: null, custom: false,
   days: null, qty: 1, madeTouched: false, moreOpen: false, textOnly: false, batch: null,
   recent: store.get("recent", []),
-  device: null, ch: null, mode: null, connecting: false, pickAll: false, manualOff: false, printing: false, connectP: null, connectMode: null, attempt: 0
+  device: null, ch: null, mode: null, connecting: false, pickAll: false, manualOff: false, pickNext: false, printing: false, connectP: null, connectMode: null, attempt: 0
 };
 $("locname").textContent = LOCATION.name;
 /* ---------- this device: id, name, first-time setup ---------- */
@@ -984,13 +984,15 @@ function step(t){ if(stepEl) say(stepEl, t); }
 function timeout(p, ms, code){
   let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => { const e = new Error(code); e.name = "Timeout"; rej(e); }, ms); })]).finally(() => clearTimeout(t));
 }
+// what the chip says while no device holds the printer: a set-up device connects by itself when Print is tapped
+const freeText = () => store.get("printerSetup", false) ? "Printer ready" : "Connect printer";
 function dropConnection(){
   state.ch = null; state.mode = null;
   try{ if(state.device && state.device.gatt && state.device.gatt.connected) state.device.gatt.disconnect(); }catch(e){}
 }
 function adoptDevice(dev){
   state.device = dev;
-  if(dev && !dev.__ypl){ dev.__ypl = true; dev.addEventListener("gattserverdisconnected", () => { state.ch = null; if(!state.connecting) setChip("", "Connect printer"); }); }
+  if(dev && !dev.__ypl){ dev.__ypl = true; dev.addEventListener("gattserverdisconnected", () => { state.ch = null; if(!state.connecting) setChip("", freeText()); }); }
 }
 /* Connecting.
    mode "auto":  background reconnect to the remembered printer (no list, never interrupts the person).
@@ -1019,9 +1021,10 @@ async function connectOnce(mode, my){
   const msg = envMessage();
   if(msg){ throw new Error(msg); }
   state.connecting = true; setChip("busy", "Connecting…");
-  let dev = null;
+  let dev = null, reuse = false;
   try{
-    const reuse = state.device && (auto || (mode !== "pick" && state.device.__reached));
+    // Print reuses a printer this page reached or the browser remembers (no list); "pick" always opens the list
+    reuse = !!(state.device && (auto || (mode !== "pick" && (state.device.__reached || state.device.__remembered))));
     if(reuse) dev = state.device;
     else {
       step("Step 1 of 3: opening the printer list…");
@@ -1034,7 +1037,7 @@ async function connectOnce(mode, my){
     if(my !== state.attempt) throw staleErr();
     adoptDevice(dev);
     step("Step 2 of 3: connecting to " + (dev.name || "the printer") + "…");
-    const server = await timeout(dev.gatt.connect(), auto ? 8000 : 20000, "connect");
+    const server = await timeout(dev.gatt.connect(), (auto || reuse) ? 8000 : 20000, "connect");
     if(my !== state.attempt) throw staleErr();
     step("Step 3 of 3: finding the print channel…");
     const svc = await timeout(server.getPrimaryService(ZSVC), 15000, "service");
@@ -1044,13 +1047,17 @@ async function connectOnce(mode, my){
     setChip("on", dev.name ? "Printer: " + dev.name : "Printer connected");
     store.set("printerSetup", true);
     if(dev.name) store.set("printerName", dev.name);
+    holdThenRelease();                                  // let go soon if nothing prints, so other devices can use it
     return state.ch;
   }catch(err){
     if(err && err.name === "Stale") throw err;          // a newer attempt took over; leave its state alone
     if(!dev || dev === state.device) dropConnection();
     if(err && err.name === "Timeout" && err.message === "picker") state.device = null;
-    setChip("", auto ? "Connect printer" : state.device ? "Reconnect printer" : "Connect printer");
-    throw friendly(err);
+    setChip("", auto || reuse ? freeText() : state.device ? "Reconnect printer" : "Connect printer");
+    const fe = friendly(err);
+    // a remembered printer that doesn't answer is usually busy printing for another device: Print waits and retries
+    if(reuse && err && ((err.name === "Timeout" && err.message === "connect") || /NetworkError/i.test(err.name + " " + err.message))) fe.busy = true;
+    throw fe;
   }finally{ if(my === state.attempt) state.connecting = false; }
 }
 function friendly(err){
@@ -1089,12 +1096,33 @@ async function writeChunks(ch, bytes, withResponse){
   }
 }
 async function send(text, statusEl){
-  state.printing = true;
-  try{ return await sendNow(text, statusEl); } finally { state.printing = false; touch(); }
+  state.printing = true; clearTimeout(holdTimer);
+  try{ return await sendNow(text, statusEl); } finally { state.printing = false; touch(); holdThenRelease(); }
+}
+// Print connects by itself: to the printer it already has, else the one the browser remembers (no list), else the list.
+// The printer takes one device at a time; if another device is printing, wait for it to let go and try again.
+const BUSY_TRIES = 3;
+async function connectForPrint(){
+  if(!isLive() && !state.device && !state.pickNext) await rememberedPrinter();
+  if(state.pickNext){ state.pickNext = false; state.device = null; return await connect("pick"); }
+  for(let i = 1; ; i++){
+    try{ return await connect(); }
+    catch(e){
+      if(!(e && e.busy) || i >= BUSY_TRIES){
+        if(e && e.busy){                              // never answered: off, out of range, or held by a device on an old version
+          state.pickNext = true;
+          throw new Error("Couldn't reach " + (state.device && state.device.name || "the printer") + ". It may be off or out of range, or another tablet still has it. Tap Print again to pick it from the list, or turn the Zebra off and on.");
+        }
+        throw e;
+      }
+      step("The printer is busy with another device. Waiting for it… (try " + (i + 1) + " of " + BUSY_TRIES + ")");
+      await wait(2000);
+    }
+  }
 }
 async function sendNow(text, statusEl){
   stepEl = statusEl || null;
-  const ch = await connect();
+  const ch = await connectForPrint();
   const bytes = new TextEncoder().encode(text);
   const canNoResp = typeof ch.writeValueWithoutResponse === "function";
   // remember which write style works for this printer
@@ -1173,7 +1201,7 @@ $("calBtn").onclick = async () => {
   catch(e){ say($("setStatus"), e.message, "err"); }
 };
 $("discBtn").onclick = () => {
-  dropConnection(); state.manualOff = true; setChip("", "Connect printer");
+  clearTimeout(holdTimer); dropConnection(); state.manualOff = true; setChip("", freeText());
   say($("setStatus"), "Disconnected. Another tablet can connect now.", "ok");
 };
 
@@ -1322,13 +1350,13 @@ setInterval(() => {
   if(!connectingSince){ connectingSince = Date.now(); return; }
   if(Date.now() - connectingSince > 100000){
     state.attempt++; state.connecting = false; state.connectP = null; connectingSince = 0;
-    dropConnection(); setChip("", "Connect printer");
+    dropConnection(); setChip("", freeText());
     toast("The printer didn't answer. Tap Connect printer to try again.", "err", 9000);
   }
 }, 5000);
 function resetAfterCrash(msg){
   state.attempt++; state.connecting = false; state.connectP = null; state.printing = false;
-  setChip("", isLive() ? "Printer: " + (state.device.name || "connected") : "Connect printer");
+  setChip("", isLive() ? "Printer: " + (state.device.name || "connected") : freeText());
   toast("Something went wrong (" + msg + "). Tap Connect printer and try again.", "err", 9000);
 }
 window.addEventListener("error", e => { if(state.connecting || state.printing) resetAfterCrash(e.message || "error"); });
@@ -1338,13 +1366,15 @@ window.addEventListener("unhandledrejection", e => {
   if(state.connecting || state.printing) resetAfterCrash(r.message || "error");
 });
 
-/* ---------- auto-connect and hand-off ----------
-   A device that has connected before reconnects on its own when the app is open and in use.
-   The printer takes one device at a time, so a device lets go when its app goes to the
-   background or sits untouched for IDLE_MS; whoever is actively using the app gets it next. */
-const IDLE_MS = 3 * 60 * 1000;
-let lastActive = Date.now();
+/* ---------- sharing the printer (Clay 2026-10-23) ----------
+   The Zebra takes one device at a time and no device can push another off it, so no device keeps it: a Print tap
+   connects (to the remembered printer, no list), prints, and lets go HOLD_MS after its last print or connect. Back-to-back
+   prints reuse the connection; another device can print a few seconds later. Opening the app or tapping around never
+   grabs the printer, and an app sent to the background lets go at once. */
+const HOLD_MS = 15 * 1000;
+let lastActive = Date.now(), holdTimer = null;
 function touch(){ lastActive = Date.now(); }
+function holdThenRelease(){ clearTimeout(holdTimer); holdTimer = setTimeout(() => release("done"), HOLD_MS); }
 async function rememberedPrinter(){
   if(state.device) return state.device;
   if(!navigator.bluetooth || typeof navigator.bluetooth.getDevices !== "function") return null;
@@ -1352,34 +1382,21 @@ async function rememberedPrinter(){
     const list = await navigator.bluetooth.getDevices();
     const want = store.get("printerName", "") || LOCATION.printerName;
     const dev = list.find(d => d.name && d.name === want) || (list.length === 1 ? list[0] : null);
-    if(dev) adoptDevice(dev);
+    if(dev){ dev.__remembered = true; adoptDevice(dev); }
     return dev || null;
   }catch(e){ return null; }
 }
-async function autoConnect(){
-  if(framed() || btEnv() !== "ok" || state.manualOff) return;
-  if(!store.get("printerSetup", false)) return;
-  if(document.visibilityState !== "visible" || state.connecting || state.printing) return;
-  if(state.ch && state.device && state.device.gatt && state.device.gatt.connected) return;
-  if(!(await rememberedPrinter())) return;          // browser doesn't remember it: first Print tap reconnects
-  try{ stepEl = null; await connect("auto"); }catch(e){ /* printer off or in use by someone else: try again on next tap */ }
-}
 function release(why){
-  if(!state.ch || state.printing || state.connecting) return;
-  dropConnection();
-  setChip("", why === "idle" ? "Printer free · tap to use" : "Connect printer");
+  if(!state.ch) return;
+  if(state.printing || state.connecting){ holdThenRelease(); return; }   // busy: try again after the next hold
+  clearTimeout(holdTimer); dropConnection(); setChip("", freeText());
 }
 document.addEventListener("visibilitychange", () => {
   if(document.visibilityState === "hidden") release("hidden");
-  else { touch(); autoConnect(); checkForUpdate(true); }
+  else { touch(); checkForUpdate(true); }
 });
 window.addEventListener("pagehide", () => release("hidden"));
-["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, e => {
-  const wasIdle = !state.ch; touch();
-  if(e.target && e.target.closest && e.target.closest("#pchip,#onbConnect,#printBtn,#testBtn,#calBtn,#discBtn,.plp,#bcOk")) return;
-  if(wasIdle) autoConnect();                          // a tap from the person using the app takes the printer back
-}, {passive: true, capture: true}));
-setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("idle"); }, 15000);
+["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, touch, {passive: true, capture: true}));
 
 /* ---------- Stay up to date ----------
    Kitchen tablets keep this page open for days, so a change pushed to GitHub never reached them.
@@ -1388,7 +1405,7 @@ setInterval(() => { if(state.ch && Date.now() - lastActive > IDLE_MS) release("i
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-21.3";
+const APP_VERSION = "2026-10-23.1";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1461,7 +1478,7 @@ async function printFromBook(id, qty, mult){
 window.addEventListener("message", e => {
   if(e.source !== $("rbFrame").contentWindow) return;
   const d = e.data || {};
-  if(d.type === "ypl-active"){ const wasIdle = !state.ch; touch(); if(wasIdle) autoConnect(); return; }
+  if(d.type === "ypl-active"){ touch(); return; }
   if(d.type === "ypl-print"){ touch(); printFromBook(d.item, d.qty, d.mult); }
 });
 
@@ -1799,10 +1816,10 @@ try{
   if(hit) pick(hit);
 }catch(e){}
 if(btEnv() !== "ok") setChip("", "Printer help");
+else setChip("", freeText());
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
-else autoConnect();
 flushLog();
-window.__ypl = { buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
+window.__ypl = { HOLD_MS, buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
 })();
 </script>
 </body>

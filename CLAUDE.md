@@ -10,6 +10,8 @@ The kitchen depends on this page to print legally required date labels. Keep it 
 3. **Printer controls never fail silently.** Connect printer, Print and setup's Connect must always show a
    result (list opens, toast, or status). A user tap never waits behind a background connection attempt.
    Don't add an early `return` to those handlers without a visible message.
+   **Sharing (owner, 2026-10-23):** no device keeps the printer. Print connects by itself (remembered printer, no list),
+   prints, and lets go `HOLD_MS` (15 s) after the last print; a busy printer is retried. Never auto-connect on open or on taps.
 4. **Label output is fixed:** one `^XA…^XZ` format per label, `^PQ1`, `^XB` on every label but the last,
    `^MN` gap sync, 1"×1" (`^PW203`/`^LL203` at 203 dpi). The owner approved this layout as centered.
 5. **Shelf lives** in `SHELF_DAYS` are manager-approved; change them only when the owner says so, and keep

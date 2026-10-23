@@ -6,6 +6,7 @@
 //   remembered         "ok" | "hang"  how the remembered printer answers a background connect
 //   picked             "ok" | "hang"  how the printer picked from the list answers
 //   cancelFirstPick    the first time the list opens, the person closes it
+//   busy               the remembered printer ignores this many connects first (another device is printing)
 // Records into window.__bt: log (picker/connect/disconnect), reqs (list filters), zpl (everything printed).
 module.exports = function mockPrinter(o = {}) {
   return `(() => {
@@ -21,13 +22,14 @@ module.exports = function mockPrinter(o = {}) {
     writeValueWithResponse: async v => { bt.zpl += new TextDecoder().decode(v); },
     writeValueWithoutResponse: async v => { bt.zpl += new TextDecoder().decode(v); }
   };
+  let busy = 0;
   const make = (tag, how) => {
     const listeners = [];
     const gatt = {
       connected: false,
       connect: async () => {
         bt.log.push('connect:' + tag);
-        if (how === 'hang') return new Promise(() => {});
+        if (how === 'hang' || (tag === 'remembered' && O.busy && busy++ < O.busy)) return new Promise(() => {});
         gatt.connected = true;
         return { getPrimaryService: async () => ({ getCharacteristic: async () => ch }) };
       },
