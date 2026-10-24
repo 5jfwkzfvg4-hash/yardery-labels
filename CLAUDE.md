@@ -13,7 +13,8 @@ The kitchen depends on this page to print legally required date labels. Keep it 
    **Sharing (owner, 2026-10-23):** no device keeps the printer. Print connects by itself (remembered printer, no list),
    prints, and lets go `HOLD_MS` (4 s) after the last print; a busy printer is retried. Never auto-connect on open or on taps.
 4. **Label output is fixed:** one `^XA…^XZ` format per label, `^PQ1`, `^XB` on every label but the last,
-   `^MN` gap sync, 1"×1" (`^PW203`/`^LL203` at 203 dpi). The owner approved this layout as centered.
+   `^MN` gap sync, 1"×1" (`^PW203`/`^LL203` at 203 dpi). The owner approved this layout as centered, and (2026-10-24)
+   the pan size bottom right when the item has a pan standard. **One label = one pan** (owner, 2026-10-24): no batch question.
 5. **Shelf lives** in `SHELF_DAYS` are manager-approved; change them only when the owner says so, and keep
    the Recipe Book (`recipes.html` and the Claude original) in step. Prep day = day 1; Frozen & Thawing
    items: the day it goes in doesn't count.
@@ -50,8 +51,8 @@ The kitchen depends on this page to print legally required date labels. Keep it 
     un-check one (no remove/undo/uncheck controls, ever); an item is complete only when a label prints for it, and shows
     who printed it and when (first print of the day). Every item with a Recipe Book page links to it. Each day is archived
     (`tools/prep-archive.js`, Drive folder "Prep List Archive" id `1p7Fg1TkNJGr0crpQgfhFqHjs9PQGkaXY`).
-11. **Yields (owner, 2026-10-23):** ⚙ → Yields shows what one batch of each label item makes; a change there logs a
-    "yield set" row to the print log sheet "Yardery Sanford — Prep Label Print Log" (id `1X6J9WJorpDE-PzZTXGPzjBFfw1d_QgGHfqLIWIs2Lc4`,
+11. **Pans & yields (owner, 2026-10-23/24):** ⚙ → Pans & yields sets, per label item, the pan size, oz per pan, batch yield
+    and par in pans (`STORAGE` + `YIELDS` in index.html, `BATCH_YIELDS` in the book); a change there logs a "pan set" row to the print log sheet "Yardery Sanford — Prep Label Print Log" (id `1X6J9WJorpDE-PzZTXGPzjBFfw1d_QgGHfqLIWIs2Lc4`,
     tab "Form Responses 1"). On every sync run: read `'Form Responses 1'!A:K` with the Sheets connector, save it to a file,
     run `node tools/yields.js apply <file>`. If it applied anything: `node tools/sync.js build`, `npm test`, publish both
     artifacts, `mark`, commit (with `artifacts/yields-applied.json`), push, and tell the owner what changed. Changes by anyone

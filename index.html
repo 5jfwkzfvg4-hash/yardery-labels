@@ -146,7 +146,7 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .label .lm{font-size:9.5px;font-weight:700}
 .label .lbar{background:#111;color:#fff;font-size:10px;font-weight:700;text-align:center;margin-top:3px;padding:1px 0;letter-spacing:.04em}
 .label .ld{font-size:27px;font-weight:800;text-align:center;line-height:1.05;font-variant-numeric:tabular-nums}
-.label .li{font-size:9.5px;font-weight:700;margin-top:auto}
+.label .li{font-size:9.5px;font-weight:700;margin-top:auto;display:flex;justify-content:space-between;gap:4px;white-space:nowrap;overflow:hidden}
 .prevtxt{font-size:.88rem;color:var(--ink-soft);min-width:0}
 .prevtxt b{display:block;color:var(--ink);font:700 1.05rem var(--display)}
 
@@ -204,6 +204,8 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .pltab td.yv{white-space:normal;font-weight:600;overflow-wrap:anywhere;width:34%}
 #yl .pltab{table-layout:fixed} #yl .pltab th:last-child,#yl .pltab td.c{width:84px} #yl .pltab td.n{width:auto;overflow-wrap:anywhere} #yl .plp{padding:0 10px;min-width:68px}
 .ylform{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ylform label{display:flex;flex-direction:column;gap:2px;font-size:.75rem;font-weight:700;color:var(--ink-soft);flex:1 1 100%}
+.ylform .ylhelp{flex-basis:100%;margin:0;font-size:.78rem;color:var(--ink-soft)}
 .ylform input{flex:1 1 100%;min-width:0;width:100%;box-sizing:border-box;min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:0 8px;font-size:1rem;color:var(--ink)}
 .ylform button{border:0;border-radius:10px;min-height:40px;padding:0 14px;font-weight:700;background:var(--green);color:var(--green-ink)}
 .ylform button.ylno{background:var(--paper-soft);color:var(--ink)}
@@ -330,6 +332,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
         <input class="txt" id="moreDays" type="number" inputmode="numeric" min="8" max="180" placeholder="e.g. 30">
       </div>
       <div id="shelfNote" style="margin-top:8px"></div>
+      <div id="panNote" class="note" style="margin-top:8px" hidden></div>
     </div>
 
     <div class="row" id="whoWrap">
@@ -371,9 +374,9 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
 
 <!-- Batch count: asked before printing an item that has a Recipe Book yield -->
 <div class="sheet bcsheet" id="bcSheet" hidden role="dialog" aria-modal="true" aria-labelledby="bcH">
-  <h3 id="bcH">How many batches did you make?</h3>
+  <h3 id="bcH">How many pans? One label each.</h3>
   <p id="bcItem" style="margin:0"></p>
-  <div class="qty" role="group" aria-label="Batches made"><button type="button" id="bcMinus" aria-label="One fewer batch">−</button><output id="bcN" aria-label="Batches">1</output><button type="button" id="bcPlus" aria-label="One more batch">+</button></div>
+  <div class="qty" role="group" aria-label="Pans"><button type="button" id="bcMinus" aria-label="One fewer pan">−</button><output id="bcN" aria-label="Pans">1</output><button type="button" id="bcPlus" aria-label="One more pan">+</button></div>
   <p class="bcamt" id="bcAmt"></p>
   <div class="actrow"><button class="btn" id="bcCancel" type="button">Cancel</button><button class="btn pri" id="bcOk" type="button" style="flex:1">Print</button></div>
 </div>
@@ -388,10 +391,10 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
 </div>
 
 <!-- Yields: what one batch of each label item makes; managers change them here -->
-<div class="pl" id="yl" hidden role="dialog" aria-modal="true" aria-label="Yields">
+<div class="pl" id="yl" hidden role="dialog" aria-modal="true" aria-label="Pans and yields">
   <div class="rbbar">
     <button class="rbback" id="ylClose" type="button">← Prep Labels</button>
-    <b>Yields</b>
+    <b>Pans &amp; yields</b>
   </div>
   <div class="plbody" id="ylBody"></div>
 </div>
@@ -493,9 +496,9 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   </div>
   <div class="status" id="setStatus" role="status"></div>
   <div>
-    <h4>Yields</h4>
-    <p class="hint">How much product one batch of each label item makes. Managers can change them here.</p>
-    <button class="btn" id="ylBtn" type="button" style="margin-top:8px">Yields: how much each label makes</button>
+    <h4>Pans &amp; yields</h4>
+    <p class="hint">Each label is one pan: the pan size, oz per pan, batch yield and par for every item. Managers set them here.</p>
+    <button class="btn" id="ylBtn" type="button" style="margin-top:8px">Pans &amp; yields</button>
   </div>
   <div>
     <h4>This device</h4>
@@ -639,6 +642,23 @@ const YIELDS = {
   "sliced-red-onions": "6 quarts", "brownies": "2 half sheet pans", "breaded-avocado": "24 orders"
 };
 
+/* ===== PAN STANDARDS (Clay 2026-10-24): each sticker is one pan in the walk-in. pan = what the item is stored in,
+   oz = product weight in each pan, par = pans to keep on hand. The batch yield is YIELDS. Set in ⚙ → Pans & yields;
+   the owner's changes are written here by tools/yields.js (CLAUDE.md rule 11). ===== */
+const STORAGE = {
+};
+const PANS = ['Full pan 2.5"', 'Full pan 4"', 'Full pan 6"', '1/2 pan 2.5"', '1/2 pan 4"', '1/2 pan 6"', '1/3 pan 2.5"', '1/3 pan 4"',
+  '1/3 pan 6"', '1/4 pan 4"', '1/4 pan 6"', '1/6 pan 4"', '1/6 pan 6"', '1/9 pan 4"', 'Sheet pan', '1/2 sheet pan', '2 qt Cambro',
+  '4 qt Cambro', '6 qt Cambro', '8 qt Cambro', '12 qt Cambro', '22 qt Cambro', '1 qt deli', '1 pt deli', 'Squeeze bottle'];
+// a batch yield in weight ("240 oz", "25 lb", "256 oz (16 lb)") in oz; null for counts or volumes
+function yieldOz(id){
+  const m = /^(\d+(?:\.\d+)?)\s*(oz|lb)s?\b/i.exec(String(YIELDS[id] || "").replace(/^≈\s*/, ""));
+  return m ? +m[1] * (/lb/i.test(m[2]) ? 16 : 1) : null;
+}
+// pans one batch fills (the last one may be partly full)
+function pansPerBatch(id){ const s = STORAGE[id], y = yieldOz(id); return s && s.oz && y ? Math.max(1, Math.ceil(y / s.oz - 0.01)) : null; }
+const panText = id => STORAGE[id] && STORAGE[id].pan || "";
+
 /* ===== MANAGER LOG: names entered and labels printed, sent to Clay's private Google Form =====
    The form feeds the "Yardery Sanford — Prep Label Print Log" sheet, one row per item per print.
    Leave formUrl empty to turn logging off. entry ids come from the form's "Get pre-filled link".
@@ -768,7 +788,7 @@ function pick(it){
   state.moreOpen = false; $("moreDays").value = state.days > 7 ? state.days : "";
   $("customWrap").hidden = true;
   if(!state.madeTouched) $("made").value = toLocalInput(new Date());
-  state.qty = 1;
+  state.qty = pansPerBatch(it.id) || 1;                     // one sticker per pan: start at the pans one batch fills
   renderList(); renderPanel(); openPanel();
 }
 function openCustom(){
@@ -839,7 +859,8 @@ function labelData(){
   const made = fromLocalInput($("made").value) || new Date();
   const ini = $("initials").value.trim().toUpperCase();
   const ub = state.days ? useBy(made, state.days, !state.custom && startsDayZero(state.item)) : null;
-  return {name, made, ini, ub, days: state.days};
+  const pan = !state.custom && state.item ? panText(state.item.id) : "";
+  return {name, made, ini, ub, days: state.days, pan};
 }
 function renderPanel(){
   const hasItem = state.custom || !!state.item || !!state.batch;
@@ -868,7 +889,7 @@ function renderPanel(){
   $("lM").textContent = "MADE " + md(L.made) + " " + hm(L.made);
   $("lW").textContent = L.ub ? "USE BY  " + DOW[L.ub.getDay()] : "USE BY";
   $("lD").textContent = L.ub ? md(L.ub) : "—";
-  $("lI").textContent = "BY " + (L.ini || "—");
+  $("lI").innerHTML = "<span>BY " + esc(L.ini || "—") + "</span>" + (L.pan ? "<span>" + esc(L.pan.toUpperCase()) + "</span>" : "");
   $("qty").textContent = state.qty;
 
   const note = $("shelfNote"); note.className = ""; note.textContent = "";
@@ -898,6 +919,15 @@ function renderPanel(){
       note.textContent += (note.textContent ? " " : "") + extra;
       if(!note.className) note.className = "note";
     }
+  }
+
+  const pn = $("panNote"), st = state.item && !state.custom && !B && STORAGE[state.item.id];
+  pn.hidden = !st;
+  if(st){
+    const ppb = pansPerBatch(state.item.id);
+    pn.textContent = "One label per pan: " + st.pan + (st.oz ? ", " + st.oz + " oz each" : "") + "." +
+      (ppb ? " One batch (" + YIELDS[state.item.id].replace(/^≈\s*/, "") + ") fills " + ppb + (ppb === 1 ? " pan." : " pans.") : "") +
+      (st.par ? " Par: " + st.par + (st.par === 1 ? " pan." : " pans.") : "");
   }
 
   const missing = [];
@@ -971,9 +1001,15 @@ function buildZPL(L, qty, opts){
     "^FO" + n(6) + "," + n(92) + "^GB" + n(191) + "," + n(24) + "," + n(24) + "^FS",
     "^FO" + n(6) + "," + n(96) + "^A0N," + n(20) + "," + n(19) + "^FB" + n(191) + ",1,0,C^FR^FDUSE BY  " + DOW[L.ub.getDay()] + "^FS",
     "^FO" + n(6) + "," + n(120) + "^A0N," + n(52) + "," + n(46) + "^FB" + n(191) + ",1,0,C^FD" + md(L.ub) + "^FS",
-    "^FO" + n(6) + "," + n(178) + "^A0N," + n(19) + "," + n(17) + "^FDBY " + zplSafe(L.ini) + "^FS",
+  ].concat(L.pan ? (() => {
+    // pan size bottom right (owner, 2026-10-24); the name on the left is cut to the room left over
+    // a touch smaller than the plain "BY" line so a first name and the pan both fit
+    const pan = zplSafe(L.pan).toUpperCase().slice(0, 14), cw = 15 * 0.58, room = Math.floor((191 - pan.length * cw - 6) / cw) - 3;
+    return ["^FO" + n(6) + "," + n(180) + "^A0N," + n(17) + "," + n(15) + "^FDBY " + zplSafe(L.ini).slice(0, Math.max(2, room)) + "^FS",
+      "^FO" + n(6) + "," + n(180) + "^A0N," + n(17) + "," + n(15) + "^FB" + n(191) + ",1,0,R^FD" + pan + "^FS"];
+  })() : ["^FO" + n(6) + "," + n(178) + "^A0N," + n(19) + "," + n(17) + "^FDBY " + zplSafe(L.ini) + "^FS"]).concat([
     "^PQ" + qty + ",0,1,N","^XZ"
-  ]).join("\n") + "\n";
+  ])).join("\n") + "\n";
 }
 
 /* ---------- Bluetooth ---------- */
@@ -1175,8 +1211,7 @@ $("pchip").onclick = async () => {
 $("printBtn").onclick = async () => {
   const L = labelData();
   if(!L.name || (!L.textOnly && (!L.ub || !L.ini))) return;
-  const bi = (!state.batch && !state.custom && state.item) ? await batchInfo(state.item.id, L.name) : {};
-  if(!bi){ say($("status"), "Not printed. Tap Print when you're ready.", ""); return; }
+  const bi = (!state.batch && !state.custom && state.item) ? panInfo(state.item.id, state.qty) : {};
   const pb = $("printBtn"); pb.disabled = true; say($("status"), "Sending to printer…");
   if(state.batch){
     const B = state.batch;
@@ -1292,7 +1327,7 @@ function logPrint(source, labels, made, ub){
   labels.forEach(l => plMarkDone(l.name, who, new Date()));   // a printed label is what completes a Prep List item
   labels.forEach(l => logEvent(Object.assign({ event: "print", name: who, source, item: l.name, labels: l.count,
     prep: made ? fmtDate(made) + " " + fmtTime(made) : "", useBy: ub ? fmtDate(ub) : "" },
-    l.batches ? { batches: l.batches, made: l.made || "" } : {})));
+    (l.batches || l.made) ? { batches: l.batches || "", made: l.made || "" } : {})));
 }
 
 /* ---------- items without a button (Clay 2026-10-21) ----------
@@ -1343,24 +1378,24 @@ function amountMade(id, n){
   return (est ? "≈ " : "") + f(+m[1]) + unit;
 }
 let bcDone = null, bcId = null;
-function askBatches(id, name, preset){
+// One sticker per pan (owner, 2026-10-24): items with a pan standard ask how many pans, starting at what one batch fills
+function askPans(id, name, preset){
   if(bcDone) bcDone(null);                                  // a second ask replaces the first
-  bcId = id;
-  $("bcItem").textContent = name + " · Recipe Book yield: " + YIELDS[id] + " per batch";
-  $("bcN").textContent = Math.max(1, Math.min(20, parseInt(preset, 10) || 1));
+  bcId = id; const st = STORAGE[id];
+  $("bcItem").textContent = name + " · " + st.pan + (st.oz ? ", " + st.oz + " oz each" : "");
+  $("bcN").textContent = Math.max(1, Math.min(50, parseInt(preset, 10) || 1));
   bcPaint(); $("bcSheet").hidden = false; $("bcOk").focus();
   return new Promise(res => { bcDone = n => { bcDone = null; $("bcSheet").hidden = true; res(n); }; });
 }
-function bcPaint(){ const n = +$("bcN").textContent, a = amountMade(bcId, n); $("bcAmt").textContent = a ? "= " + a + " made" : n + (n === 1 ? " batch" : " batches"); }
+function bcPaint(){ const n = +$("bcN").textContent, st = STORAGE[bcId] || {}; $("bcAmt").textContent = st.oz ? "= " + Math.round(n * st.oz * 100) / 100 + " oz" : n + (n === 1 ? " pan" : " pans"); $("bcOk").textContent = "Print " + n + (n === 1 ? " label" : " labels"); }
 $("bcMinus").onclick = () => { $("bcN").textContent = Math.max(1, +$("bcN").textContent - 1); bcPaint(); };
-$("bcPlus").onclick = () => { $("bcN").textContent = Math.min(20, +$("bcN").textContent + 1); bcPaint(); };
+$("bcPlus").onclick = () => { $("bcN").textContent = Math.min(50, +$("bcN").textContent + 1); bcPaint(); };
 $("bcOk").onclick = () => { if(bcDone) bcDone(+$("bcN").textContent); };
 $("bcCancel").onclick = () => { if(bcDone) bcDone(null); };
-// batches + amount for the log, or null if the person cancelled; items with no yield aren't asked
-async function batchInfo(id, name, preset){
-  if(!id || !YIELDS[id]) return {};
-  const n = await askBatches(id, name, preset);
-  return n ? { batches: n, made: amountMade(id, n) } : null;
+// what the log records for n stickers of an item with a pan standard: "4 × 1/3 pan 6" · 60 oz each = 240 oz"
+function panInfo(id, n){
+  const st = STORAGE[id]; if(!st) return {};
+  return {made: n + " × " + st.pan + (st.oz ? " · " + st.oz + " oz each = " + Math.round(n * st.oz * 100) / 100 + " oz" : "")};
 }
 
 /* ---------- safety nets: the printer controls can never get stuck ----------
@@ -1428,7 +1463,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-23.3";
+const APP_VERSION = "2026-10-24.1";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1487,11 +1522,15 @@ async function printFromBook(id, qty, mult){
   if(!it || !days) return done(false, "This item has no label set up yet. Use the Labels page.");
   if(!who) return done(false, "Set up your name first: tap ← Prep Labels and follow the setup.");
   if(state.printing) return done(false, "The printer is busy with another label. Try again in a moment.");
-  const bi = await batchInfo(it.id, it.name, mult);         // starts at the book's Multiply Batch setting
-  if(!bi) return done(false, "Not printed.");
+  let bi = {};
+  if(STORAGE[it.id]){                                        // one label per pan, starting at the book's Multiply Batch setting
+    const n = await askPans(it.id, it.name, (pansPerBatch(it.id) || 1) * Math.max(1, parseInt(mult, 10) || 1));
+    if(!n) return done(false, "Not printed.");
+    qty = n; bi = panInfo(it.id, n);
+  }
   const now = new Date(), ub = useBy(now, days, startsDayZero(it));
   try{
-    await send(buildJob(copies({name: it.name, made: now, ub, ini: who.toUpperCase()}, qty)), null);
+    await send(buildJob(copies({name: it.name, made: now, ub, ini: who.toUpperCase(), pan: panText(it.id)}, qty)), null);
     state.recent = [it.id].concat(state.recent.filter(x => x !== it.id)).slice(0, 6);
     store.set("recent", state.recent); renderList();
     done(true, "Printed " + qty + (qty === 1 ? " label" : " labels") + " · use by " + DOW[ub.getDay()] + " " + md(ub));
@@ -1667,14 +1706,18 @@ async function printFromList(key, btn, sec){
   // RULE: a Print tap always shows a result
   if(!who){ toast("Set up your name first: tap ← Prep Labels and follow the setup.", "err", 7000); return; }
   if(state.printing){ toast("The printer is busy with another label. Try again in a moment."); return; }
-  const bi = await batchInfo(f.r.item && f.r.item.id, f.r.name);
-  if(!bi){ toast("Not printed."); return; }
+  const id = f.r.item && f.r.item.id; let n = 1, bi = {};
+  if(id && STORAGE[id]){                                     // one label per pan
+    n = await askPans(id, f.r.name, pansPerBatch(id) || 1);
+    if(!n){ toast("Not printed."); return; }
+    bi = panInfo(id, n);
+  }
   const now = new Date(), ub = useBy(now, f.r.days, f.r.item ? startsDayZero(f.r.item) : false);
   btn.disabled = true; btn.textContent = "Printing…";
   try{
-    await send(buildJob(copies({name: f.r.name, made: now, ub, ini: who.toUpperCase()}, 1)), null);
-    toast("Printed " + f.r.name + " · use by " + DOW[ub.getDay()] + " " + md(ub), "ok");
-    logPrint("prep list", [Object.assign({name: f.r.name, count: 1}, bi)], now, ub);
+    await send(buildJob(copies({name: f.r.name, made: now, ub, ini: who.toUpperCase(), pan: id ? panText(id) : ""}, n)), null);
+    toast("Printed " + (n > 1 ? n + " × " : "") + f.r.name + " · use by " + DOW[ub.getDay()] + " " + md(ub), "ok");
+    logPrint("prep list", [Object.assign({name: f.r.name, count: n}, bi)], now, ub);
   }catch(e){ toast((e && e.message) || "Couldn't print.", "err", 9000); }
   renderPrepList();
 }
@@ -1749,57 +1792,77 @@ $("plBody").addEventListener("click", e => {
   const tr = b.closest("tr"); touch(); printFromList(tr.dataset.k, b, tr.dataset.s);
 });
 
-/* ---------- Yields (Clay 2026-10-23) ----------
-   What one batch of each label item makes (one printed label = one batch container; the batch count asks how many).
-   A change is logged to the print log as a "yield set" row ("yield <id> = <value>" in Source). Changes by YIELD_APPROVERS
-   apply on this device at once and reach every device and the Recipe Book within the hour (the sync runs
+/* ---------- Pans & yields (Clay 2026-10-23; pans 2026-10-24) ----------
+   Per label item: the pan it's stored in, oz of product per pan, the batch yield and the par (pans). Each printed label is one
+   pan. A change is logged to the print log as a "pan set" row (Source "pan <id> = <pan> | <oz> | <par> | <yield>"). Changes
+   by YIELD_APPROVERS apply on this device at once and reach every device and the Recipe Book within the hour (the sync runs
    tools/yields.js, CLAUDE.md rule 11); anyone else's change waits for the owner's OK. */
 const YIELD_APPROVERS = ["Clay"];
-const YIELDS_APP = Object.assign({}, YIELDS);           // the yields this version of the app carries
+const YIELDS_APP = Object.assign({}, YIELDS), STORAGE_APP = JSON.parse(JSON.stringify(STORAGE));   // what this version carries
 const canApprove = who => YIELD_APPROVERS.some(a => a.toLowerCase() === String(who || "").trim().toLowerCase());
-// this device's changes still on their way into the app: {id: {v, by, at, ok}}; dropped once the app carries them
+const sameStore = (a, b) => !!a && !!b && a.pan === b.pan && (+a.oz || 0) === (+b.oz || 0) && (+a.par || 0) === (+b.par || 0);
+// this device's changes still on their way into the app: {id: {v, pan, oz, par, by, at, ok}}; dropped once the app carries them
 function ylEdits(){
   const e = store.get("yieldEdits", {}); let changed = false;
-  Object.keys(e).forEach(id => { if(YIELDS_APP[id] === e[id].v){ delete e[id]; changed = true; } });
+  Object.keys(e).forEach(id => { const x = e[id];
+    if((!x.v || YIELDS_APP[id] === x.v) && (!x.pan || sameStore(STORAGE_APP[id], x))){ delete e[id]; changed = true; } });
   if(changed) store.set("yieldEdits", e);
   return e;
 }
-function ylApplyLocal(){ const e = ylEdits(); Object.keys(e).forEach(id => { if(e[id].ok) YIELDS[id] = e[id].v; }); }
+function ylApplyLocal(){ const e = ylEdits(); Object.keys(e).forEach(id => { const x = e[id]; if(!x.ok) return;
+  if(x.v) YIELDS[id] = x.v; if(x.pan) STORAGE[id] = {pan: x.pan, oz: +x.oz || 0, par: +x.par || 0}; }); }
 ylApplyLocal();
 let ylOpenId = null;
 function ylRow(it, edits){
-  const y = YIELDS[it.id], e = edits[it.id], set = y && !/^TBD$/i.test(y);
+  const y = YIELDS[it.id], st = STORAGE[it.id], e = edits[it.id], ySet = y && !/^TBD$/i.test(y), ppb = pansPerBatch(it.id);
+  const full = st && st.pan && st.oz && ySet && st.par;
   const tag = e ? (e.ok ? '<span class="yltag p">Updating</span>' : '<span class="yltag p">Waiting for ' + esc(YIELD_APPROVERS[0]) + '</span>')
-    : !set ? '<span class="yltag n">Not set</span>' : /^≈/.test(y) ? '<span class="yltag e">Estimate</span>' : '<span class="yltag m">Measured</span>';
-  const shown = e && !e.ok ? esc(y || "Not set") + '<br><small>Asked: ' + esc(e.v) + '</small>' : set ? esc(y) : "—";
-  return '<tr data-id="' + esc(it.id) + '"><td class="n"><b>' + esc(it.name) + tag + '</b><small>' + (SHELF_DAYS[it.id] ? SHELF_DAYS[it.id] + (SHELF_DAYS[it.id] === 1 ? " day" : " days") + " shelf life" : "") + '</small>' +
-    (ylOpenId === it.id ? '<form class="ylform"><input id="ylIn" maxlength="40" autocomplete="off" value="' + esc(String(e ? e.v : set ? y : "").replace(/^≈\s*/, "")) + '" placeholder="e.g. 240 oz or 40 patties × 4 oz" aria-label="What one batch makes"><button type="submit">Save</button><button type="button" class="ylno">Cancel</button></form>' : '') +
-    '</td><td class="yv">' + shown + '</td><td class="c"><button class="plp ylchg" type="button">' + (set || e ? "Change" : "Set") + '</button></td></tr>';
+    : full ? '<span class="yltag m">Set</span>' : (st || ySet) ? '<span class="yltag e">Partly set</span>' : '<span class="yltag n">Not set</span>';
+  const lines = [];
+  lines.push(st ? esc(st.pan) + (st.oz ? " · " + st.oz + " oz per pan" : "") : "<small>No pan set</small>");
+  lines.push("<small>Batch: " + (ySet ? esc(y) + (ppb ? " = " + ppb + (ppb === 1 ? " pan" : " pans") : "") : "not set") + "</small>");
+  if(st && st.par) lines.push("<small>Par: " + st.par + (st.par === 1 ? " pan" : " pans") + "</small>");
+  if(e && !e.ok) lines.push("<small>Asked: " + esc([e.pan, e.oz ? e.oz + " oz" : "", e.v, e.par ? "par " + e.par : ""].filter(Boolean).join(" · ")) + "</small>");
+  const cur = e || {pan: st && st.pan, oz: st && st.oz, par: st && st.par, v: ySet ? y.replace(/^≈\s*/, "") : ""};
+  const form = ylOpenId !== it.id ? "" : '<form class="ylform">' +
+    '<label>Pan size<input id="ylPan" list="ylPans" maxlength="24" autocomplete="off" value="' + esc(cur.pan || "") + '" placeholder="e.g. 1/3 pan 6&quot;"></label>' +
+    '<label>Oz per pan<input id="ylOz" type="number" inputmode="decimal" min="0" step="0.1" value="' + esc(cur.oz || "") + '" placeholder="e.g. 60"></label>' +
+    '<label>Batch yield<input id="ylIn" maxlength="40" autocomplete="off" value="' + esc(cur.v || "") + '" placeholder="e.g. 240 oz"></label>' +
+    '<label>Par (pans)<input id="ylPar" type="number" inputmode="numeric" min="0" step="1" value="' + esc(cur.par || "") + '" placeholder="e.g. 4"></label>' +
+    '<button type="submit">Save</button><button type="button" class="ylno">Cancel</button>' +
+    '<p class="ylhelp">Weigh the product in each pan (tare the pan first). Give the batch yield in oz so the app can count pans.</p></form>';
+  return '<tr data-id="' + esc(it.id) + '"><td class="n"><b>' + esc(it.name) + tag + '</b><small>' + (SHELF_DAYS[it.id] ? SHELF_DAYS[it.id] + (SHELF_DAYS[it.id] === 1 ? " day" : " days") + " shelf life" : "") + '</small>' + form +
+    '</td><td class="yv">' + lines.join("<br>") + '</td><td class="c"><button class="plp ylchg" type="button">' + (st || ySet || e ? "Change" : "Set") + '</button></td></tr>';
 }
 function renderYields(){
   const edits = ylEdits(), scroll = $("ylBody").scrollTop;
   const items = ITEMS.filter(i => SHELF_DAYS[i.id]);
-  const n = items.filter(i => YIELDS[i.id] && !/^TBD$/i.test(YIELDS[i.id])).length;
-  $("ylBody").innerHTML = '<p class="plnote plsec"><b>' + n + ' of ' + items.length + ' label items have a yield.</b> Each printed label is one batch; when you print, the app asks how many batches and logs the total. ' +
+  const n = items.filter(i => STORAGE[i.id] && STORAGE[i.id].pan).length;
+  $("ylBody").innerHTML = '<datalist id="ylPans">' + PANS.map(x => '<option value="' + esc(x) + '">').join("") + '</datalist>' +
+    '<p class="plnote plsec"><b>' + n + ' of ' + items.length + ' label items have a pan standard.</b> Each printed label is one pan; Print starts at the pans one batch fills. ' +
       (canApprove(store.get("name", "")) ? 'Your changes reach every device and the Recipe Book within the hour.' : 'Changes you make are sent to ' + esc(YIELD_APPROVERS[0]) + ' to approve.') + '</p>' +
     CATS.map(c => { const rows = items.filter(i => i.cat === c.id); if(!rows.length) return "";
-      return '<section class="plsec"><h2>' + esc(c.name) + '</h2><table class="pltab"><thead><tr><th>Item</th><th>One batch makes</th><th></th></tr></thead><tbody>' +
+      return '<section class="plsec"><h2>' + esc(c.name) + '</h2><table class="pltab"><thead><tr><th>Item</th><th>Pan standard</th><th></th></tr></thead><tbody>' +
         rows.map(it => ylRow(it, edits)).join("") + '</tbody></table></section>'; }).join("");
   $("ylBody").scrollTop = scroll;
-  const inp = $("ylIn"); if(inp){ inp.focus(); inp.select(); }
+  const inp = $("ylPan"); if(inp) inp.focus();
 }
 function ylSave(id){
   const it = ITEMS.find(i => i.id === id), who = store.get("name", "");
+  const pan = $("ylPan").value.replace(/\s+/g, " ").trim(), oz = $("ylOz").value.trim(), par = $("ylPar").value.trim();
   const v = $("ylIn").value.replace(/\s+/g, " ").trim();
   // RULE: Save always shows a result
   if(!who){ toast("Set up your name first: tap ← Prep Labels and follow the setup.", "err", 7000); return; }
-  if(v.length < 2){ toast("Type what one batch makes, e.g. 240 oz."); $("ylIn").focus(); return; }
-  if(!/\d/.test(v) && !confirm('"' + v + '" has no number in it, so the app can\'t total batches. Save it anyway?')) return;
-  const ok = canApprove(who);
-  if(!confirm("Change " + it.name + " to: one batch makes " + v + "?" + (ok ? "" : "\n\n" + YIELD_APPROVERS[0] + " will be asked to approve it."))) return;
-  const e = store.get("yieldEdits", {}); e[id] = {v, by: who, at: fmtDate(new Date()), ok}; store.set("yieldEdits", e);
-  if(ok) YIELDS[id] = v;
-  logEvent({event: "yield set", name: who, item: it.name, labels: "", source: "yield " + id + " = " + v});
+  if(pan.length < 2){ toast("Pick the pan size, e.g. 1/3 pan 6\"."); $("ylPan").focus(); return; }
+  if(!(+oz > 0)){ toast("Type the oz of product in one pan."); $("ylOz").focus(); return; }
+  if(par && !(Number.isInteger(+par) && +par >= 0)){ toast("Par is a whole number of pans."); $("ylPar").focus(); return; }
+  if(v && !/^\d/.test(v) && !confirm('"' + v + '" doesn\'t start with a number, so the app can\'t count pans from it. Save it anyway?')) return;
+  const ok = canApprove(who), ppb = /^\d+(\.\d+)?\s*(oz|lb)/i.test(v) ? Math.ceil(parseFloat(v) * (/lb/i.test(v) ? 16 : 1) / +oz - 0.01) : null;
+  if(!confirm(it.name + ": " + pan + ", " + oz + " oz per pan" + (v ? ", batch " + v + (ppb ? " (" + ppb + " pans)" : "") : "") + (par ? ", par " + par + " pans" : "") + "?" +
+    (ok ? "" : "\n\n" + YIELD_APPROVERS[0] + " will be asked to approve it."))) return;
+  const e = store.get("yieldEdits", {}); e[id] = {v, pan, oz: +oz, par: +par || 0, by: who, at: fmtDate(new Date()), ok}; store.set("yieldEdits", e);
+  if(ok){ STORAGE[id] = {pan, oz: +oz, par: +par || 0}; if(v) YIELDS[id] = v; }
+  logEvent({event: "pan set", name: who, item: it.name, labels: "", source: "pan " + id + " = " + [pan, +oz, +par || 0, v].join(" | ")});
   ylOpenId = null; renderYields();
   toast(ok ? it.name + " updated. Every device and the Recipe Book get it within the hour." : "Sent to " + YIELD_APPROVERS[0] + " to approve.", "ok", 6000);
 }
@@ -1912,7 +1975,7 @@ if(btEnv() !== "ok") setChip("", "Printer help");
 else setChip("", freeText());
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 flushLog();
-window.__ypl = { HOLD_MS, YIELD_APPROVERS, buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
+window.__ypl = { STORAGE, PANS, pansPerBatch, yieldOz, HOLD_MS, YIELD_APPROVERS, buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
 })();
 </script>
 </body>

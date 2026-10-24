@@ -356,19 +356,20 @@ test('Names: typing a different name changes only that label, never the device o
 
 /* ================= Recipe Book ================= */
 
-test('Book: Print prep label prints the chosen quantity and stays on the recipe', async () => {
+test('Book: Print prep label prints one label per pan (pans in a batch × Multiply Batch) and stays on the recipe', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
+  await p.evaluate(PICO_PAN);
   const f = await openBook(p), fl = p.frameLocator('#rbFrame');
   await f.evaluate(() => goTo(recipePageIndex['pico-de-gallo'])); await p.waitForTimeout(300);
   await fl.locator('#batchToggle').click(); await fl.locator('[data-mult="2"]').click(); await p.waitForTimeout(200);
   await fl.locator('[data-lq="1"]').click();
   await fl.locator('a.labelbtn').click();
   await p.waitForSelector('#bcSheet:not([hidden])');
-  eq(await p.textContent('#bcN'), '2', 'batch count starts at the book\'s Multiply Batch');
-  eq(await p.textContent('#bcAmt'), '= 480 oz made', 'amount from the Recipe Book yield');
+  eq(await p.textContent('#bcN'), '8', '4 pans per batch × Multiply Batch 2');
+  eq(await p.textContent('#bcAmt'), '= 480 oz', 'oz from the pan standard');
   await p.click('#bcOk');
   await f.waitForFunction(() => /Printed/.test(document.querySelector('a.labelbtn').textContent), null, { timeout: 30000 });
-  eq(formats(await zpl(p)).length, 2, 'label count');
+  eq(formats(await zpl(p)).length, 8, 'label count');
   eq(await f.evaluate(() => document.querySelector('.page h2').textContent), 'Pico de Gallo', 'still on the recipe');
   assert(await p.isVisible('#rb'), 'book still open');
   eq(await f.textContent('.lqty output'), '1', 'quantity back to 1');
@@ -480,7 +481,6 @@ test('Prep List: Print on a row prints one label with the approved date and stay
   await p.click('#plBtn'); await p.waitForTimeout(200);
   await plPickItems(p, [['Toppings & Prep', 'Pico de Gallo'], ['Line Flip Labels', 'Pico']]);
   await p.click('#pl tr[data-k="pico de gallo"] .plp');
-  await p.waitForSelector('#bcSheet:not([hidden])'); await p.click('#bcOk');
   await p.waitForFunction(() => /Printed/.test(document.getElementById('toast').textContent), null, { timeout: 30000 });
   const z = formats(await zpl(p));
   eq(z.length, 1, 'one label');
@@ -560,44 +560,47 @@ test('Prep List archive: the day\'s picked items, same sections as the screen; d
 /* ================= Batches & yields ================= */
 
 async function openYields(p) { await p.click('#setBtn'); await p.click('#ylBtn'); await p.waitForTimeout(200); }
-test('Yields: every label item shows what one batch makes; the owner\'s change applies at once and is logged (owner, 2026-10-23)', async () => {
+test('Pans & yields: every label item shows its pan standard; the owner\'s change applies at once and is logged (owner, 2026-10-24)', async () => {
   const p = await open({ name: 'Clay', setup: true, getDevices: true });
   const got = [];
   await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
   await p.evaluate(() => { const L = window.__ypl.LOG; Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); }); });
   await openYields(p);
   eq(await p.locator('#yl tr[data-id]').count(), await p.evaluate(() => window.__ypl.ITEMS.filter(i => window.__ypl.SHELF_DAYS[i.id]).length), 'one row per label item');
-  assert(/240 oz/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')) && /Measured/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')), 'Pico: 240 oz, measured');
-  assert(/Estimate/.test(await p.textContent('#yl tr[data-id="crab-cakes"]')), 'estimates marked');
-  assert(/Not set/.test(await p.textContent('#yl tr[data-id="coleslaw"]')), 'TBD shows as not set');
+  assert(/Partly set/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')) && /Batch: 240 oz/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')), 'Pico: yield known, no pan yet');
+  assert(/Not set/.test(await p.textContent('#yl tr[data-id="coleslaw"]')), 'nothing set');
   p.on('dialog', d => d.accept());
   await p.click('#yl tr[data-id="pico-de-gallo"] .ylchg');
-  await p.fill('#ylIn', '250 oz'); await p.click('#yl tr[data-id="pico-de-gallo"] .ylform button[type=submit]'); await p.waitForTimeout(400);
-  assert(/250 oz/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')) && /Updating/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')), 'shows the new yield');
-  const row = got.find(g => g['entry.1'] === 'yield set');
-  assert(row && row['entry.9'] === 'yield pico-de-gallo = 250 oz' && row['entry.4'] === 'Clay' && row['entry.5'] === 'Pico de Gallo', 'logged for the sync: ' + JSON.stringify(row));
-  eq(await p.evaluate(() => window.__ypl.amountMade('pico-de-gallo', 2)), '500 oz', 'batch totals use it on this device');
+  await p.click('#yl .ylform button[type=submit]'); await p.waitForTimeout(200);
+  assert(/Pick the pan size/.test(await toastText(p)), 'pan required');
+  await p.fill('#ylPan', '1/3 pan 6"'); await p.click('#yl .ylform button[type=submit]'); await p.waitForTimeout(200);
+  assert(/oz of product in one pan/.test(await toastText(p)), 'oz required');
+  await p.fill('#ylOz', '60'); await p.fill('#ylIn', '240 oz'); await p.fill('#ylPar', '4');
+  await p.click('#yl .ylform button[type=submit]'); await p.waitForTimeout(400);
+  const t = await p.textContent('#yl tr[data-id="pico-de-gallo"]');
+  assert(/1\/3 pan 6" · 60 oz per pan/.test(t) && /240 oz = 4 pans/.test(t) && /Par: 4 pans/.test(t) && /Updating/.test(t), 'shows the new standard: ' + t);
+  const row = got.find(g => g['entry.1'] === 'pan set');
+  assert(row && row['entry.9'] === 'pan pico-de-gallo = 1/3 pan 6" | 60 | 4 | 240 oz' && row['entry.4'] === 'Clay', 'logged for the sync: ' + JSON.stringify(row));
+  eq(await p.evaluate(() => window.__ypl.pansPerBatch('pico-de-gallo')), 4, 'printing uses it on this device');
   await p.reload(); await p.waitForTimeout(300);
-  eq(await p.evaluate(() => window.__ypl.amountMade('pico-de-gallo', 1)), '250 oz', 'kept after reload until the app carries it');
+  eq(await p.evaluate(() => window.__ypl.pansPerBatch('pico-de-gallo')), 4, 'kept after reload until the app carries it');
   eq(p.errors.join(), '', 'no script errors');
   await p.close2();
 });
 
-test('Yields: anyone else\'s change waits for the owner and changes nothing yet; Save always answers', async () => {
+test('Pans & yields: anyone else\'s change waits for the owner and changes nothing yet', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await openYields(p);
-  await p.click('#yl tr[data-id="coleslaw"] .ylchg');
-  await p.fill('#ylIn', ''); await p.click('#yl tr[data-id="coleslaw"] .ylform button[type=submit]'); await p.waitForTimeout(200);
-  assert(/Type what one batch makes/.test(await toastText(p)), 'empty Save explained');
   p.on('dialog', d => d.accept());
-  await p.fill('#ylIn', '96 oz'); await p.click('#yl tr[data-id="coleslaw"] .ylform button[type=submit]'); await p.waitForTimeout(300);
+  await p.click('#yl tr[data-id="coleslaw"] .ylchg');
+  await p.fill('#ylPan', '6 qt Cambro'); await p.fill('#ylOz', '96'); await p.click('#yl .ylform button[type=submit]'); await p.waitForTimeout(300);
   assert(/Waiting for Clay/.test(await p.textContent('#yl tr[data-id="coleslaw"]')), 'waiting for approval');
   assert(/Sent to Clay/.test(await toastText(p)), 'says who approves');
-  eq(await p.evaluate(() => window.__ypl.YIELDS['coleslaw']), 'TBD', 'not applied');
+  eq(await p.evaluate(() => JSON.stringify(window.__ypl.STORAGE['coleslaw'] || null)), 'null', 'not applied');
   await p.close2();
 });
 
-test('Yields tool: the owner\'s changes go into the Recipe Book and the app, others are listed; each row once', async () => {
+test('Pans & yields tool: the owner\'s changes go into the Recipe Book and the app, others are listed; each row once', async () => {
   const yields = require('../tools/yields');
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ypl-'));
   const files = { BOOK: path.join(tmp, 'book.html'), APP: path.join(tmp, 'index.html'), STATE: path.join(tmp, 'state.json') };
@@ -606,9 +609,12 @@ test('Yields tool: the owner\'s changes go into the Recipe Book and the app, oth
   const rows = [H, ['t1', 'yield set', '10/23/2026', '9:00 AM', 'Clay', 'Crab Cakes', '', '', '', 'yield crab-cakes = 5 cakes × 4 oz', ''],
     ['t2', 'yield set', '10/23/2026', '9:01 AM', 'clay', 'Dough', '', '', '', 'yield dough = 20 dough balls', ''],
     ['t3', 'yield set', '10/23/2026', '9:02 AM', 'Maria', 'Coleslaw', '', '', '', 'yield coleslaw = 96 oz', ''],
-    ['t4', 'print', '10/23/2026', '9:03 AM', 'Clay', 'Coleslaw', '1', '', '', 'labels page', '']];
+    ['t4', 'print', '10/23/2026', '9:03 AM', 'Clay', 'Coleslaw', '1', '', '', 'labels page', ''],
+    ['t5', 'pan set', '10/24/2026', '9:04 AM', 'Clay', 'Pico de Gallo', '', '', '', 'pan pico-de-gallo = 1/3 pan 6" | 60 | 4 | 250 oz', '']];
   const r = yields.apply(rows, files);
-  eq(r.applied.map(x => x.id).join(), 'crab-cakes,dough', 'owner changes applied');
+  eq(r.applied.map(x => x.id).join(), 'crab-cakes,dough,pico-de-gallo', 'owner changes applied');
+  assert(/"pico-de-gallo": \{ pan: "1\/3 pan 6\\"", oz: 60, par: 4 \}/.test(fs.readFileSync(files.APP, 'utf8')), 'pan standard written');
+  assert(/"pico-de-gallo": "250 oz"/.test(fs.readFileSync(files.APP, 'utf8')), 'yield from the pan row written');
   eq(r.suggested.map(x => x.id + '=' + x.value).join(), 'coleslaw=96 oz', 'others listed');
   const book = fs.readFileSync(files.BOOK, 'utf8'), app = fs.readFileSync(files.APP, 'utf8');
   assert(/"crab-cakes": \{ v: "5 cakes × 4 oz", note: /.test(book), 'book value set, estimate flag dropped, note kept');
@@ -632,26 +638,47 @@ test('Yields: the label app uses the Recipe Book\'s batch yields', async () => {
   await p.close2();
 });
 
-test('Batches: Print asks how many batches; the log gets batches and amount made; Cancel prints nothing', async () => {
+const PICO_PAN = () => window.__ypl.STORAGE['pico-de-gallo'] = { pan: '1/3 pan 6"', oz: 60, par: 4 };
+test('Pans: each label is one pan; Print starts at the pans one batch fills; the pan prints on the label and goes in the log (owner, 2026-10-24)', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const got = [];
   await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
+  await p.evaluate(PICO_PAN);
   await pickItem(p, 'Pico de Gallo');
-  await p.click('#printBtn'); await p.waitForSelector('#bcSheet:not([hidden])');
+  eq(await p.textContent('#qty'), '4', '240 oz batch ÷ 60 oz per pan = 4 labels');
+  assert(/One label per pan: 1\/3 pan 6", 60 oz each\. One batch \(240 oz\) fills 4 pans\. Par: 4 pans\./.test(await p.textContent('#panNote')), 'standard shown: ' + await p.textContent('#panNote'));
+  assert(/1\/3 PAN 6"/.test(await p.textContent('#lI')), 'pan on the preview');
+  await p.click('#qMinus');
+  await p.click('#printBtn'); await p.waitForTimeout(150);
+  assert(!(await p.isVisible('#bcSheet')), 'no batch question');
+  await p.waitForFunction(() => /Printed/.test(document.getElementById('status').textContent), null, { timeout: 30000 });
+  const z = formats(await zpl(p));
+  eq(z.length, 3, 'one label per pan');
+  assert(z.every(f => /\^FB\d+,1,0,R\^FD1\/3 PAN 6"\^FS/.test(f) && /\^FDBY MARIA\^FS/.test(f)), 'pan bottom right, name bottom left');
+  await p.waitForTimeout(300);
+  eq(got.length && got[got.length - 1]['entry.1833039941'], 'labels page · 3 × 1/3 pan 6" · 60 oz each = 180 oz', 'log carries pans and amount');
+  // an item with no pan standard prints as before, no question, no pan line
+  await pickItem(p, 'Lettuce'); eq(await p.textContent('#qty'), '1', 'starts at 1');
+  assert(await p.isHidden('#panNote'), 'no pan note');
+  await printAndWait(p, /Printed/);
+  assert(!/,R\^FD/.test(formats(await zpl(p)).pop()), 'no pan line');
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
+test('Pans: Prep List and Recipe Book print one label per pan, starting at one batch; Cancel prints nothing', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  await p.evaluate(PICO_PAN);
+  await p.click('#plBtn'); await p.waitForTimeout(200);
+  await plPickItems(p, [['Toppings & Prep', 'Pico de Gallo']]);
+  await p.click('#pl tr[data-k="pico de gallo"] .plp'); await p.waitForSelector('#bcSheet:not([hidden])');
+  eq(await p.textContent('#bcN'), '4', 'starts at the pans in one batch');
+  assert(/= 240 oz/.test(await p.textContent('#bcAmt')) && /Print 4 labels/.test(await p.textContent('#bcOk')), 'shows oz and label count');
   await p.click('#bcCancel'); await p.waitForTimeout(200);
   eq(formats(await zpl(p)).length, 0, 'cancel prints nothing');
-  assert(/Not printed/.test(await p.textContent('#status')), 'cancel is explained');
-  await printAndWait(p, /Printed/, 2);
-  eq(formats(await zpl(p)).length, 1, 'one label');
-  await p.waitForTimeout(300);
-  // until the form has Batches / Amount Made questions, they ride along in Source
-  eq(got.length && got[got.length - 1]['entry.1833039941'], 'labels page · 2 batches · 480 oz', 'source carries batches and amount');
-  await p.evaluate(() => { const L = window.__ypl.LOG; L.formUrl = 'https://docs.google.com/forms/d/e/TEST/formResponse'; Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); }); });
-  await pickItem(p, 'Croutons'); await printAndWait(p, /Croutons/, 3); await p.waitForTimeout(300);
-  const row = got[got.length - 1];
-  eq([row['entry.5'], row['entry.9'], row['entry.11'], row['entry.12']].join(' | '), 'Croutons | labels page | 3 | 3 loaves', 'own columns once the form has them');
-  await pickItem(p, 'Lettuce'); await p.click('#printBtn'); await p.waitForTimeout(200);
-  assert(!(await p.isVisible('#bcSheet')), 'items with no yield are not asked');
+  await p.click('#pl tr[data-k="pico de gallo"] .plp'); await p.waitForSelector('#bcSheet:not([hidden])'); await p.click('#bcPlus'); await p.click('#bcOk');
+  await p.waitForFunction(() => /Printed/.test(document.getElementById('toast').textContent), null, { timeout: 30000 });
+  eq(formats(await zpl(p)).length, 5, 'five pans, five labels');
   await p.close2();
 });
 
