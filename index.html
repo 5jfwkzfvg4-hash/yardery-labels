@@ -692,9 +692,10 @@ const panText = id => STORAGE[id] && STORAGE[id].pan || "";
      {op:"remove", t, id}                                                   take a label off
      {op:"user", t, device, name, deny}                                     turn a device's access off / on
      {op:"pin", t, hash}                                                    new Manager PIN (SHA-256, never the PIN)
-   Ops saved on the manager's device apply there at once and are logged ("admin" rows in the print log); the daily sync
+   Ops saved on the manager's device apply there at once and are logged ("admin" rows in the print log); other devices read
+   them back from the shared feed within minutes (loadFeed, Prep List section); the daily sync
    (tools/admin.js, CLAUDE.md rule 12) adds them to SITE.ops so every device gets them, and refreshes SITE.users. */
-const SITE = {"pin":"","ops":[],"users":[{"device":"e1988a81","name":"Caleb","last":"10/23/2026"},{"device":"e5a226a6","name":"Cam","last":"10/23/2026"},{"device":"2627971f","name":"Clay","last":"10/23/2026"},{"device":"100a4311","name":"Debo","last":"10/21/2026"},{"device":"000ba0a7","name":"James","last":"10/22/2026"},{"device":"0a77ac40","name":"James","last":"10/22/2026"}]};
+const SITE = {"pin":"1cde3077e5c369082f80e940749c10309f4c3142dffda913e13199ea9e176a72","ops":[],"users":[{"device":"e1988a81","name":"Caleb","last":"10/23/2026"},{"device":"e5a226a6","name":"Cam","last":"10/23/2026"},{"device":"2627971f","name":"Clay","last":"10/23/2026"},{"device":"100a4311","name":"Debo","last":"10/21/2026"},{"device":"000ba0a7","name":"James","last":"10/22/2026"},{"device":"0a77ac40","name":"James","last":"10/22/2026"}]};
 const siteDone = new Set(SITE.ops.map(o => o.t));
 let sitePin = SITE.pin, siteDenied = {};
 function slug(name){ return String(name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item"; }
@@ -722,6 +723,11 @@ function applyOp(o){
 }
 // this device's manager changes not yet in SITE (dropped once the app carries them)
 function localOps(){ const l = (store.get("adminOps", []) || []).filter(o => !siteDone.has(o.t)); store.set("adminOps", l); return l; }
+// every device's manager changes not yet in SITE, read from the shared feed (loadFeed) and kept for the next start
+function feedOps(){ const l = (store.get("feedOps", []) || []).filter(o => o && o.t && !siteDone.has(o.t)); store.set("feedOps", l); return l; }
+// changes newer than SITE: everyone's and this device's, each once, oldest first (t starts with the time)
+function newerOps(){ const m = new Map(); feedOps().concat(localOps()).forEach(o => m.set(o.t, o)); return [...m.values()].sort((a, b) => a.t < b.t ? -1 : a.t > b.t ? 1 : 0); }
+const appliedOps = new Set();
 
 /* ===== MANAGER LOG: names entered and labels printed, sent to Clay's private Google Form =====
    The form feeds the "Yardery Sanford — Prep Label Print Log" sheet, one row per item per print.
@@ -770,7 +776,7 @@ $("locname").textContent = LOCATION.name;
 function newId(){ try{ return crypto.randomUUID(); }catch(e){ return "d-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); } }
 let deviceId = store.get("deviceId", "");
 if(!deviceId){ deviceId = newId(); store.set("deviceId", deviceId); }
-SITE.ops.concat(localOps()).forEach(applyOp);              // the Manager's changes, before anything is built from the lists
+SITE.ops.concat(newerOps()).forEach(o => { applyOp(o); appliedOps.add(o.t); });              // the Manager's changes, before anything is built from the lists
 function cleanName(v){ return String(v || "").replace(/[^A-Za-zÀ-ÿ'\- ]/g, "").replace(/\s+/g, " ").trimStart().slice(0, 12); }
 $("initials").value = store.get("name", "");
 $("dpi").value = String(store.get("dpi", 203));
@@ -1528,7 +1534,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-24.4";
+const APP_VERSION = "2026-10-24.5";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1671,17 +1677,46 @@ function parseCSV(text){
   if(f !== "" || row.length){ row.push(f); rows.push(row); }
   return rows;
 }
-async function plLoadFeed(){
+/* Manager changes reach every device within minutes (Clay 2026-10-24): "admin" rows come back through the same feed. New
+   ones are kept (feedOps) and the app reloads to rebuild every list once nobody is using it and nothing is printing
+   (right away when the app is reopened); a device with the Manager open waits until it closes. */
+const FEED_EVERY_MS = 60 * 1000, FEED_IDLE_MS = 20 * 1000;
+let feedPending = false;
+function feedAdmin(rows){
+  const fresh = [];
+  rows.forEach(e => {
+    if(e.event !== "admin") return;
+    const m = /^admin (\{.*\})$/.exec(String(e.source || "").trim()); if(!m) return;
+    let o; try{ o = JSON.parse(m[1]); }catch(x){ return; }
+    if(o && o.t && ["label", "remove", "user", "pin"].includes(o.op) && !siteDone.has(o.t) && !appliedOps.has(o.t)) fresh.push(o);
+  });
+  if(!fresh.length) return;
+  const keep = new Map(feedOps().map(o => [o.t, o])); fresh.forEach(o => keep.set(o.t, o));
+  store.set("feedOps", [...keep.values()]);
+  feedPending = true; feedApply(false);
+}
+function feedApply(reopened){
+  if(!feedPending || !$("mg").hidden || state.printing || state.connecting) return;
+  if(!reopened && Date.now() - lastActive < FEED_IDLE_MS) return;
+  feedPending = false; location.reload();
+}
+async function loadFeed(){
   if(!PREP_FEED_URL) return;
   try{
     const r = await fetch(PREP_FEED_URL + (PREP_FEED_URL.includes("?") ? "&" : "?") + "t=" + Date.now(), {cache: "no-store"});
     if(!r.ok) return;
     plFeed = parseCSV(await r.text()).slice(1).filter(x => x.length >= 7 && x[0])
       .map(x => ({event: x[0], date: x[1], time: x[2], by: x[3], item: x[4], labels: x[5], source: x[6]}));
-    store.set("prepFeed", plFeed);
+    store.set("prepFeed", plFeed.filter(e => e.event !== "admin"));
+    feedAdmin(plFeed);
     if(!$("pl").hidden) renderPrepList();
   }catch(e){}                                               // offline: keep the last copy
 }
+const plLoadFeed = loadFeed;
+setTimeout(loadFeed, 2000);
+setInterval(loadFeed, FEED_EVERY_MS);
+setInterval(() => feedApply(false), 5000);
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible"){ feedApply(true); loadFeed(); } });
 const plMins = t => { const m = /(\d+):(\d+)\s*([AP])/i.exec(t || ""); return m ? (+m[1] % 12 + (/p/i.test(m[3]) ? 12 : 0)) * 60 + +m[2] : 1e9; };
 function plDone(){
   const d = Object.assign({}, plDoneLocal()), today = plToday();
@@ -1830,15 +1865,14 @@ function openRecipeFor(id){
   if(go()) return;
   let n = 0; const t = setInterval(() => { if(go()) return clearInterval(t); if(++n > 40){ clearInterval(t); toast("Couldn't open that recipe. Find it in the Recipe Book."); } }, 150);
 }
-let plTimer = null;
 function openPrepList(){
   plFeed = store.get("prepFeed", []); renderPrepList(); $("pl").hidden = false;
   try{ history.pushState({pl: 1}, ""); }catch(e){}
-  plLoadFeed(); clearInterval(plTimer); plTimer = setInterval(plLoadFeed, 60000);
+  loadFeed();
 }
 function closePrepList(fromHistory){
   if($("pl").hidden) return;
-  $("pl").hidden = true; clearInterval(plTimer);
+  $("pl").hidden = true;
   if(!fromHistory){ try{ if(history.state && history.state.pl) history.back(); }catch(e){} }
 }
 $("plBtn").onclick = openPrepList;
@@ -1860,10 +1894,11 @@ $("plBody").addEventListener("click", e => {
 /* ---------- Manager (Clay 2026-10-24) ----------
    🔒 at the top opens it. Needs the Manager PIN (stored only as a SHA-256 hash: SITE.pin or a "pin" op); 5 wrong tries
    lock it for 5 minutes; it locks itself after 10 idle minutes. Every change is an op (see MANAGER EDITS above): applied on
-   this device at once, logged to the print log, and added for every device at the daily sync. Closing the Manager after a
+   this device at once, logged to the print log, read by every device from the feed within minutes, and written into the code at the daily sync. Closing the Manager after a
    change reloads the app so every list (labels, Prep List, Line Flip set) is rebuilt from the new data.
    Cooks can't change labels, pans or yields anywhere else. */
 const MG_IDLE = 10 * 60 * 1000;
+const mgReach = () => PREP_FEED_URL ? "within a few minutes" : "at the daily sync (5:55 am)";
 let mgAt = 0, mgTab = "labels", mgEdit = null, mgQ = "", mgChanged = false;
 async function pinHash(pin){
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("yardery-manager:" + pin));
@@ -1874,7 +1909,7 @@ const myDevice = () => deviceId.slice(0, 8);
 function mgSave(op, summary){
   op.t = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const l = store.get("adminOps", []); l.push(op); store.set("adminOps", l);
-  applyOp(op); mgChanged = true;
+  applyOp(op); appliedOps.add(op.t); mgChanged = true;
   logEvent({event: "admin", name: store.get("name", "") || "Manager", item: summary, labels: "", source: "admin " + JSON.stringify(op)});
 }
 function mgUsers(){
@@ -1928,7 +1963,7 @@ function mgSettingsTab(){
     '<label>New PIN (4–8 digits)<input name="p1" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label>' +
     '<label>Same PIN again<input name="p2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label>' +
     '<div class="w2 mgbtns"><button type="submit" class="pri">Change PIN</button></div></form></section>' +
-    '<section class="plsec"><h2>How changes reach every device</h2><p class="plnote">Your changes work on this device as soon as you save. Every other device and the Recipe Book get them at the daily sync (5:55 am). Need them sooner? Tell Claude "run the sync". Changes to the Recipe Book\'s recipes: tell Claude what to change.</p></section>';
+    '<section class="plsec"><h2>How changes reach every device</h2><p class="plnote">Your changes work on this device as soon as you save. Every other device gets them ' + mgReach() + '. The Recipe Book\'s copy updates at the daily sync (5:55 am). Changes to the Recipe Book\'s recipes: tell Claude what to change.</p></section>';
 }
 function renderManager(){
   const body = $("mgBody"); $("mgLock").hidden = !mgUnlocked();
@@ -1943,7 +1978,7 @@ function renderManager(){
   const pend = localOps().length, scroll = body.scrollTop;
   body.innerHTML = '<div class="mgtabs" role="tablist">' + [["labels", "Labels"], ["users", "Users"], ["settings", "Settings"]].map(([k, l]) =>
       '<button type="button" role="tab" data-tab="' + k + '" aria-selected="' + (mgTab === k) + '">' + l + '</button>').join("") + '</div>' +
-    (pend ? '<p class="note mgpend">' + pend + (pend === 1 ? " change" : " changes") + ' saved here. Every other device gets ' + (pend === 1 ? "it" : "them") + ' at the daily sync, or tell Claude "run the sync".</p>' : '') +
+    (pend ? '<p class="note mgpend">' + pend + (pend === 1 ? " change" : " changes") + ' saved. Every other device gets ' + (pend === 1 ? "it" : "them") + ' ' + mgReach() + '.</p>' : '') +
     (mgTab === "users" ? mgUsersTab() : mgTab === "settings" ? mgSettingsTab() : mgLabels());
   body.scrollTop = scroll;
   const f = body.querySelector(".mgform[data-id] input[name=name]"); if(f && mgEdit) f.focus();
@@ -1953,7 +1988,7 @@ function mgClose(fromHistory){
   if($("mg").hidden) return;
   $("mg").hidden = true;
   if(!fromHistory){ try{ if(history.state && history.state.mg) history.back(); }catch(e){} }
-  if(mgChanged){ toast("Saving changes…", "ok"); setTimeout(() => location.reload(), 400); }   // rebuild every list from the new data
+  if(mgChanged || feedPending){ toast("Saving changes…", "ok"); setTimeout(() => location.reload(), 400); }   // rebuild every list from the new data
   else if(myDevice() in siteDenied) $("blocked").hidden = false;
 }
 function mgFormData(f){ const d = {}; new FormData(f).forEach((v, k) => { d[k] = typeof v === "string" ? v.replace(/\s+/g, " ").trim() : v; }); d.flip = f.querySelector("[name=flip]") ? f.querySelector("[name=flip]").checked : false; return d; }
@@ -1999,7 +2034,7 @@ $("mgBody").addEventListener("submit", async e => {
     if(p1 !== p2){ toast("The two PINs don't match."); return; }
     if(!confirm("Change the Manager PIN? Write it down; Claude can't read it back.")) return;
     mgSave({op: "pin", hash: await pinHash(p1)}, "Changed the Manager PIN");
-    renderManager(); toast("PIN changed here. Other devices use the new PIN after the daily sync.", "ok", 6000); return;
+    renderManager(); toast("PIN changed. Other devices use the new PIN " + mgReach() + ".", "ok", 6000); return;
   }
   if(f.classList.contains("mgform")) mgSaveLabel(f);
 });
@@ -2022,7 +2057,7 @@ $("mgBody").addEventListener("click", e => {
     const dev = tr.dataset.dev, name = tr.dataset.name;
     if(!confirm((act === "deny" ? "Turn off access for " : "Turn access back on for ") + (name || "this device") + " (device " + dev + ")?")) return;
     mgSave({op: "user", device: dev, name, deny: act === "deny"}, (act === "deny" ? "Turned off " : "Turned on ") + (name || dev));
-    renderManager(); toast((act === "deny" ? "Access off for " : "Access on for ") + (name || dev) + ". Their device gets it at the daily sync.", "ok", 6000);
+    renderManager(); toast((act === "deny" ? "Access off for " : "Access on for ") + (name || dev) + ". Their device gets it " + mgReach() + ".", "ok", 6000);
   }
 });
 // a device the Manager turned off can't use the app
@@ -2121,7 +2156,7 @@ if(btEnv() !== "ok") setChip("", "Printer help");
 else setChip("", freeText());
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 flushLog();
-window.__ypl = { STORAGE, PANS, pansPerBatch, yieldOz, HOLD_MS, SITE, pinHash, buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
+window.__ypl = { loadFeed, FEED_IDLE_MS, STORAGE, PANS, pansPerBatch, yieldOz, HOLD_MS, SITE, pinHash, buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
 })();
 </script>
 </body>

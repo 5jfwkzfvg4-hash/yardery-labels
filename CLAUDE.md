@@ -57,7 +57,15 @@ The kitchen depends on this page to print legally required date labels. Keep it 
     Cooks can't change labels anywhere else. `SITE.pin` holds only the SHA-256 of `"yardery-manager:" + PIN`, never the PIN.
     Each change saves on that device right away and logs an "admin" row to the print log sheet "Yardery Sanford — Prep Label
     Print Log" (id `1X6J9WJorpDE-PzZTXGPzjBFfw1d_QgGHfqLIWIs2Lc4`, tab "Form Responses 1").
+    **Live (owner, 2026-10-24):** every device reads new "admin" rows from the sheet's "Prep Feed" tab (published CSV,
+    `PREP_FEED_URL`) every minute and reloads when idle, so changes reach everyone within minutes; the feed's formula must keep
+    the "admin" rows. Never put the PIN itself in the repo, a test, a commit or a doc.
 12. **On every sync run** (and every change task): read `'Form Responses 1'!A:K` with the Sheets connector, save it to a file,
     run `node tools/admin.js apply <file>`. If it printed any ops or `usersChanged`: `node tools/sync.js build`, `npm test`,
     publish both artifacts, `mark`, commit, push. For each `doc` line update the Google Doc prep list (rule 8); for each
-    shelf-life change make the Recipe Book text match (rule 5). Tell the owner what changed (never customer data).
+    shelf-life change make the Recipe Book text match (rule 5). Raise every `warn` line with the owner (a shelf life past
+    7 days, a change from a device that isn't his, a PIN change); never undo his change yourself. Tell the owner what changed
+    (never customer data).
+13. **Daily review (owner, 2026-10-24), part of the 5:55 am sync:** full `npm test`; open the staff link's data (labels,
+    shelf lives vs the Recipe Book, Line Flip set, pans/yields, Prep Feed rows and formula, users list) and look for anything
+    wrong or inconsistent; fix real bugs (with a check, rule 2) and report them; list suggestions but ask before building them.

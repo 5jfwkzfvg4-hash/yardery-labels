@@ -5,7 +5,9 @@
 // New ops (by their "t") are added to SITE.ops in index.html, so every device replays them; SITE.users is rebuilt from the
 // log (one row per device: last name used, last date). Batch yields changed by label ops are copied into the Recipe Book's
 // BATCH_YIELDS (artifacts/recipe-book.html) so both stay equal. APP_VERSION is bumped when anything changed.
-// Prints JSON: {ops: [...human summaries], doc: [...label changes the Google Doc prep list needs], book: [...], usersChanged}.
+// Prints JSON: {ops: [...human summaries], doc: [...label changes the Google Doc prep list needs], book: [...], usersChanged,
+// warn: [...things to raise with the owner: shelf life past the 7-day Food Code limit, a PIN change, changes from a device
+// that isn't the owner's]}. Devices read new ops from the feed within minutes anyway; this writes them into the code.
 // After a change: sync.js build, npm test, publish both artifacts, sync.js mark, commit, push (CLAUDE.md rule 12).
 const fs = require('fs');
 const path = require('path');
@@ -14,6 +16,8 @@ const ROOT = path.join(__dirname, '..');
 const BOOK = path.join(ROOT, 'artifacts', 'recipe-book.html');
 const APP = path.join(ROOT, 'index.html');
 const q = s => JSON.stringify(s);
+const OWNER_DEVICES = ['2627971f'];                      // Clay's phone; anything else making changes gets flagged
+const LONG_OK = ['freezer', 'rubs'];                       // frozen items and dry rubs aren't held to the 7-day limit
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function readSite(app) {
@@ -55,7 +59,7 @@ function apply(rows, files = { BOOK, APP }) {
   const head = rows[0].map(h => String(h).trim().toLowerCase()), col = re => head.findIndex(h => re.test(h));
   const c = { event: col(/^event$/), date: col(/^date$/), by: col(/^printed\s*by$/), item: col(/^item/), source: col(/^source$/), device: col(/^device$/) };
   let app = fs.readFileSync(files.APP, 'utf8'), book = fs.readFileSync(files.BOOK, 'utf8');
-  const site = readSite(app), seen = new Set(site.ops.map(o => o.t)), out = { ops: [], doc: [], book: [], usersChanged: false };
+  const site = readSite(app), seen = new Set(site.ops.map(o => o.t)), out = { ops: [], doc: [], book: [], usersChanged: false, warn: [] };
   // users: one per device, the last name it used
   const users = new Map();
   rows.slice(1).forEach(r => {
@@ -72,7 +76,10 @@ function apply(rows, files = { BOOK, APP }) {
     let op; try { op = JSON.parse(m[1]); } catch (e) { return; }
     if (!op || !op.t || seen.has(op.t) || !['label', 'remove', 'user', 'pin'].includes(op.op)) return;
     seen.add(op.t); site.ops.push(op);
-    const who = String(r[c.by] || '').trim();
+    const who = String(r[c.by] || '').trim(), dev = String(r[c.device] || '').trim();
+    if (!OWNER_DEVICES.includes(dev)) out.warn.push(`${op.op} change by ${who || 'no name'} from device ${dev || 'unknown'} (not the owner's phone): confirm with the owner`);
+    if (op.op === 'label' && +op.days > 7 && !LONG_OK.includes(op.cat)) out.warn.push(`${op.name}: ${op.days} days. Cold-held ready-to-eat food is limited to 7 days (FDA Food Code 3-501.17, Florida) unless exempt: confirm`);
+    if (op.op === 'pin') out.warn.push('The Manager PIN was changed: confirm the owner did it');
     if (op.op === 'label') {
       out.ops.push(`${who}: ${op.name} (${op.cat}, ${op.days} days${op.pan ? ', ' + op.pan + (op.oz ? ' ' + op.oz + ' oz' : '') + (op.par ? ' par ' + op.par : '') : ''}${op.yield ? ', batch ' + op.yield : ''}${op.flip ? ', Line Flip' : ''})`);
       out.doc.push(`${op.name}: ${op.days} days (${op.cat})${op.flip ? ', in Line Flip' : ''}`);

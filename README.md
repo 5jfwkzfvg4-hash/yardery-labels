@@ -36,6 +36,7 @@ Everything lives in `index.html`. Near the top of the `<script>`:
   batch yield, Line Flip), allow/deny devices, change the PIN. Changes apply on that device at once and log an "admin" row
   (Source `admin {op JSON}`); the daily sync's `node tools/admin.js apply <form-responses.json>` adds them to `SITE.ops` in
   `index.html` so every device gets them, rebuilds `SITE.users` and copies yields into the Recipe Book (CLAUDE.md rule 12).
+  Other devices read new "admin" rows from the published Prep Feed within a minute and reload when idle (`loadFeed`).
   `SITE.pin` stores only a SHA-256 hash; it keeps cooks out, it is not bank-grade security.
 - `YIELDS` – batch yield per item, kept equal to the Recipe Book's `BATCH_YIELDS` by a check.
 

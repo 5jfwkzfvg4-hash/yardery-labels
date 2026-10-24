@@ -573,10 +573,8 @@ async function openWith(o, viewport) {
 async function unlock(p, pin = PIN) { if (!(await p.isVisible('#mg'))) await p.click('#mgBtn'); await p.fill('#mgPin', pin); await p.click('#mgPinIn button[type=submit]'); await p.waitForTimeout(300); }
 
 test('Manager: 🔒 needs the PIN; wrong PINs are refused and 5 lock it for 5 minutes; cooks have no pan/yield editor (owner, 2026-10-24)', async () => {
-  const p0 = await open({ ...REMEMBERED, getDevices: true });
-  await p0.click('#mgBtn'); await p0.waitForTimeout(200);
-  assert(/PIN isn't set yet/.test(await p0.textContent('#mgBody')), 'no PIN yet: says so');
-  await p0.close2();
+  const site = await (async () => { const p0 = await open({ ...REMEMBERED, getDevices: true }); const s = await p0.evaluate(() => window.__ypl.SITE.pin); await p0.close2(); return s; })();
+  assert(/^[0-9a-f]{64}$/.test(site), 'the owner\'s PIN is set, stored only as a SHA-256 hash');
   const p = await openWith(withPin(), { clock: true });
   await p.click('#setBtn');
   assert(!/Pans|yield/i.test(await p.textContent('#setSheet')), 'no pan/yield editor in ⚙');
@@ -611,7 +609,7 @@ test('Manager: change a label (shelf life, note, pan, yield, par, Line Flip) —
   await p.fill(f + ' [name=pan]', '1/3 pan 6"'); await p.fill(f + ' [name=par]', '4'); await p.check(f + ' [name=flip]');
   await p.click(f + ' button[type=submit]'); await p.waitForTimeout(300);
   assert(/2 days · 1\/3 pan 6", 60 oz, par 4 · batch 240 oz · Line Flip/.test(await p.textContent('#mg tr[data-id="pico-de-gallo"]')), 'row updated: ' + await p.textContent('#mg tr[data-id="pico-de-gallo"]'));
-  assert(/\d changes? saved here/.test(await p.textContent('#mgBody')), 'says it waits for the sync');
+  assert(/\d changes? saved\. Every other device gets (it|them) at the daily sync/.test(await p.textContent('#mgBody')), 'says it waits for the sync');
   const row = got.find(g => g['entry.1'] === 'admin');
   const op = row && JSON.parse(row['entry.9'].replace(/^admin /, ''));
   assert(op && op.op === 'label' && op.id === 'pico-de-gallo' && op.days === 2 && op.pan === '1/3 pan 6"' && op.flip === true && op.yield === '240 oz', 'logged: ' + JSON.stringify(row));
@@ -671,6 +669,29 @@ test('Manager: users list; turning a device off blocks it; changing the PIN', as
   await me.close2();
 });
 
+test('Manager: changes reach every other device from the shared feed, once nobody is using it (owner, 2026-10-24)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true }, { clock: true });
+  const op = { op: 'label', t: 'zz-feed1', id: 'crab-cakes', name: 'Crab Cakes', cat: 'protein', days: 1, note: 'From the feed' };
+  const deny = { op: 'user', t: 'zz-feed2', device: 'abcd1234', name: 'Someone', deny: true };
+  const csv = ['Event,Date,Time,Printed By,Item,#Labels,Source', `admin,1/2/2020,7:00 AM,Clay,Crab Cakes,,"admin ${JSON.stringify(op).replace(/"/g, '""')}"`,
+    `admin,1/2/2020,7:01 AM,Clay,access,,"admin ${JSON.stringify(deny).replace(/"/g, '""')}"`, 'admin,1/2/2020,7:02 AM,Clay,x,,admin {not json'].join('\n');
+  await p.context().route('**/prep-feed.csv*', r => r.fulfill({ status: 200, body: csv, contentType: 'text/csv' }));
+  await p.evaluate(() => { window.__ypl.setPrepFeed(location.origin + '/prep-feed.csv'); window.__mark = 1; });
+  await p.mouse.click(5, 300);                                   // someone is using the screen
+  await p.evaluate(() => window.__ypl.loadFeed()); await p.waitForTimeout(300);
+  eq(await p.evaluate(() => window.__mark), 1, 'no reload while someone is using it');
+  eq(await p.evaluate(() => JSON.parse(localStorage.getItem('ypl:feedOps')).map(o => o.t).join()), 'zz-feed1,zz-feed2', 'kept (bad rows skipped)');
+  await p.clock.fastForward(30000); await p.waitForTimeout(800);
+  eq(await p.evaluate(() => window.__mark), undefined, 'reloaded once idle');
+  eq(await p.evaluate(() => window.__ypl.SHELF_DAYS['crab-cakes']), 1, 'the new shelf life is in use');
+  // the reloaded page already has them: the next feed read doesn't reload again
+  await p.evaluate(() => { window.__ypl.setPrepFeed(location.origin + '/prep-feed.csv'); window.__mark = 2; window.__ypl.loadFeed(); });
+  await p.clock.fastForward(30000); await p.waitForTimeout(500);
+  eq(await p.evaluate(() => window.__mark), 2, 'no reload loop');
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
 test('Manager tool: the sync adds new ops for every device, rebuilds users, keeps the Recipe Book yields equal; each op once', async () => {
   const admin = require('../tools/admin');
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ypl-'));
@@ -686,6 +707,7 @@ test('Manager tool: the sync adds new ops for every device, rebuilds users, keep
     ['', 'admin', '10/24/2026', '9:07 AM', 'Clay', 'bad', '', '', '', 'admin {not json', '2627971f']];
   const r = admin.apply(rows, files);
   eq(r.ops.length, 2, 'two ops');
+  eq(r.warn.length, 0, 'nothing to flag');
   const site = admin.readSite(fs.readFileSync(files.APP, 'utf8'));
   eq(site.ops.map(o => o.t).join(), 'a1,a2', 'ops added');
   eq(site.users.map(u => u.device + ':' + u.name).join(), '2627971f:Clay,100a4311:Deborah', 'one user per device, last name used');
@@ -693,6 +715,9 @@ test('Manager tool: the sync adds new ops for every device, rebuilds users, keep
   assert(/const APP_VERSION = "\d{4}-\d{2}-\d{2}\.\d+"/.test(fs.readFileSync(files.APP, 'utf8')) && fs.readFileSync(files.APP, 'utf8') !== fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), 'version bumped');
   const again = admin.apply(rows, files);
   eq(again.ops.length + (again.usersChanged ? 1 : 0), 0, 'nothing twice');
+  const op3 = { op: 'label', t: 'a3', id: 'coleslaw', name: 'Coleslaw', cat: 'sides', days: 10 };
+  const w = admin.apply(rows.concat([['', 'admin', '10/24/2026', '9:08 AM', 'Cam', 'x', '', '', '', 'admin ' + JSON.stringify(op3), 'e5a226a6']]), files).warn.join('\n');
+  assert(/from device e5a226a6 \(not the owner's phone\)/.test(w) && /Coleslaw: 10 days.*7 days/.test(w), 'flags a non-owner device and a shelf life past 7 days: ' + w);
   // the app replays them
   const p = await open({ ...REMEMBERED, getDevices: true });
   const ok = await p.evaluate(src => { const m = /^const SITE = (.*);$/m.exec(src); return !!JSON.parse(m[1]).ops.length; }, fs.readFileSync(files.APP, 'utf8'));
