@@ -29,13 +29,15 @@ Everything lives in `index.html`. Near the top of the `<script>`:
 - **Recipe Book PDF** (Clay 2026-10-22): `npm run pdf` (`tools/book-pdf.js`) prints every page of `recipes.html` except
   Data Needed into `Yardery-Recipe-Book.pdf` (Letter, contents links work), served at the staff link
   `/Yardery-Recipe-Book.pdf`. Rebuild and commit it after every Recipe Book change.
-- **Pans & yields** (Clay 2026-10-23/24, ⚙ → Pans & yields): per label item the pan it's stored in, oz per pan, batch yield and
-  par in pans (`STORAGE`, `YIELDS`). Each printed label is one pan: picking an item starts the label count at the pans one
-  batch fills (yield ÷ oz per pan); the Prep List and Recipe Book ask "How many pans?" starting there. The pan prints bottom
-  right on the label and the log gets "N × pan · oz each = total oz". A change logs a "pan set" row (Source
-  `pan <id> = <pan> | <oz> | <par> | <yield>`); `YIELD_APPROVERS` changes apply on that device at once and the sync's
-  `node tools/yields.js apply <form-responses.json>` writes them into the code (CLAUDE.md rule 11). Others' changes wait.
-- `YIELDS` – batch yield per item, copied from the Recipe Book's `BATCH_YIELDS` (a check keeps them equal). Printing an item with a yield asks how many batches were made; the log records batches and batches × yield. Until the Google Form has "Batches" and "Amount Made" questions (`LOG.fields.batches` / `made`), they are added to the Source column.
+- **Pans** (Clay 2026-10-23/24): per label item the pan it's stored in, oz per pan, batch yield and par in pans (`STORAGE`,
+  `YIELDS`). Each printed label is one pan: printing starts the label count at the pans one batch fills (yield ÷ oz per pan).
+  The pan prints bottom right on the label and the log gets "N × pan · oz each = total oz".
+- **Manager** (Clay 2026-10-24, 🔒 in the header, PIN): edit/add/remove labels (name, section, shelf life, note, pan, oz, par,
+  batch yield, Line Flip), allow/deny devices, change the PIN. Changes apply on that device at once and log an "admin" row
+  (Source `admin {op JSON}`); the daily sync's `node tools/admin.js apply <form-responses.json>` adds them to `SITE.ops` in
+  `index.html` so every device gets them, rebuilds `SITE.users` and copies yields into the Recipe Book (CLAUDE.md rule 12).
+  `SITE.pin` stores only a SHA-256 hash; it keeps cooks out, it is not bank-grade security.
+- `YIELDS` – batch yield per item, kept equal to the Recipe Book's `BATCH_YIELDS` by a check.
 
 Bump `APP_VERSION` in `index.html` with every change (including `recipes.html`), then commit to `main`. The link updates in about a minute, and tablets that leave the app open pick it up within about 5 minutes once nobody is using the screen (or right away when the app is reopened).
 

@@ -198,6 +198,27 @@ input.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bord
 .pladd p{flex-basis:100%;margin:0;font-size:.82rem;color:var(--ink-soft)}
 .pltab .plp{border:0;border-radius:10px;background:var(--green);color:var(--green-ink);min-height:40px;padding:0 12px;font-weight:700;white-space:nowrap}
 .pltab tr.done td{background:var(--good-bg)}
+.mgtabs{display:flex;gap:6px;max-width:900px;margin:8px auto 0}
+.mgtabs button{flex:1;border:1px solid var(--line);border-radius:10px;background:var(--card);min-height:44px;font-weight:700;color:var(--ink)}
+.mgtabs button[aria-selected="true"]{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.mgtools{display:flex;gap:8px;max-width:900px;margin:12px auto 0}
+.mgtools input{flex:1;min-width:0;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:1rem;background:var(--card);color:var(--ink)}
+.mgtools button,.mgbtns button,.mgpin button{border:1px solid var(--line);border-radius:10px;min-height:44px;padding:0 14px;font-weight:700;background:var(--card);color:var(--ink)}
+.mgtools .pri,.mgbtns .pri,.mgpin .pri{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.mgbtns .danger{color:var(--bad);border-color:var(--bad);margin-left:auto}
+.mgform{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;background:var(--paper-soft);border-radius:10px;padding:10px}
+.mgform label{display:flex;flex-direction:column;gap:3px;font-size:.75rem;font-weight:700;color:var(--ink-soft);min-width:0}
+.mgform .w2{grid-column:1/-1} .mgform .chk{flex-direction:row;align-items:center;gap:8px;font-size:.88rem;color:var(--ink)}
+.mgform input:not([type=checkbox]),.mgform select,.mgform textarea{min-height:42px;border:1px solid var(--line);border-radius:8px;background:var(--card);padding:6px 8px;font:inherit;font-size:1rem;color:var(--ink);width:100%;box-sizing:border-box}
+.mgform input[type=checkbox]{width:22px;height:22px}
+.mgbtns{display:flex;gap:8px;flex-wrap:wrap}
+.mgpin{max-width:320px;margin:40px auto;display:flex;flex-direction:column;gap:10px;text-align:center}
+.mgpin input{min-height:52px;font-size:1.6rem;text-align:center;letter-spacing:.3em;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+.mgerr{color:var(--bad);font-weight:700}
+.mgpend{max-width:900px;margin:10px auto 0}
+.mglock{margin-left:auto;border:1px solid rgba(255,255,255,.5);border-radius:999px;background:transparent;color:inherit;min-height:34px;padding:0 12px;font-weight:700}
+.blocked{position:fixed;inset:0;z-index:60;background:var(--paper);display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+.blocked h2{font:700 1.4rem var(--display);margin:0 0 8px} .blocked p{margin:0 0 16px;color:var(--ink-soft)}
 .yltag{display:inline-block;border-radius:999px;padding:1px 8px;font-size:.72rem;font-weight:700;margin-left:6px;vertical-align:1px}
 .yltag.m{background:var(--good-bg);color:var(--good)} .yltag.e{background:var(--warn-bg);color:var(--warn)}
 .yltag.n{background:var(--bad-bg);color:var(--bad)} .yltag.p{background:var(--yellow-soft);color:var(--warn)}
@@ -257,6 +278,9 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   .brand b{font-size:1.05rem}
   .pchip{padding:8px 10px;min-width:0}
   .pchip span{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+@media (max-width:420px){
+  .top .brand{display:none}
   .iconbtn{min-width:40px}
 }
 @media (prefers-reduced-motion:reduce){.panel{transition:none}}
@@ -273,6 +297,7 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     <button class="hdrbtn" id="rbBtn" type="button">Open Recipe Book</button>
   </div>
   <button class="iconbtn" id="helpBtn" type="button" aria-label="Help">?</button>
+  <button class="iconbtn" id="mgBtn" type="button" aria-label="Manager">🔒</button>
   <button class="iconbtn" id="setBtn" type="button" aria-label="Printer settings">⚙</button>
 </header>
 
@@ -390,13 +415,20 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
   <div class="plbody" id="plBody"></div>
 </div>
 
-<!-- Yields: what one batch of each label item makes; managers change them here -->
-<div class="pl" id="yl" hidden role="dialog" aria-modal="true" aria-label="Pans and yields">
+<!-- Manager (🔒, PIN): edit and add labels, pans and yields, the Line Flip set, users' access, the PIN -->
+<div class="pl" id="mg" hidden role="dialog" aria-modal="true" aria-label="Manager">
   <div class="rbbar">
-    <button class="rbback" id="ylClose" type="button">← Prep Labels</button>
-    <b>Pans &amp; yields</b>
+    <button class="rbback" id="mgClose" type="button">← Prep Labels</button>
+    <b>Manager</b>
+    <button class="mglock" id="mgLock" type="button" hidden>Lock</button>
   </div>
-  <div class="plbody" id="ylBody"></div>
+  <div class="plbody" id="mgBody"></div>
+</div>
+
+<!-- shown instead of the app on a device the Manager turned off -->
+<div class="blocked" id="blocked" hidden role="alertdialog" aria-labelledby="blockedH">
+  <div><h2 id="blockedH">Access turned off</h2><p>The manager turned off this device's access to Prep Labels. Talk to your manager.</p>
+  <button class="btn" id="blockedMg" type="button">Manager</button></div>
 </div>
 
 <!-- First-time setup on a new device: first name, then connect the printer. Shown until this device connects once. -->
@@ -495,11 +527,6 @@ select.txt{width:100%;border:1.5px solid var(--line);background:var(--paper);bor
     <button class="btn" id="discBtn" type="button">Disconnect</button>
   </div>
   <div class="status" id="setStatus" role="status"></div>
-  <div>
-    <h4>Pans &amp; yields</h4>
-    <p class="hint">Each label is one pan: the pan size, oz per pan, batch yield and par for every item. Managers set them here.</p>
-    <button class="btn" id="ylBtn" type="button" style="margin-top:8px">Pans &amp; yields</button>
-  </div>
   <div>
     <h4>This device</h4>
     <p class="hint" id="devInfo"></p>
@@ -659,6 +686,43 @@ function yieldOz(id){
 function pansPerBatch(id){ const s = STORAGE[id], y = yieldOz(id); return s && s.oz && y ? Math.max(1, Math.ceil(y / s.oz - 0.01)) : null; }
 const panText = id => STORAGE[id] && STORAGE[id].pan || "";
 
+/* ===== MANAGER EDITS (Clay 2026-10-24) =====
+   Everything the Manager page (🔒, PIN) changes is an "op", replayed over the lists above when the app loads:
+     {op:"label", t, id, name, cat, days, note, pan, oz, par, yield, flip}   add or change a label
+     {op:"remove", t, id}                                                   take a label off
+     {op:"user", t, device, name, deny}                                     turn a device's access off / on
+     {op:"pin", t, hash}                                                    new Manager PIN (SHA-256, never the PIN)
+   Ops saved on the manager's device apply there at once and are logged ("admin" rows in the print log); the daily sync
+   (tools/admin.js, CLAUDE.md rule 12) adds them to SITE.ops so every device gets them, and refreshes SITE.users. */
+const SITE = {"pin":"","ops":[],"users":[{"device":"e1988a81","name":"Caleb","last":"10/23/2026"},{"device":"e5a226a6","name":"Cam","last":"10/23/2026"},{"device":"2627971f","name":"Clay","last":"10/23/2026"},{"device":"100a4311","name":"Debo","last":"10/21/2026"},{"device":"000ba0a7","name":"James","last":"10/22/2026"},{"device":"0a77ac40","name":"James","last":"10/22/2026"}]};
+const siteDone = new Set(SITE.ops.map(o => o.t));
+let sitePin = SITE.pin, siteDenied = {};
+function slug(name){ return String(name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item"; }
+function applyOp(o){
+  if(o.op === "label"){
+    let it = ITEMS.find(i => i.id === o.id);
+    const old = it ? it.name : null;
+    if(!it){ it = {id: o.id, name: o.name, cat: o.cat}; ITEMS.push(it); }
+    it.name = o.name; it.cat = o.cat;
+    if(+o.days > 0) SHELF_DAYS[o.id] = +o.days; else delete SHELF_DAYS[o.id];
+    if(o.note) ITEM_NOTES[o.id] = o.note; else delete ITEM_NOTES[o.id];
+    if(o.pan) STORAGE[o.id] = {pan: o.pan, oz: +o.oz || 0, par: +o.par || 0}; else delete STORAGE[o.id];
+    if(o.yield) YIELDS[o.id] = o.yield; else delete YIELDS[o.id];
+    const k = n => String(n || "").toLowerCase(), at = BATCH.items.findIndex(n => k(n) === k(old) || k(n) === k(o.name));
+    if(o.flip && at < 0) BATCH.items.push(o.name);
+    else if(o.flip && at >= 0) BATCH.items[at] = o.name;
+    else if(!o.flip && at >= 0) BATCH.items.splice(at, 1);
+  } else if(o.op === "remove"){
+    const at = ITEMS.findIndex(i => i.id === o.id); if(at < 0) return;
+    const name = ITEMS[at].name.toLowerCase(); ITEMS.splice(at, 1);
+    [SHELF_DAYS, ITEM_NOTES, STORAGE, YIELDS].forEach(m => delete m[o.id]);
+    const b = BATCH.items.findIndex(n => n.toLowerCase() === name); if(b >= 0) BATCH.items.splice(b, 1);
+  } else if(o.op === "user"){ siteDenied[o.device] = o.deny ? (o.name || "") : undefined; if(!o.deny) delete siteDenied[o.device]; }
+  else if(o.op === "pin" && o.hash){ sitePin = o.hash; }
+}
+// this device's manager changes not yet in SITE (dropped once the app carries them)
+function localOps(){ const l = (store.get("adminOps", []) || []).filter(o => !siteDone.has(o.t)); store.set("adminOps", l); return l; }
+
 /* ===== MANAGER LOG: names entered and labels printed, sent to Clay's private Google Form =====
    The form feeds the "Yardery Sanford — Prep Label Print Log" sheet, one row per item per print.
    Leave formUrl empty to turn logging off. entry ids come from the form's "Get pre-filled link".
@@ -706,6 +770,7 @@ $("locname").textContent = LOCATION.name;
 function newId(){ try{ return crypto.randomUUID(); }catch(e){ return "d-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); } }
 let deviceId = store.get("deviceId", "");
 if(!deviceId){ deviceId = newId(); store.set("deviceId", deviceId); }
+SITE.ops.concat(localOps()).forEach(applyOp);              // the Manager's changes, before anything is built from the lists
 function cleanName(v){ return String(v || "").replace(/[^A-Za-zÀ-ÿ'\- ]/g, "").replace(/\s+/g, " ").trimStart().slice(0, 12); }
 $("initials").value = store.get("name", "");
 $("dpi").value = String(store.get("dpi", 203));
@@ -1463,7 +1528,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-24.2";
+const APP_VERSION = "2026-10-24.4";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1792,95 +1857,176 @@ $("plBody").addEventListener("click", e => {
   const tr = b.closest("tr"); touch(); printFromList(tr.dataset.k, b, tr.dataset.s);
 });
 
-/* ---------- Pans & yields (Clay 2026-10-23; pans 2026-10-24) ----------
-   Per label item: the pan it's stored in, oz of product per pan, the batch yield and the par (pans). Each printed label is one
-   pan. A change is logged to the print log as a "pan set" row (Source "pan <id> = <pan> | <oz> | <par> | <yield>"). Changes
-   by YIELD_APPROVERS apply on this device at once and reach every device and the Recipe Book at the next sync (daily ~6 am, or sooner when the owner asks; the sync runs
-   tools/yields.js, CLAUDE.md rule 11); anyone else's change waits for the owner's OK. */
-const YIELD_APPROVERS = ["Clay"];
-const YIELDS_APP = Object.assign({}, YIELDS), STORAGE_APP = JSON.parse(JSON.stringify(STORAGE));   // what this version carries
-const canApprove = who => YIELD_APPROVERS.some(a => a.toLowerCase() === String(who || "").trim().toLowerCase());
-const sameStore = (a, b) => !!a && !!b && a.pan === b.pan && (+a.oz || 0) === (+b.oz || 0) && (+a.par || 0) === (+b.par || 0);
-// this device's changes still on their way into the app: {id: {v, pan, oz, par, by, at, ok}}; dropped once the app carries them
-function ylEdits(){
-  const e = store.get("yieldEdits", {}); let changed = false;
-  Object.keys(e).forEach(id => { const x = e[id];
-    if((!x.v || YIELDS_APP[id] === x.v) && (!x.pan || sameStore(STORAGE_APP[id], x))){ delete e[id]; changed = true; } });
-  if(changed) store.set("yieldEdits", e);
-  return e;
+/* ---------- Manager (Clay 2026-10-24) ----------
+   🔒 at the top opens it. Needs the Manager PIN (stored only as a SHA-256 hash: SITE.pin or a "pin" op); 5 wrong tries
+   lock it for 5 minutes; it locks itself after 10 idle minutes. Every change is an op (see MANAGER EDITS above): applied on
+   this device at once, logged to the print log, and added for every device at the daily sync. Closing the Manager after a
+   change reloads the app so every list (labels, Prep List, Line Flip set) is rebuilt from the new data.
+   Cooks can't change labels, pans or yields anywhere else. */
+const MG_IDLE = 10 * 60 * 1000;
+let mgAt = 0, mgTab = "labels", mgEdit = null, mgQ = "", mgChanged = false;
+async function pinHash(pin){
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("yardery-manager:" + pin));
+  return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
-function ylApplyLocal(){ const e = ylEdits(); Object.keys(e).forEach(id => { const x = e[id]; if(!x.ok) return;
-  if(x.v) YIELDS[id] = x.v; if(x.pan) STORAGE[id] = {pan: x.pan, oz: +x.oz || 0, par: +x.par || 0}; }); }
-ylApplyLocal();
-let ylOpenId = null;
-function ylRow(it, edits){
-  const y = YIELDS[it.id], st = STORAGE[it.id], e = edits[it.id], ySet = y && !/^TBD$/i.test(y), ppb = pansPerBatch(it.id);
-  const full = st && st.pan && st.oz && ySet && st.par;
-  const tag = e ? (e.ok ? '<span class="yltag p">Updating</span>' : '<span class="yltag p">Waiting for ' + esc(YIELD_APPROVERS[0]) + '</span>')
-    : full ? '<span class="yltag m">Set</span>' : (st || ySet) ? '<span class="yltag e">Partly set</span>' : '<span class="yltag n">Not set</span>';
-  const lines = [];
-  lines.push(st ? esc(st.pan) + (st.oz ? " · " + st.oz + " oz per pan" : "") : "<small>No pan set</small>");
-  lines.push("<small>Batch: " + (ySet ? esc(y) + (ppb ? " = " + ppb + (ppb === 1 ? " pan" : " pans") : "") : "not set") + "</small>");
-  if(st && st.par) lines.push("<small>Par: " + st.par + (st.par === 1 ? " pan" : " pans") + "</small>");
-  if(e && !e.ok) lines.push("<small>Asked: " + esc([e.pan, e.oz ? e.oz + " oz" : "", e.v, e.par ? "par " + e.par : ""].filter(Boolean).join(" · ")) + "</small>");
-  const cur = e || {pan: st && st.pan, oz: st && st.oz, par: st && st.par, v: ySet ? y.replace(/^≈\s*/, "") : ""};
-  const form = ylOpenId !== it.id ? "" : '<form class="ylform">' +
-    '<label>Pan size<input id="ylPan" list="ylPans" maxlength="24" autocomplete="off" value="' + esc(cur.pan || "") + '" placeholder="e.g. 1/3 pan 6&quot;"></label>' +
-    '<label>Oz per pan<input id="ylOz" type="number" inputmode="decimal" min="0" step="0.1" value="' + esc(cur.oz || "") + '" placeholder="e.g. 60"></label>' +
-    '<label>Batch yield<input id="ylIn" maxlength="40" autocomplete="off" value="' + esc(cur.v || "") + '" placeholder="e.g. 240 oz"></label>' +
-    '<label>Par (pans)<input id="ylPar" type="number" inputmode="numeric" min="0" step="1" value="' + esc(cur.par || "") + '" placeholder="e.g. 4"></label>' +
-    '<button type="submit">Save</button><button type="button" class="ylno">Cancel</button>' +
-    '<p class="ylhelp">Weigh the product in each pan (tare the pan first). Give the batch yield in oz so the app can count pans.</p></form>';
-  return '<tr data-id="' + esc(it.id) + '"><td class="n"><b>' + esc(it.name) + tag + '</b><small>' + (SHELF_DAYS[it.id] ? SHELF_DAYS[it.id] + (SHELF_DAYS[it.id] === 1 ? " day" : " days") + " shelf life" : "") + '</small>' + form +
-    '</td><td class="yv">' + lines.join("<br>") + '</td><td class="c"><button class="plp ylchg" type="button">' + (st || ySet || e ? "Change" : "Set") + '</button></td></tr>';
+const mgUnlocked = () => mgAt && Date.now() - mgAt < MG_IDLE;
+const myDevice = () => deviceId.slice(0, 8);
+function mgSave(op, summary){
+  op.t = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const l = store.get("adminOps", []); l.push(op); store.set("adminOps", l);
+  applyOp(op); mgChanged = true;
+  logEvent({event: "admin", name: store.get("name", "") || "Manager", item: summary, labels: "", source: "admin " + JSON.stringify(op)});
 }
-function renderYields(){
-  const edits = ylEdits(), scroll = $("ylBody").scrollTop;
-  const items = ITEMS.filter(i => SHELF_DAYS[i.id]);
-  const n = items.filter(i => STORAGE[i.id] && STORAGE[i.id].pan).length;
-  $("ylBody").innerHTML = '<datalist id="ylPans">' + PANS.map(x => '<option value="' + esc(x) + '">').join("") + '</datalist>' +
-    '<p class="plnote plsec"><b>' + n + ' of ' + items.length + ' label items have a pan standard.</b> Each printed label is one pan; Print starts at the pans one batch fills. ' +
-      (canApprove(store.get("name", "")) ? 'Your changes work on this device now and reach every device and the Recipe Book by the next morning.' : 'Changes you make are sent to ' + esc(YIELD_APPROVERS[0]) + ' to approve.') + '</p>' +
-    CATS.map(c => { const rows = items.filter(i => i.cat === c.id); if(!rows.length) return "";
-      return '<section class="plsec"><h2>' + esc(c.name) + '</h2><table class="pltab"><thead><tr><th>Item</th><th>Pan standard</th><th></th></tr></thead><tbody>' +
-        rows.map(it => ylRow(it, edits)).join("") + '</tbody></table></section>'; }).join("");
-  $("ylBody").scrollTop = scroll;
-  const inp = $("ylPan"); if(inp) inp.focus();
+function mgUsers(){
+  const m = new Map();
+  (SITE.users || []).forEach(u => m.set(u.device, Object.assign({}, u)));
+  const me = myDevice(); if(!m.has(me)) m.set(me, {device: me, name: store.get("name", ""), last: "now"});
+  return [...m.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
 }
-function ylSave(id){
-  const it = ITEMS.find(i => i.id === id), who = store.get("name", "");
-  const pan = $("ylPan").value.replace(/\s+/g, " ").trim(), oz = $("ylOz").value.trim(), par = $("ylPar").value.trim();
-  const v = $("ylIn").value.replace(/\s+/g, " ").trim();
+function mgLabelForm(it){
+  const id = it ? it.id : "", st = it && STORAGE[id] || {}, inFlip = it && BATCH.items.some(n => n.toLowerCase() === it.name.toLowerCase());
+  return '<form class="mgform" data-id="' + esc(id) + '">' +
+    '<label class="w2">Label name<input name="name" maxlength="40" autocomplete="off" value="' + esc(it ? it.name : "") + '" placeholder="e.g. Diced Celery"></label>' +
+    '<label>Section<select name="cat">' + CATS.map(c => '<option value="' + c.id + '"' + ((it ? it.cat : "toppings") === c.id ? " selected" : "") + '>' + esc(c.name) + '</option>').join("") + '</select></label>' +
+    '<label>Shelf life (days)<input name="days" type="number" inputmode="numeric" min="1" max="365" value="' + esc(it && SHELF_DAYS[id] || "") + '" placeholder="e.g. 3"></label>' +
+    '<label class="w2">Note shown when it\'s picked<textarea name="note" maxlength="200" rows="2" placeholder="Optional, e.g. Keep at 41°F or below">' + esc(it && ITEM_NOTES[id] || "") + '</textarea></label>' +
+    '<label>Pan size<input name="pan" list="mgPans" maxlength="24" autocomplete="off" value="' + esc(st.pan || "") + '" placeholder="e.g. 1/3 pan 6&quot;"></label>' +
+    '<label>Oz per pan<input name="oz" type="number" inputmode="decimal" min="0" step="0.1" value="' + esc(st.oz || "") + '" placeholder="e.g. 60"></label>' +
+    '<label>Batch yield<input name="yield" maxlength="40" autocomplete="off" value="' + esc(it && YIELDS[id] && !/^TBD$/i.test(YIELDS[id]) ? YIELDS[id] : "") + '" placeholder="e.g. 240 oz"></label>' +
+    '<label>Par (pans)<input name="par" type="number" inputmode="numeric" min="0" step="1" value="' + esc(st.par || "") + '" placeholder="e.g. 4"></label>' +
+    '<label class="w2 chk"><input name="flip" type="checkbox"' + (inFlip ? " checked" : "") + '> In the Line Flip Labels set (' + BATCH.days + '-day labels)</label>' +
+    '<div class="w2 mgbtns"><button type="submit" class="pri">' + (it ? "Save changes" : "Add label") + '</button><button type="button" data-act="cancel">Cancel</button>' +
+    (it ? '<button type="button" data-act="remove" class="danger">Remove label</button>' : '') + '</div></form>';
+}
+function mgLabels(){
+  const q = mgQ.trim().toLowerCase(), flip = new Set(BATCH.items.map(n => n.toLowerCase()));
+  let h = '<datalist id="mgPans">' + PANS.map(x => '<option value="' + esc(x) + '">').join("") + '</datalist>' +
+    '<div class="mgtools"><input id="mgSearch" type="search" placeholder="Find a label…" value="' + esc(mgQ) + '" aria-label="Find a label"><button type="button" class="pri" data-act="add">＋ Add label</button></div>';
+  if(mgEdit === "new") h += '<section class="plsec"><h2>New label</h2>' + mgLabelForm(null) + '</section>';
+  CATS.forEach(c => {
+    const rows = ITEMS.filter(i => i.cat === c.id && (!q || i.name.toLowerCase().includes(q)));
+    if(!rows.length) return;
+    h += '<section class="plsec"><h2>' + esc(c.name) + '</h2><table class="pltab"><tbody>' + rows.map(it => {
+      const st = STORAGE[it.id], d = SHELF_DAYS[it.id];
+      const meta = [d ? d + (d === 1 ? " day" : " days") : "no shelf life", st ? st.pan + (st.oz ? ", " + st.oz + " oz" : "") + (st.par ? ", par " + st.par : "") : "", YIELDS[it.id] && !/^TBD$/i.test(YIELDS[it.id]) ? "batch " + YIELDS[it.id] : "", flip.has(it.name.toLowerCase()) ? "Line Flip" : ""].filter(Boolean).join(" · ");
+      return '<tr data-id="' + esc(it.id) + '">' + (mgEdit === it.id ? '<td class="n" colspan="2"><b>' + esc(it.name) + '</b>' + mgLabelForm(it) + '</td>' :
+        '<td class="n"><b>' + esc(it.name) + '</b><small>' + esc(meta) + '</small></td><td class="c"><button class="plp" type="button" data-act="edit">Edit</button></td>') + '</tr>'; }).join("") + '</tbody></table></section>';
+  });
+  return h;
+}
+function mgUsersTab(){
+  const me = myDevice();
+  return '<p class="plnote">Everyone who has used Prep Labels, by device. Turning a device off stops it from printing or using the app. ' +
+    'The list fills in from the print log at each daily sync.</p><table class="pltab"><tbody>' + mgUsers().map(u => {
+      const off = u.device in siteDenied;
+      return '<tr data-dev="' + esc(u.device) + '" data-name="' + esc(u.name || "") + '"><td class="n"><b>' + esc(u.name || "(no name)") + (u.device === me ? ' <span class="yltag m">This device</span>' : '') +
+        (off ? ' <span class="yltag n">Access off</span>' : '') + '</b><small>Device ' + esc(u.device) + (u.last ? " · last used " + esc(u.last) : "") + '</small></td>' +
+        '<td class="c">' + (u.device === me ? '' : '<button class="plp" type="button" data-act="' + (off ? "allow" : "deny") + '">' + (off ? "Turn on" : "Turn off") + '</button>') + '</td></tr>'; }).join("") + '</tbody></table>';
+}
+function mgSettingsTab(){
+  return '<section class="plsec"><h2>Change Manager PIN</h2><form class="mgform" id="mgPinForm">' +
+    '<label>New PIN (4–8 digits)<input name="p1" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label>' +
+    '<label>Same PIN again<input name="p2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label>' +
+    '<div class="w2 mgbtns"><button type="submit" class="pri">Change PIN</button></div></form></section>' +
+    '<section class="plsec"><h2>How changes reach every device</h2><p class="plnote">Your changes work on this device as soon as you save. Every other device and the Recipe Book get them at the daily sync (5:55 am). Need them sooner? Tell Claude "run the sync". Changes to the Recipe Book\'s recipes: tell Claude what to change.</p></section>';
+}
+function renderManager(){
+  const body = $("mgBody"); $("mgLock").hidden = !mgUnlocked();
+  if(!mgUnlocked()){
+    const f = store.get("mgFails", {n: 0, until: 0}), wait = f.until - Date.now();
+    body.innerHTML = '<form class="mgpin" id="mgPinIn"><h2>Manager</h2>' + (!sitePin ? '<p>The Manager PIN isn\'t set yet. Ask Claude to set it.</p>' :
+      '<p>Enter the Manager PIN.</p><input id="mgPin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" aria-label="Manager PIN"' + (wait > 0 ? " disabled" : "") + '>' +
+      '<button type="submit" class="pri"' + (wait > 0 ? " disabled" : "") + '>Unlock</button>' + (wait > 0 ? '<p class="mgerr">Too many wrong tries. Try again in ' + Math.ceil(wait / 60000) + ' min.</p>' : '')) + '</form>';
+    const i = $("mgPin"); if(i && !i.disabled) i.focus();
+    return;
+  }
+  const pend = localOps().length, scroll = body.scrollTop;
+  body.innerHTML = '<div class="mgtabs" role="tablist">' + [["labels", "Labels"], ["users", "Users"], ["settings", "Settings"]].map(([k, l]) =>
+      '<button type="button" role="tab" data-tab="' + k + '" aria-selected="' + (mgTab === k) + '">' + l + '</button>').join("") + '</div>' +
+    (pend ? '<p class="note mgpend">' + pend + (pend === 1 ? " change" : " changes") + ' saved here. Every other device gets ' + (pend === 1 ? "it" : "them") + ' at the daily sync, or tell Claude "run the sync".</p>' : '') +
+    (mgTab === "users" ? mgUsersTab() : mgTab === "settings" ? mgSettingsTab() : mgLabels());
+  body.scrollTop = scroll;
+  const f = body.querySelector(".mgform[data-id] input[name=name]"); if(f && mgEdit) f.focus();
+}
+function mgOpen(){ closeSheets(); mgEdit = null; renderManager(); $("blocked").hidden = true; $("mg").hidden = false; try{ history.pushState({mg: 1}, ""); }catch(e){} }
+function mgClose(fromHistory){
+  if($("mg").hidden) return;
+  $("mg").hidden = true;
+  if(!fromHistory){ try{ if(history.state && history.state.mg) history.back(); }catch(e){} }
+  if(mgChanged){ toast("Saving changes…", "ok"); setTimeout(() => location.reload(), 400); }   // rebuild every list from the new data
+  else if(myDevice() in siteDenied) $("blocked").hidden = false;
+}
+function mgFormData(f){ const d = {}; new FormData(f).forEach((v, k) => { d[k] = typeof v === "string" ? v.replace(/\s+/g, " ").trim() : v; }); d.flip = f.querySelector("[name=flip]") ? f.querySelector("[name=flip]").checked : false; return d; }
+function mgSaveLabel(f){
+  const id0 = f.dataset.id, d = mgFormData(f), it = id0 && ITEMS.find(i => i.id === id0), fld = n => f.querySelector('[name="' + n + '"]');
   // RULE: Save always shows a result
-  if(!who){ toast("Set up your name first: tap ← Prep Labels and follow the setup.", "err", 7000); return; }
-  if(pan.length < 2){ toast("Pick the pan size, e.g. 1/3 pan 6\"."); $("ylPan").focus(); return; }
-  if(!(+oz > 0)){ toast("Type the oz of product in one pan."); $("ylOz").focus(); return; }
-  if(par && !(Number.isInteger(+par) && +par >= 0)){ toast("Par is a whole number of pans."); $("ylPar").focus(); return; }
-  if(v && !/^\d/.test(v) && !confirm('"' + v + '" doesn\'t start with a number, so the app can\'t count pans from it. Save it anyway?')) return;
-  const ok = canApprove(who), ppb = /^\d+(\.\d+)?\s*(oz|lb)/i.test(v) ? Math.ceil(parseFloat(v) * (/lb/i.test(v) ? 16 : 1) / +oz - 0.01) : null;
-  if(!confirm(it.name + ": " + pan + ", " + oz + " oz per pan" + (v ? ", batch " + v + (ppb ? " (" + ppb + " pans)" : "") : "") + (par ? ", par " + par + " pans" : "") + "?" +
-    (ok ? "" : "\n\n" + YIELD_APPROVERS[0] + " will be asked to approve it."))) return;
-  const e = store.get("yieldEdits", {}); e[id] = {v, pan, oz: +oz, par: +par || 0, by: who, at: fmtDate(new Date()), ok}; store.set("yieldEdits", e);
-  if(ok){ STORAGE[id] = {pan, oz: +oz, par: +par || 0}; if(v) YIELDS[id] = v; }
-  logEvent({event: "pan set", name: who, item: it.name, labels: "", source: "pan " + id + " = " + [pan, +oz, +par || 0, v].join(" | ")});
-  ylOpenId = null; renderYields();
-  toast(ok ? it.name + " updated here now. Every device and the Recipe Book get it by the next morning." : "Sent to " + YIELD_APPROVERS[0] + " to approve.", "ok", 6000);
+  if(d.name.length < 2){ toast("Type the label name."); fld("name").focus(); return; }
+  if(ITEMS.some(i => i.id !== id0 && i.name.toLowerCase() === d.name.toLowerCase())){ toast("There's already a label called " + d.name + "."); fld("name").focus(); return; }
+  const days = parseInt(d.days, 10);
+  if(!(days >= 1 && days <= 365)){ toast("Type the shelf life in days."); fld("days").focus(); return; }
+  if((d.oz || d.par) && !d.pan){ toast("Pick the pan size too, or clear oz per pan and par."); fld("pan").focus(); return; }
+  if(d.oz && !(+d.oz > 0)){ toast("Oz per pan must be a number."); fld("oz").focus(); return; }
+  if(d.par && !(Number.isInteger(+d.par) && +d.par >= 0)){ toast("Par is a whole number of pans."); fld("par").focus(); return; }
+  if(days > 7 && !["freezer", "rubs"].includes(d.cat) &&
+    !confirm(days + " days is over the 7-day limit for cold, ready-to-eat food (Florida / FDA Food Code 3-501.17). Only use it for shelf-stable or frozen items. Save anyway?")) return;
+  let id = id0;
+  if(!id){ id = slug(d.name); let n = 2; while(ITEMS.some(i => i.id === id)) id = slug(d.name) + "-" + n++; }
+  const op = {op: "label", id, name: d.name, cat: d.cat, days, note: d.note || "", pan: d.pan || "", oz: d.pan ? +d.oz || 0 : 0, par: d.pan ? +d.par || 0 : 0, yield: d.yield || (it && /^TBD$/i.test(YIELDS[id0] || "") ? YIELDS[id0] : ""), flip: !!d.flip};
+  mgSave(op, (it ? "Changed " : "Added ") + d.name);
+  mgEdit = null; renderManager();
+  toast((it ? "Saved " : "Added ") + d.name + ". Close Manager to see it on the label page.", "ok", 5000);
 }
-function openYields(){ closeSheets(); ylOpenId = null; renderYields(); $("yl").hidden = false; try{ history.pushState({yl: 1}, ""); }catch(e){} }
-function closeYields(fromHistory){
-  if($("yl").hidden) return;
-  $("yl").hidden = true;
-  if(!fromHistory){ try{ if(history.state && history.state.yl) history.back(); }catch(e){} }
-}
-$("ylBtn").onclick = openYields;
-$("ylClose").onclick = () => closeYields(false);
-window.addEventListener("popstate", e => { if(!(e.state && e.state.yl)) closeYields(true); });
-$("ylBody").addEventListener("click", e => {
-  const tr = e.target.closest("tr[data-id]"); if(!tr) return;
-  if(e.target.closest(".ylchg")){ touch(); ylOpenId = tr.dataset.id; renderYields(); return; }
-  if(e.target.closest(".ylno")){ touch(); ylOpenId = null; renderYields(); }
+$("mgBtn").onclick = () => { touch(); mgOpen(); };
+$("blockedMg").onclick = () => { mgOpen(); };
+$("mgClose").onclick = () => mgClose(false);
+$("mgLock").onclick = () => { mgAt = 0; renderManager(); toast("Manager locked."); };
+window.addEventListener("popstate", e => { if(!(e.state && e.state.mg)) mgClose(true); });
+$("mgBody").addEventListener("submit", async e => {
+  e.preventDefault(); touch();
+  const f = e.target;
+  if(f.id === "mgPinIn"){
+    const pin = ($("mgPin") || {}).value || "", fails = store.get("mgFails", {n: 0, until: 0});
+    if(!pin){ toast("Enter the PIN."); return; }
+    if(await pinHash(pin) === sitePin){ store.set("mgFails", {n: 0, until: 0}); mgAt = Date.now(); mgTab = "labels"; renderManager(); return; }
+    fails.n++; if(fails.n >= 5){ fails.until = Date.now() + 5 * 60000; fails.n = 0; }
+    store.set("mgFails", fails); toast("Wrong PIN.", "err"); renderManager(); return;
+  }
+  if(!mgUnlocked()){ renderManager(); toast("Manager locked. Enter the PIN again."); return; }
+  mgAt = Date.now();
+  if(f.id === "mgPinForm"){
+    const p1 = f.querySelector("[name=p1]").value, p2 = f.querySelector("[name=p2]").value;
+    if(!/^\d{4,8}$/.test(p1)){ toast("The PIN must be 4 to 8 digits."); return; }
+    if(p1 !== p2){ toast("The two PINs don't match."); return; }
+    if(!confirm("Change the Manager PIN? Write it down; Claude can't read it back.")) return;
+    mgSave({op: "pin", hash: await pinHash(p1)}, "Changed the Manager PIN");
+    renderManager(); toast("PIN changed here. Other devices use the new PIN after the daily sync.", "ok", 6000); return;
+  }
+  if(f.classList.contains("mgform")) mgSaveLabel(f);
 });
-$("ylBody").addEventListener("submit", e => { e.preventDefault(); touch(); const tr = e.target.closest("tr[data-id]"); if(tr) ylSave(tr.dataset.id); });
+$("mgBody").addEventListener("input", e => { if(e.target.id === "mgSearch"){ mgQ = e.target.value; const pos = e.target.selectionStart; renderManager(); const i = $("mgSearch"); if(i){ i.focus(); i.setSelectionRange(pos, pos); } } });
+$("mgBody").addEventListener("click", e => {
+  if(!mgUnlocked()) return;
+  const tab = e.target.closest("[data-tab]"); if(tab){ mgAt = Date.now(); mgTab = tab.dataset.tab; mgEdit = null; renderManager(); return; }
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  mgAt = Date.now(); const act = b.dataset.act, tr = b.closest("tr");
+  if(act === "add"){ mgEdit = "new"; renderManager(); return; }
+  if(act === "edit"){ mgEdit = tr.dataset.id; renderManager(); return; }
+  if(act === "cancel"){ mgEdit = null; renderManager(); return; }
+  if(act === "remove"){
+    const id = b.closest("form").dataset.id, it = ITEMS.find(i => i.id === id);
+    if(!confirm("Remove the " + it.name + " label? Cooks won't see it anymore. You can add it back later.")) return;
+    mgSave({op: "remove", id}, "Removed " + it.name); mgEdit = null; renderManager();
+    toast("Removed " + it.name + ".", "ok"); return;
+  }
+  if(act === "deny" || act === "allow"){
+    const dev = tr.dataset.dev, name = tr.dataset.name;
+    if(!confirm((act === "deny" ? "Turn off access for " : "Turn access back on for ") + (name || "this device") + " (device " + dev + ")?")) return;
+    mgSave({op: "user", device: dev, name, deny: act === "deny"}, (act === "deny" ? "Turned off " : "Turned on ") + (name || dev));
+    renderManager(); toast((act === "deny" ? "Access off for " : "Access on for ") + (name || dev) + ". Their device gets it at the daily sync.", "ok", 6000);
+  }
+});
+// a device the Manager turned off can't use the app
+if(myDevice() in siteDenied){ $("blocked").hidden = false; document.body.classList.add("isblocked"); }
 
 /* ---------- first-time setup ---------- */
 function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
@@ -1975,7 +2121,7 @@ if(btEnv() !== "ok") setChip("", "Printer help");
 else setChip("", freeText());
 if(!framed() && (!store.get("name", "") || !store.get("printerSetup", false))) openOnboarding();
 flushLog();
-window.__ypl = { STORAGE, PANS, pansPerBatch, yieldOz, HOLD_MS, YIELD_APPROVERS, buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
+window.__ypl = { STORAGE, PANS, pansPerBatch, yieldOz, HOLD_MS, SITE, pinHash, buildZPL, buildJob, copies, useBy, ITEMS, BATCH, zplLines, SHELF_DAYS, LOG, APP_VERSION, checkForUpdate, PL_SECTIONS, RECIPE_PAGES, parseCSV, setPrepFeed: u => { PREP_FEED_URL = u; }, YIELDS, amountMade };
 })();
 </script>
 </body>

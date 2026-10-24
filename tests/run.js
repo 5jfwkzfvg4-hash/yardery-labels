@@ -559,71 +559,145 @@ test('Prep List archive: the day\'s picked items, same sections as the screen; d
 
 /* ================= Batches & yields ================= */
 
-async function openYields(p) { await p.click('#setBtn'); await p.click('#ylBtn'); await p.waitForTimeout(200); }
-test('Pans & yields: every label item shows its pan standard; the owner\'s change applies at once and is logged (owner, 2026-10-24)', async () => {
-  const p = await open({ name: 'Clay', setup: true, getDevices: true });
-  const got = [];
-  await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
-  await p.evaluate(() => { const L = window.__ypl.LOG; Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); }); });
-  await openYields(p);
-  eq(await p.locator('#yl tr[data-id]').count(), await p.evaluate(() => window.__ypl.ITEMS.filter(i => window.__ypl.SHELF_DAYS[i.id]).length), 'one row per label item');
-  assert(/Partly set/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')) && /Batch: 240 oz/.test(await p.textContent('#yl tr[data-id="pico-de-gallo"]')), 'Pico: yield known, no pan yet');
-  assert(/Not set/.test(await p.textContent('#yl tr[data-id="coleslaw"]')), 'nothing set');
-  p.on('dialog', d => d.accept());
-  await p.click('#yl tr[data-id="pico-de-gallo"] .ylchg');
-  await p.click('#yl .ylform button[type=submit]'); await p.waitForTimeout(200);
-  assert(/Pick the pan size/.test(await toastText(p)), 'pan required');
-  await p.fill('#ylPan', '1/3 pan 6"'); await p.click('#yl .ylform button[type=submit]'); await p.waitForTimeout(200);
-  assert(/oz of product in one pan/.test(await toastText(p)), 'oz required');
-  await p.fill('#ylOz', '60'); await p.fill('#ylIn', '240 oz'); await p.fill('#ylPar', '4');
-  await p.click('#yl .ylform button[type=submit]'); await p.waitForTimeout(400);
-  const t = await p.textContent('#yl tr[data-id="pico-de-gallo"]');
-  assert(/1\/3 pan 6" · 60 oz per pan/.test(t) && /240 oz = 4 pans/.test(t) && /Par: 4 pans/.test(t) && /Updating/.test(t), 'shows the new standard: ' + t);
-  const row = got.find(g => g['entry.1'] === 'pan set');
-  assert(row && row['entry.9'] === 'pan pico-de-gallo = 1/3 pan 6" | 60 | 4 | 240 oz' && row['entry.4'] === 'Clay', 'logged for the sync: ' + JSON.stringify(row));
-  eq(await p.evaluate(() => window.__ypl.pansPerBatch('pico-de-gallo')), 4, 'printing uses it on this device');
-  await p.reload(); await p.waitForTimeout(300);
-  eq(await p.evaluate(() => window.__ypl.pansPerBatch('pico-de-gallo')), 4, 'kept after reload until the app carries it');
+/* ================= Manager (🔒, PIN) ================= */
+
+const crypto = require('crypto');
+const PIN = '4321', PIN_HASH = crypto.createHash('sha256').update('yardery-manager:' + PIN).digest('hex');
+// a device where the Manager PIN is set (as a saved pin op, like a PIN change waiting for the sync)
+const withPin = (more = []) => ({ ...REMEMBERED, getDevices: true, adminOps: [{ op: 'pin', t: 'pin0', hash: PIN_HASH }].concat(more) });
+async function openWith(o, viewport) {
+  const p = await open(o, viewport);
+  if (o.adminOps) { await p.evaluate(ops => localStorage.setItem('ypl:adminOps', JSON.stringify(ops)), o.adminOps); await p.reload(); await p.waitForTimeout(300); }
+  return p;
+}
+async function unlock(p, pin = PIN) { if (!(await p.isVisible('#mg'))) await p.click('#mgBtn'); await p.fill('#mgPin', pin); await p.click('#mgPinIn button[type=submit]'); await p.waitForTimeout(300); }
+
+test('Manager: 🔒 needs the PIN; wrong PINs are refused and 5 lock it for 5 minutes; cooks have no pan/yield editor (owner, 2026-10-24)', async () => {
+  const p0 = await open({ ...REMEMBERED, getDevices: true });
+  await p0.click('#mgBtn'); await p0.waitForTimeout(200);
+  assert(/PIN isn't set yet/.test(await p0.textContent('#mgBody')), 'no PIN yet: says so');
+  await p0.close2();
+  const p = await openWith(withPin(), { clock: true });
+  await p.click('#setBtn');
+  assert(!/Pans|yield/i.test(await p.textContent('#setSheet')), 'no pan/yield editor in ⚙');
+  await p.keyboard.press('Escape');
+  for (let i = 0; i < 4; i++) { await unlock(p, '0000'); assert(/Wrong PIN/.test(await toastText(p)), 'wrong PIN refused'); await p.click('#mgClose'); }
+  await unlock(p, '0000');
+  assert(/Too many wrong tries/.test(await p.textContent('#mgBody')) && await p.isDisabled('#mgPin'), 'locked out after 5');
+  await p.clock.fastForward(5 * 60 * 1000 + 1000); await p.click('#mgClose'); await unlock(p);
+  assert(await p.isVisible('.mgtabs'), 'right PIN opens it');
+  await p.clock.fastForward(11 * 60 * 1000); await p.click('[data-tab=users]'); await p.waitForTimeout(100);
+  await p.click('#mgClose'); await p.click('#mgBtn'); await p.waitForTimeout(100);
+  assert(await p.isVisible('#mgPin'), 'locks itself after 10 idle minutes');
   eq(p.errors.join(), '', 'no script errors');
   await p.close2();
 });
 
-test('Pans & yields: anyone else\'s change waits for the owner and changes nothing yet', async () => {
-  const p = await open({ ...REMEMBERED, getDevices: true });
-  await openYields(p);
-  p.on('dialog', d => d.accept());
-  await p.click('#yl tr[data-id="coleslaw"] .ylchg');
-  await p.fill('#ylPan', '6 qt Cambro'); await p.fill('#ylOz', '96'); await p.click('#yl .ylform button[type=submit]'); await p.waitForTimeout(300);
-  assert(/Waiting for Clay/.test(await p.textContent('#yl tr[data-id="coleslaw"]')), 'waiting for approval');
-  assert(/Sent to Clay/.test(await toastText(p)), 'says who approves');
-  eq(await p.evaluate(() => JSON.stringify(window.__ypl.STORAGE['coleslaw'] || null)), 'null', 'not applied');
+test('Manager: change a label (shelf life, note, pan, yield, par, Line Flip) — applies here at once and is logged for the sync', async () => {
+  const p = await openWith(withPin());
+  const got = [];
+  await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
+  await p.evaluate(() => { const L = window.__ypl.LOG; Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); }); });
+  await unlock(p);
+  await p.fill('#mgSearch', 'pico de'); await p.waitForTimeout(100);
+  await p.click('#mg tr[data-id="pico-de-gallo"] [data-act=edit]');
+  const f = '#mg form[data-id="pico-de-gallo"]';
+  eq(await p.inputValue(f + ' [name=days]'), '3', 'form shows the current shelf life');
+  await p.fill(f + ' [name=name]', ''); await p.click(f + ' button[type=submit]'); await p.waitForTimeout(150);
+  assert(/Type the label name/.test(await toastText(p)), 'name required');
+  await p.fill(f + ' [name=name]', 'Pico de Gallo'); await p.fill(f + ' [name=days]', '2'); await p.fill(f + ' [name=note]', 'Keep covered.');
+  await p.fill(f + ' [name=oz]', '60'); await p.click(f + ' button[type=submit]'); await p.waitForTimeout(150);
+  assert(/Pick the pan size too/.test(await toastText(p)), 'oz needs a pan');
+  await p.fill(f + ' [name=pan]', '1/3 pan 6"'); await p.fill(f + ' [name=par]', '4'); await p.check(f + ' [name=flip]');
+  await p.click(f + ' button[type=submit]'); await p.waitForTimeout(300);
+  assert(/2 days · 1\/3 pan 6", 60 oz, par 4 · batch 240 oz · Line Flip/.test(await p.textContent('#mg tr[data-id="pico-de-gallo"]')), 'row updated: ' + await p.textContent('#mg tr[data-id="pico-de-gallo"]'));
+  assert(/\d changes? saved here/.test(await p.textContent('#mgBody')), 'says it waits for the sync');
+  const row = got.find(g => g['entry.1'] === 'admin');
+  const op = row && JSON.parse(row['entry.9'].replace(/^admin /, ''));
+  assert(op && op.op === 'label' && op.id === 'pico-de-gallo' && op.days === 2 && op.pan === '1/3 pan 6"' && op.flip === true && op.yield === '240 oz', 'logged: ' + JSON.stringify(row));
+  await p.click('#mgClose'); await p.waitForTimeout(1200);
+  await pickItem(p, 'Pico de Gallo');
+  eq(await p.textContent('#qty'), '4', 'pans per batch after reload');
+  assert(/Keep covered/.test(await p.textContent('#shelfNote')) && /2 days/.test(await p.textContent('#shelfNote')), 'new shelf life and note');
+  assert(await p.evaluate(() => window.__ypl.BATCH.items.includes('Pico de Gallo')), 'added to Line Flip');
+  eq(p.errors.join(), '', 'no script errors');
   await p.close2();
 });
 
-test('Pans & yields tool: the owner\'s changes go into the Recipe Book and the app, others are listed; each row once', async () => {
-  const yields = require('../tools/yields');
+test('Manager: add a label and remove one; the label page, Prep List and Line Flip set follow', async () => {
+  const p = await openWith(withPin());
+  p.on('dialog', d => d.accept());
+  await unlock(p);
+  await p.click('#mg [data-act=add]');
+  const f = '#mg form[data-id=""]';
+  await p.fill(f + ' [name=name]', 'Diced Celery'); await p.selectOption(f + ' [name=cat]', 'sides'); await p.fill(f + ' [name=days]', '4');
+  await p.click(f + ' button[type=submit]'); await p.waitForTimeout(300);
+  await p.fill('#mgSearch', 'feta'); await p.waitForTimeout(100);
+  await p.click('#mg tr[data-id="feta"] [data-act=edit]'); await p.click('#mg form[data-id="feta"] [data-act=remove]'); await p.waitForTimeout(300);
+  await p.click('#mgClose'); await p.waitForTimeout(1200);
+  await pickItem(p, 'Diced Celery');
+  assert(/Manager-approved: 4 days/.test(await p.textContent('#shelfNote')), 'new label works with its shelf life');
+  eq(await p.locator('.item .n').filter({ hasText: /^Feta$/ }).count(), 0, 'Feta button gone');
+  assert(!(await p.evaluate(() => window.__ypl.BATCH.items.includes('Feta'))), 'Feta out of Line Flip');
+  await p.click('#plBtn'); await p.waitForTimeout(200);
+  eq(await p.locator('#plPick .plchip[data-id="Sides|diced celery"]').count(), 1, 'pickable on the Prep List');
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
+test('Manager: users list; turning a device off blocks it; changing the PIN', async () => {
+  const p = await openWith(withPin());
+  p.on('dialog', d => d.accept());
+  await p.evaluate(() => window.__ypl.SITE.users.push({ device: 'abcd1234', name: 'Debo', last: '10/23/2026' }));
+  await unlock(p); await p.click('[data-tab=users]'); await p.waitForTimeout(100);
+  assert(/Debo/.test(await p.textContent('#mg tr[data-dev="abcd1234"]')) && /This device/.test(await p.textContent('#mgBody')), 'lists users and this device');
+  eq(await p.locator('#mg tr .yltag.m + [data-act]').count() + await p.locator('#mg tr:has(.yltag.m) [data-act]').count(), 0, 'no off switch for your own device');
+  await p.click('#mg tr[data-dev="abcd1234"] [data-act=deny]'); await p.waitForTimeout(200);
+  assert(/Access off/.test(await p.textContent('#mg tr[data-dev="abcd1234"]')), 'Debo off');
+  await p.click('[data-tab=settings]');
+  await p.fill('#mgPinForm [name=p1]', '12'); await p.click('#mgPinForm button[type=submit]'); await p.waitForTimeout(100);
+  assert(/4 to 8 digits/.test(await toastText(p)), 'PIN length checked');
+  await p.fill('#mgPinForm [name=p1]', '9876'); await p.fill('#mgPinForm [name=p2]', '9876'); await p.click('#mgPinForm button[type=submit]'); await p.waitForTimeout(300);
+  await p.click('#mgLock'); await unlock(p, PIN);
+  assert(/Wrong PIN/.test(await toastText(p)), 'old PIN no longer works');
+  await unlock(p, '9876'); assert(await p.isVisible('.mgtabs'), 'new PIN works');
+  await p.close2();
+  // a device that was turned off
+  const me = await open({ ...REMEMBERED, getDevices: true });
+  const dev = await me.evaluate(() => JSON.parse(localStorage.getItem('ypl:deviceId')).slice(0, 8));
+  await me.evaluate(d => localStorage.setItem('ypl:adminOps', JSON.stringify([{ op: 'user', t: 'u1', device: d, name: 'Maria', deny: true }])), dev);
+  await me.reload(); await me.waitForTimeout(300);
+  assert(await me.isVisible('#blocked'), 'turned-off device sees the block screen');
+  await me.close2();
+});
+
+test('Manager tool: the sync adds new ops for every device, rebuilds users, keeps the Recipe Book yields equal; each op once', async () => {
+  const admin = require('../tools/admin');
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ypl-'));
-  const files = { BOOK: path.join(tmp, 'book.html'), APP: path.join(tmp, 'index.html'), STATE: path.join(tmp, 'state.json') };
+  const files = { BOOK: path.join(tmp, 'book.html'), APP: path.join(tmp, 'index.html') };
   fs.copyFileSync(path.join(ROOT, 'artifacts', 'recipe-book.html'), files.BOOK); fs.copyFileSync(path.join(ROOT, 'index.html'), files.APP);
   const H = ['Timestamp', 'Event', 'Date', 'Time', 'Printed By', 'Item(Recipe Book Name)', '#Labels', 'Prep Date', 'Use By Date', 'Source', 'Device'];
-  const rows = [H, ['t1', 'yield set', '10/23/2026', '9:00 AM', 'Clay', 'Crab Cakes', '', '', '', 'yield crab-cakes = 5 cakes × 4 oz', ''],
-    ['t2', 'yield set', '10/23/2026', '9:01 AM', 'clay', 'Dough', '', '', '', 'yield dough = 20 dough balls', ''],
-    ['t3', 'yield set', '10/23/2026', '9:02 AM', 'Maria', 'Coleslaw', '', '', '', 'yield coleslaw = 96 oz', ''],
-    ['t4', 'print', '10/23/2026', '9:03 AM', 'Clay', 'Coleslaw', '1', '', '', 'labels page', ''],
-    ['t5', 'pan set', '10/24/2026', '9:04 AM', 'Clay', 'Pico de Gallo', '', '', '', 'pan pico-de-gallo = 1/3 pan 6" | 60 | 4 | 250 oz', '']];
-  const r = yields.apply(rows, files);
-  eq(r.applied.map(x => x.id).join(), 'crab-cakes,dough,pico-de-gallo', 'owner changes applied');
-  assert(/"pico-de-gallo": \{ pan: "1\/3 pan 6\\"", oz: 60, par: 4 \}/.test(fs.readFileSync(files.APP, 'utf8')), 'pan standard written');
-  assert(/"pico-de-gallo": "250 oz"/.test(fs.readFileSync(files.APP, 'utf8')), 'yield from the pan row written');
-  eq(r.suggested.map(x => x.id + '=' + x.value).join(), 'coleslaw=96 oz', 'others listed');
-  const book = fs.readFileSync(files.BOOK, 'utf8'), app = fs.readFileSync(files.APP, 'utf8');
-  assert(/"crab-cakes": \{ v: "5 cakes × 4 oz", note: /.test(book), 'book value set, estimate flag dropped, note kept');
-  assert(/"dough": \{ v: "20 dough balls" \}/.test(book), 'new book entry');
-  assert(/"crab-cakes": "5 cakes × 4 oz"/.test(app) && /"dough": "20 dough balls"/.test(app), 'app values set');
-  assert(!app.includes(/const APP_VERSION = "([^"]+)"/.exec(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'))[0]), 'APP_VERSION bumped');
-  for (const f of [files.BOOK, files.APP]) { const src = fs.readFileSync(f, 'utf8'); new Function(src.slice(src.indexOf(f === files.BOOK ? 'const BATCH_YIELDS = {' : 'const YIELDS = {'), src.indexOf('\n};', src.indexOf(f === files.BOOK ? 'const BATCH_YIELDS = {' : 'const YIELDS = {')) + 3)); }
-  const again = yields.apply(rows, files);
-  eq(again.applied.length + again.suggested.length, 0, 'nothing applied or reported twice');
+  const op1 = { op: 'label', t: 'a1', id: 'pico-de-gallo', name: 'Pico de Gallo', cat: 'toppings', days: 3, note: '', pan: '1/3 pan 6"', oz: 60, par: 4, yield: '250 oz', flip: false };
+  const op2 = { op: 'label', t: 'a2', id: 'diced-celery', name: 'Diced Celery', cat: 'sides', days: 4, note: '', pan: '', oz: 0, par: 0, yield: '', flip: false };
+  const rows = [H, ['', 'print', '10/23/2026', '9:00 AM', 'Debo', 'Coleslaw', '1', '', '', 'labels page', '100a4311'],
+    ['', 'print', '10/24/2026', '9:00 AM', 'Deborah', 'Coleslaw', '1', '', '', 'labels page', '100a4311'],
+    ['', 'admin', '10/24/2026', '9:05 AM', 'Clay', 'Changed Pico de Gallo', '', '', '', 'admin ' + JSON.stringify(op1), '2627971f'],
+    ['', 'admin', '10/24/2026', '9:06 AM', 'Clay', 'Added Diced Celery', '', '', '', 'admin ' + JSON.stringify(op2), '2627971f'],
+    ['', 'admin', '10/24/2026', '9:07 AM', 'Clay', 'bad', '', '', '', 'admin {not json', '2627971f']];
+  const r = admin.apply(rows, files);
+  eq(r.ops.length, 2, 'two ops');
+  const site = admin.readSite(fs.readFileSync(files.APP, 'utf8'));
+  eq(site.ops.map(o => o.t).join(), 'a1,a2', 'ops added');
+  eq(site.users.map(u => u.device + ':' + u.name).join(), '2627971f:Clay,100a4311:Deborah', 'one user per device, last name used');
+  eq(admin.bookYield(fs.readFileSync(files.BOOK, 'utf8'), 'pico-de-gallo'), '250 oz', 'book yield follows');
+  assert(/const APP_VERSION = "\d{4}-\d{2}-\d{2}\.\d+"/.test(fs.readFileSync(files.APP, 'utf8')) && fs.readFileSync(files.APP, 'utf8') !== fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), 'version bumped');
+  const again = admin.apply(rows, files);
+  eq(again.ops.length + (again.usersChanged ? 1 : 0), 0, 'nothing twice');
+  // the app replays them
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  const ok = await p.evaluate(src => { const m = /^const SITE = (.*);$/m.exec(src); return !!JSON.parse(m[1]).ops.length; }, fs.readFileSync(files.APP, 'utf8'));
+  assert(ok, 'SITE line readable');
+  await p.close2();
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -836,7 +910,7 @@ test('Update: the Recipe Book loads the current version, not a cached copy', asy
     try {
       await t.fn();
       console.log(`  PASS  ${t.name}  (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
-    } catch (e) {
+    } catch (e) { if (process.env.DEBUG) console.log(e.stack);
       failed++;
       console.log(`  FAIL  ${t.name}\n        ${e.message.split('\n')[0]}`);
     }
