@@ -1463,7 +1463,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-24.1";
+const APP_VERSION = "2026-10-24.2";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1795,7 +1795,7 @@ $("plBody").addEventListener("click", e => {
 /* ---------- Pans & yields (Clay 2026-10-23; pans 2026-10-24) ----------
    Per label item: the pan it's stored in, oz of product per pan, the batch yield and the par (pans). Each printed label is one
    pan. A change is logged to the print log as a "pan set" row (Source "pan <id> = <pan> | <oz> | <par> | <yield>"). Changes
-   by YIELD_APPROVERS apply on this device at once and reach every device and the Recipe Book within the hour (the sync runs
+   by YIELD_APPROVERS apply on this device at once and reach every device and the Recipe Book at the next sync (daily ~6 am, or sooner when the owner asks; the sync runs
    tools/yields.js, CLAUDE.md rule 11); anyone else's change waits for the owner's OK. */
 const YIELD_APPROVERS = ["Clay"];
 const YIELDS_APP = Object.assign({}, YIELDS), STORAGE_APP = JSON.parse(JSON.stringify(STORAGE));   // what this version carries
@@ -1840,7 +1840,7 @@ function renderYields(){
   const n = items.filter(i => STORAGE[i.id] && STORAGE[i.id].pan).length;
   $("ylBody").innerHTML = '<datalist id="ylPans">' + PANS.map(x => '<option value="' + esc(x) + '">').join("") + '</datalist>' +
     '<p class="plnote plsec"><b>' + n + ' of ' + items.length + ' label items have a pan standard.</b> Each printed label is one pan; Print starts at the pans one batch fills. ' +
-      (canApprove(store.get("name", "")) ? 'Your changes reach every device and the Recipe Book within the hour.' : 'Changes you make are sent to ' + esc(YIELD_APPROVERS[0]) + ' to approve.') + '</p>' +
+      (canApprove(store.get("name", "")) ? 'Your changes work on this device now and reach every device and the Recipe Book by the next morning.' : 'Changes you make are sent to ' + esc(YIELD_APPROVERS[0]) + ' to approve.') + '</p>' +
     CATS.map(c => { const rows = items.filter(i => i.cat === c.id); if(!rows.length) return "";
       return '<section class="plsec"><h2>' + esc(c.name) + '</h2><table class="pltab"><thead><tr><th>Item</th><th>Pan standard</th><th></th></tr></thead><tbody>' +
         rows.map(it => ylRow(it, edits)).join("") + '</tbody></table></section>'; }).join("");
@@ -1864,7 +1864,7 @@ function ylSave(id){
   if(ok){ STORAGE[id] = {pan, oz: +oz, par: +par || 0}; if(v) YIELDS[id] = v; }
   logEvent({event: "pan set", name: who, item: it.name, labels: "", source: "pan " + id + " = " + [pan, +oz, +par || 0, v].join(" | ")});
   ylOpenId = null; renderYields();
-  toast(ok ? it.name + " updated. Every device and the Recipe Book get it within the hour." : "Sent to " + YIELD_APPROVERS[0] + " to approve.", "ok", 6000);
+  toast(ok ? it.name + " updated here now. Every device and the Recipe Book get it by the next morning." : "Sent to " + YIELD_APPROVERS[0] + " to approve.", "ok", 6000);
 }
 function openYields(){ closeSheets(); ylOpenId = null; renderYields(); $("yl").hidden = false; try{ history.pushState({yl: 1}, ""); }catch(e){} }
 function closeYields(fromHistory){

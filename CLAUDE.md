@@ -45,7 +45,8 @@ The kitchen depends on this page to print legally required date labels. Keep it 
      files `{"recipes.html": ".sync/recipes.html"}` to the Prep Labels url, `node tools/sync.js mark`, commit, push.
      The check "Sync: the Claude artifacts were published" fails until that's done.
    - "conflict" = both sides changed: merge by hand, never overwrite either one, and tell the owner.
-   - The hourly scheduled task "Yardery labels sync" runs the same check and fixes drift on its own.
+   - The scheduled task "Yardery labels sync" runs the same check once a day (5:55 am Eastern) and fixes drift on its own.
+     **Owner rule (2026-10-24): sync only once a day, when the owner asks, or as part of a change he asks for.**
 10. **Prep List rules (owner, 2026-10-18; updated 2026-10-21):** the list starts empty every day and anyone picks today's items
     individually from every label item (or adds a new item, which stays pickable for good); nobody can remove a picked item or
     un-check one (no remove/undo/uncheck controls, ever); an item is complete only when a label prints for it, and shows
