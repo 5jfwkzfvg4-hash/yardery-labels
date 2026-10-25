@@ -695,7 +695,7 @@ const panText = id => STORAGE[id] && STORAGE[id].pan || "";
    Ops saved on the manager's device apply there at once and are logged ("admin" rows in the print log); other devices read
    them back from the shared feed within minutes (loadFeed, Prep List section); the daily sync
    (tools/admin.js, CLAUDE.md rule 12) adds them to SITE.ops so every device gets them, and refreshes SITE.users. */
-const SITE = {"pin":"1cde3077e5c369082f80e940749c10309f4c3142dffda913e13199ea9e176a72","ops":[],"users":[{"device":"e1988a81","name":"Caleb","last":"10/23/2026"},{"device":"e5a226a6","name":"Cam","last":"10/23/2026"},{"device":"2627971f","name":"Clay","last":"10/23/2026"},{"device":"100a4311","name":"Debo","last":"10/21/2026"},{"device":"000ba0a7","name":"James","last":"10/22/2026"},{"device":"0a77ac40","name":"James","last":"10/22/2026"}]};
+const SITE = {"pin":"1cde3077e5c369082f80e940749c10309f4c3142dffda913e13199ea9e176a72","ops":[],"users":[{"device":"e1988a81","name":"Caleb","last":"10/24/2026"},{"device":"e5a226a6","name":"Cam","last":"10/24/2026"},{"device":"2627971f","name":"Clay","last":"10/24/2026"},{"device":"100a4311","name":"Debo","last":"10/24/2026"},{"device":"000ba0a7","name":"James","last":"10/22/2026"},{"device":"0a77ac40","name":"James","last":"10/22/2026"}]};
 const siteDone = new Set(SITE.ops.map(o => o.t));
 let sitePin = SITE.pin, siteDenied = {};
 function slug(name){ return String(name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item"; }
@@ -1534,7 +1534,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-24.5";
+const APP_VERSION = "2026-10-25.1";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
