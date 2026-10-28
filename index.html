@@ -700,7 +700,7 @@ const panText = id => STORAGE[id] && STORAGE[id].pan || "";
    Ops saved on the manager's device apply there at once and are logged ("admin" rows in the print log); other devices read
    them back from the shared feed within minutes (loadFeed, Prep List section); the daily sync
    (tools/admin.js, CLAUDE.md rule 12) adds them to SITE.ops so every device gets them, and refreshes SITE.users. */
-const SITE = {"pin":"1cde3077e5c369082f80e940749c10309f4c3142dffda913e13199ea9e176a72","ops":[],"users":[{"device":"e1988a81","name":"Caleb","last":"10/27/2026"},{"device":"e5a226a6","name":"Cam","last":"10/25/2026"},{"device":"2627971f","name":"Clay","last":"10/28/2026"},{"device":"100a4311","name":"Debo","last":"10/27/2026"},{"device":"000ba0a7","name":"James","last":"10/22/2026"},{"device":"0a77ac40","name":"James","last":"10/22/2026"}]};
+const SITE = {"pin":"1cde3077e5c369082f80e940749c10309f4c3142dffda913e13199ea9e176a72","ops":[{"op":"label","id":"ahi-tuna-prep","name":"Ahi Tuna","cat":"proteins","days":3,"note":"","pan":"","oz":0,"par":0,"yield":"Per piece, 4 oz","flip":false,"t":"mvsgf2n7uq60"},{"op":"remove","id":"street-corn-batch","t":"mvsgh5ah93af"},{"op":"label","id":"corn","name":"Corn","cat":"sides","days":7,"note":"","pan":"1/6","oz":32,"par":0,"yield":"","flip":false,"t":"mvsgik3w1rka"},{"op":"label","id":"brussels-sprouts","name":"Brussels Sprouts","cat":"sides","days":7,"note":"","pan":"1/3","oz":0,"par":0,"yield":"4 qt","flip":false,"t":"mvsgknypi6kc"}],"users":[{"device":"e1988a81","name":"Caleb","last":"10/27/2026"},{"device":"e5a226a6","name":"Cam","last":"10/25/2026"},{"device":"8a2a0f35","name":"CeCe","last":"10/28/2026"},{"device":"2627971f","name":"Clay","last":"10/28/2026"},{"device":"100a4311","name":"Debo","last":"10/27/2026"},{"device":"000ba0a7","name":"James","last":"10/22/2026"},{"device":"0a77ac40","name":"James","last":"10/22/2026"}],"customs":[{"name":"Ranch Bottle","n":4,"last":"10/28/2026","by":"Clay","days":7},{"name":"Corn","n":3,"last":"10/28/2026","by":"Clay","days":7},{"name":"Cookies","n":2,"last":"10/27/2026","by":"Caleb","days":3},{"name":"Frozen Berries","n":2,"last":"10/28/2026","by":"Clay","days":90},{"name":"Frozen Blueberries","n":2,"last":"10/28/2026","by":"Clay","days":90},{"name":"Pasta","n":2,"last":"10/20/2026","by":"Clay","days":5},{"name":"Salad Chicken","n":2,"last":"10/24/2026","by":"Clay","days":7},{"name":"Sliced cheese","n":2,"last":"10/17/2026","by":"Debo","days":7},{"name":"Sliced Peaches Frozen","n":2,"last":"10/28/2026","by":"Clay","days":90},{"name":"Sour cream","n":2,"last":"10/17/2026","by":"Debo","days":7},{"name":"Brussel sprouts","n":1,"last":"10/17/2026","by":"Debo","days":5},{"name":"Bulk Peppers","n":1,"last":"10/25/2026","by":"Clay","days":12},{"name":"Caesar Dressing","n":1,"last":"10/23/2026","by":"Caleb","days":4},{"name":"Cheesecake","n":1,"last":"10/25/2026","by":"Clay","days":7},{"name":"Cheesecake Rolls","n":1,"last":"10/28/2026","by":"CeCe","days":7},{"name":"Corn Dog","n":1,"last":"10/20/2026","by":"Clay","days":7},{"name":"Diced Chicken","n":1,"last":"10/23/2026","by":"Clay","days":5},{"name":"Diced Mango Frozen","n":1,"last":"10/28/2026","by":"Clay","days":90},{"name":"Dough","n":1,"last":"10/23/2026","by":"Clay","days":7},{"name":"Frozen Dough","n":1,"last":"10/23/2026","by":"Clay","days":90},{"name":"Frozen Mango","n":1,"last":"10/28/2026","by":"Clay","days":90},{"name":"Frozen Peaches","n":1,"last":"10/28/2026","by":"Clay","days":90},{"name":"Honey Mustard Bottle","n":1,"last":"10/23/2026","by":"Clay","days":7},{"name":"Hot Honey Chx","n":1,"last":"10/25/2026","by":"Clay","days":6},{"name":"Ketchup","n":1,"last":"10/23/2026","by":"Clay","days":7},{"name":"Ketchup Bottle","n":1,"last":"10/23/2026","by":"Clay","days":7},{"name":"Mayo","n":1,"last":"10/25/2026","by":"Clay","days":12},{"name":"Mayo Bottle","n":1,"last":"10/24/2026","by":"Clay","days":7},{"name":"Mustard","n":1,"last":"10/25/2026","by":"Clay","days":14},{"name":"Raw Wonton","n":1,"last":"10/25/2026","by":"Clay","days":14},{"name":"Sweet Onions","n":1,"last":"10/25/2026","by":"Clay","days":12},{"name":"Tart Pies","n":1,"last":"10/25/2026","by":"Clay","days":7}]};
 const siteDone = new Set(SITE.ops.map(o => o.t));
 let sitePin = SITE.pin, siteDenied = {};
 function slug(name){ return String(name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item"; }
@@ -1401,6 +1401,12 @@ function logPrint(source, labels, made, ub){
   // one row per item per print (labels: [{name, count, batches?, made?}])
   const who = store.get("name", "") || "(no name)";
   labels.forEach(l => plMarkDone(l.name, who, new Date()));   // a printed label is what completes a Prep List item
+  if(/^custom(?! text)/.test(source) && made && ub){          // for the Manager's Custom labels tab (owner 2026-10-28)
+    const days = Math.round((Date.UTC(ub.getFullYear(), ub.getMonth(), ub.getDate()) - Date.UTC(made.getFullYear(), made.getMonth(), made.getDate())) / 864e5) + 1;
+    const mine = store.get("customPrints", []);
+    labels.forEach(l => mine.push({name: l.name, date: fmtDate(new Date()), by: who, days}));
+    store.set("customPrints", mine.slice(-500));
+  }
   labels.forEach(l => logEvent(Object.assign({ event: "print", name: who, source, item: l.name, labels: l.count,
     prep: made ? fmtDate(made) + " " + fmtTime(made) : "", useBy: ub ? fmtDate(ub) : "" },
     (l.batches || l.made) ? { batches: l.batches || "", made: l.made || "" } : {})));
@@ -1539,7 +1545,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-28.3";
+const APP_VERSION = "2026-10-28.7";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1929,12 +1935,13 @@ function mgUsers(){
   const me = myDevice(); if(!m.has(me)) m.set(me, {device: me, name: store.get("name", ""), last: "now"});
   return [...m.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
 }
-function mgLabelForm(it){
+function mgLabelForm(it, pre){
   const id = it ? it.id : "", st = it && STORAGE[id] || {}, inFlip = it && BATCH.items.some(n => n.toLowerCase() === it.name.toLowerCase());
-  return '<form class="mgform" data-id="' + esc(id) + '">' +
-    '<label class="w2">Label name<input name="name" maxlength="40" autocomplete="off" value="' + esc(it ? it.name : "") + '" placeholder="e.g. Diced Celery"></label>' +
-    '<label>Section<select name="cat">' + CATS.map(c => '<option value="' + c.id + '"' + ((it ? it.cat : "toppings") === c.id ? " selected" : "") + '>' + esc(c.name) + '</option>').join("") + '</select></label>' +
-    '<label>Shelf life (days)<input name="days" type="number" inputmode="numeric" min="1" max="365" value="' + esc(it && SHELF_DAYS[id] || "") + '" placeholder="e.g. 3"></label>' +
+  pre = pre || {};                                            // a custom label being made into a shared one: its name, section guess, shelf life
+  return '<form class="mgform" data-id="' + esc(id) + '"' + (pre.custom ? ' data-custom="' + esc(pre.custom) + '"' : '') + '>' +
+    '<label class="w2">Label name<input name="name" maxlength="40" autocomplete="off" value="' + esc(it ? it.name : pre.name || "") + '" placeholder="e.g. Diced Celery"></label>' +
+    '<label>Section<select name="cat">' + CATS.map(c => '<option value="' + c.id + '"' + ((it ? it.cat : pre.cat || "toppings") === c.id ? " selected" : "") + '>' + esc(c.name) + '</option>').join("") + '</select></label>' +
+    '<label>Shelf life (days)<input name="days" type="number" inputmode="numeric" min="1" max="365" value="' + esc(it && SHELF_DAYS[id] || pre.days || "") + '" placeholder="e.g. 3"></label>' +
     '<label class="w2">Note shown when it\'s picked<textarea name="note" maxlength="200" rows="2" placeholder="Optional, e.g. Keep at 41°F or below">' + esc(it && ITEM_NOTES[id] || "") + '</textarea></label>' +
     '<label>Pan size<input name="pan" list="mgPans" maxlength="24" autocomplete="off" value="' + esc(st.pan || "") + '" placeholder="e.g. 1/3 pan 6&quot;"></label>' +
     '<label>Oz per pan<input name="oz" type="number" inputmode="decimal" min="0" step="0.1" value="' + esc(st.oz || "") + '" placeholder="e.g. 60"></label>' +
@@ -1959,6 +1966,38 @@ function mgLabels(){
         '<td class="n"><b>' + esc(it.name) + '</b><small>' + esc(meta) + '</small></td><td class="c"><button class="plp" type="button" data-act="edit">Edit</button></td>') + '</tr>'; }).join("") + '</tbody></table></section>';
   });
   return h;
+}
+// Custom labels (owner 2026-10-28): every custom food label printed, from the print log (SITE.customs, daily sync) plus this
+// device's and the shared feed's recent ones. "Make it a label" opens the label form filled in; saving adds it for everyone.
+function mgCustoms(){
+  const m = new Map(), have = new Set(ITEMS.map(i => i.name.toLowerCase()).concat(SITE.ops.concat(newerOps()).filter(o => o.custom).map(o => o.custom)));
+  const add = (name, n, last, by, days) => {
+    name = String(name || "").replace(/\s+/g, " ").trim(); const k = name.toLowerCase(); if(!name || have.has(k)) return;
+    const c = m.get(k) || {key: k, name, n: 0, last: "", by: "", days: 0};
+    c.n += n; if(!c.last || new Date(last) >= new Date(c.last)){ c.last = last; c.by = by || c.by; c.name = name; if(days) c.days = days; }
+    if(!c.days && days) c.days = days;
+    m.set(k, c);
+  };
+  const synced = new Set();
+  (SITE.customs || []).forEach(c => { add(c.name, c.n, c.last, c.by, c.days); synced.add(c.last + "|" + c.name.toLowerCase()); });
+  // prints since the sync: this device's, and other devices' through the feed (today and yesterday)
+  const recent = store.get("customPrints", []).concat(plFeed.filter(e => e.event === "print" && /^custom(?! text)/i.test(e.source || ""))
+    .map(e => ({name: e.item, date: e.date, by: e.by, days: 0})));
+  const seenRecent = new Set();
+  recent.forEach(r => { const k = r.date + "|" + String(r.name).toLowerCase() + "|" + r.by; if(seenRecent.has(k)) return; seenRecent.add(k);
+    if(synced.has(r.date + "|" + String(r.name).toLowerCase())) return;   // already counted by the sync
+    add(r.name, 1, r.date, r.by, r.days); });
+  return [...m.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+}
+function mgCustomsTab(){
+  const list = mgCustoms();
+  if(!list.length) return '<p class="plnote">No custom labels yet. When someone prints a custom food label, it shows up here so you can make it a regular label.</p>';
+  return '<p class="plnote">Custom labels people have printed. Make one a regular label and every cook gets a button for it (check the name, section and shelf life first).</p>' +
+    '<table class="pltab"><tbody>' + list.map(c => '<tr data-custom="' + esc(c.key) + '">' + (mgEdit === "custom:" + c.key ?
+      '<td class="n" colspan="2"><b>' + esc(c.name) + '</b>' + mgLabelForm(null, {custom: c.key, name: c.name, days: c.days || "", cat: /frozen|frzn/i.test(c.name) ? "freezer" : "toppings"}) + '</td>' :
+      '<td class="n"><b>' + esc(c.name) + '</b><small>Printed ' + c.n + (c.n === 1 ? " time" : " times") + (c.last ? " · last " + esc(c.last) + (c.by ? " by " + esc(c.by) : "") : "") +
+        (c.days ? " · " + c.days + (c.days === 1 ? "-day" : "-day") + " shelf life" : "") + '</small></td>' +
+      '<td class="c"><button class="plp" type="button" data-act="make">Make it a label</button></td>') + '</tr>').join("") + '</tbody></table>';
 }
 function mgUsersTab(){
   const me = myDevice();
@@ -1987,10 +2026,11 @@ function renderManager(){
     return;
   }
   const pend = localOps().length, scroll = body.scrollTop;
-  body.innerHTML = '<div class="mgtabs" role="tablist">' + [["labels", "Labels"], ["users", "Users"], ["settings", "Settings"]].map(([k, l]) =>
+  const nCustom = mgCustoms().length;
+  body.innerHTML = '<div class="mgtabs" role="tablist">' + [["labels", "Labels"], ["customs", "Custom labels" + (nCustom ? " (" + nCustom + ")" : "")], ["users", "Users"], ["settings", "Settings"]].map(([k, l]) =>
       '<button type="button" role="tab" data-tab="' + k + '" aria-selected="' + (mgTab === k) + '">' + l + '</button>').join("") + '</div>' +
     (pend ? '<p class="note mgpend">' + pend + (pend === 1 ? " change" : " changes") + ' saved. Every other device gets ' + (pend === 1 ? "it" : "them") + ' ' + mgReach() + '.</p>' : '') +
-    (mgTab === "users" ? mgUsersTab() : mgTab === "settings" ? mgSettingsTab() : mgLabels());
+    (mgTab === "users" ? mgUsersTab() : mgTab === "settings" ? mgSettingsTab() : mgTab === "customs" ? mgCustomsTab() : mgLabels());
   body.scrollTop = scroll;
   const f = body.querySelector(".mgform[data-id] input[name=name]"); if(f && mgEdit) f.focus();
 }
@@ -2018,6 +2058,7 @@ function mgSaveLabel(f){
   let id = id0;
   if(!id){ id = slug(d.name); let n = 2; while(ITEMS.some(i => i.id === id)) id = slug(d.name) + "-" + n++; }
   const op = {op: "label", id, name: d.name, cat: d.cat, days, note: d.note || "", pan: d.pan || "", oz: d.pan ? +d.oz || 0 : 0, par: d.pan ? +d.par || 0 : 0, yield: d.yield || (it && /^TBD$/i.test(YIELDS[id0] || "") ? YIELDS[id0] : ""), flip: !!d.flip};
+  if(f.dataset.custom) op.custom = f.dataset.custom;          // made from a custom label: it leaves that list on every device, even if renamed
   mgSave(op, (it ? "Changed " : "Added ") + d.name);
   mgEdit = null; renderManager();
   toast((it ? "Saved " : "Added ") + d.name + ". Close Manager to see it on the label page.", "ok", 5000);
@@ -2057,6 +2098,7 @@ $("mgBody").addEventListener("click", e => {
   mgAt = Date.now(); const act = b.dataset.act, tr = b.closest("tr");
   if(act === "add"){ mgEdit = "new"; renderManager(); return; }
   if(act === "edit"){ mgEdit = tr.dataset.id; renderManager(); return; }
+  if(act === "make"){ mgEdit = "custom:" + tr.dataset.custom; renderManager(); return; }
   if(act === "cancel"){ mgEdit = null; renderManager(); return; }
   if(act === "remove"){
     const id = b.closest("form").dataset.id, it = ITEMS.find(i => i.id === id);

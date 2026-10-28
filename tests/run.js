@@ -715,6 +715,58 @@ test('Manager: changes reach every other device from the shared feed, once nobod
   await p.close2();
 });
 
+test('Manager: Custom labels tab lists custom food labels people printed; "Make it a label" adds one for everyone (owner, 2026-10-28)', async () => {
+  const p = await openWith(withPin());
+  // printing a custom food label is remembered on the device (text-only labels aren't)
+  await p.click('#customTop'); await p.click('#cDated'); await p.fill('#customName', 'Lemon Bars'); await p.click('#days button[aria-label="4 days"]'); await printAndWait(p);
+  await p.click('#customTop'); await p.click('#cText'); await p.fill('#customName', 'Walk-in Door'); await printAndWait(p);
+  await p.evaluate(() => { const l = JSON.parse(localStorage.getItem('ypl:customPrints') || '[]');
+    l.push({ name: 'Coleslaw', date: '10/20/2026', by: 'Cam', days: 3 }, { name: 'Ranch Bottle', date: '10/21/2026', by: 'Debo', days: 7 }, { name: 'ranch bottle', date: '10/22/2026', by: 'Clay', days: 7 });
+    localStorage.setItem('ypl:customPrints', JSON.stringify(l)); });
+  await unlock(p);
+  const want = await p.evaluate(() => { const have = new Set(window.__ypl.ITEMS.map(i => i.name.toLowerCase()));
+    return new Set((window.__ypl.SITE.customs || []).map(c => c.name.toLowerCase()).concat(['lemon bars', 'ranch bottle']).filter(n => !have.has(n))).size; });
+  assert(new RegExp('Custom labels \\(' + want + '\\)').test(await p.textContent('#mgBody .mgtabs')), 'tab shows how many (' + want + '): ' + await p.textContent('#mgBody .mgtabs'));
+  await p.click('#mgBody [data-tab="customs"]'); await p.waitForTimeout(150);
+  const txt = await p.textContent('#mgBody');
+  assert(/Lemon Bars\s*Printed 1 time · last \d+\/\d+\/\d{4} by Maria · 4-day shelf life/.test(txt), 'shows times, last print, who, shelf life: ' + txt.slice(0, 400));
+  assert(/ranch bottle\s*Printed \d+ times · last/i.test(txt) && (txt.match(/ranch bottle/gi) || []).length === 1, 'same name counted together, once');
+  assert(!/Coleslaw|Walk-in Door/.test(txt), 'existing labels and text-only labels left out');
+  await p.click('#mgBody tr[data-custom="lemon bars"] [data-act="make"]'); await p.waitForTimeout(150);
+  eq(await p.inputValue('#mgBody form[data-custom="lemon bars"] [name=name]'), 'Lemon Bars', 'name filled in');
+  eq(await p.inputValue('#mgBody form[data-custom="lemon bars"] [name=days]'), '4', 'shelf life filled in');
+  await p.fill('#mgBody form[data-custom="lemon bars"] [name=name]', 'Lemon Bar');
+  await p.selectOption('#mgBody form[data-custom="lemon bars"] [name=cat]', 'desserts');
+  await p.click('#mgBody form[data-custom="lemon bars"] button[type=submit]'); await p.waitForTimeout(300);
+  assert(/Added Lemon Bar/.test(await toastText(p)), 'saved');
+  assert(!/Lemon Bars/.test(await p.textContent('#mgBody')), 'leaves the custom list once it is a label');
+  const op = await p.evaluate(() => JSON.parse(localStorage.getItem('ypl:adminOps')).find(o => o.op === 'label'));
+  eq([op.name, op.cat, op.days].join('|'), 'Lemon Bar|desserts|4', 'a shared label op, like any Manager add');
+  await p.click('#mgClose'); await p.waitForTimeout(800);
+  assert(await p.locator('.item .n', { hasText: /^Lemon Bar$/ }).count() > 0, 'cooks get the button');
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
+test('Manager tool: the sync lists every custom food label from the print log (name, count, last print, shelf life)', async () => {
+  const admin = require('../tools/admin');
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ypl-'));
+  const files = { BOOK: path.join(tmp, 'book.html'), APP: path.join(tmp, 'index.html') };
+  fs.copyFileSync(path.join(ROOT, 'artifacts', 'recipe-book.html'), files.BOOK); fs.copyFileSync(path.join(ROOT, 'index.html'), files.APP);
+  const H = ['Timestamp', 'Event', 'Date', 'Time', 'Printed By', 'Item(Recipe Book Name)', '#Labels', 'Prep Date', 'Use By Date', 'Source', 'Device'];
+  const rows = [H, ['', 'print', '10/20/2026', '9:00 AM', 'Debo', 'Ranch Bottle', '1', '10/20/2026 9:00 AM', '10/26/2026', 'custom', 'd1'],
+    ['', 'print', '10/22/2026', '9:00 AM', 'Clay', 'ranch bottle', '1', '10/22/2026 9:00 AM', '10/28/2026', 'custom', 'd2'],
+    ['', 'print', '10/22/2026', '9:30 AM', 'Cam', 'Frozen Mango', '1', '10/22/2026 9:30 AM', '1/19/2027', 'custom', 'd3'],
+    ['', 'print', '10/22/2026', '9:40 AM', 'Cam', 'Walk-in Door', '1', '', '', 'custom text', 'd3'],
+    ['', 'print', '10/22/2026', '9:50 AM', 'Cam', 'Coleslaw', '1', '10/22/2026 9:50 AM', '10/24/2026', 'labels page', 'd3']];
+  const r = admin.apply(rows, files);
+  assert(r.customsChanged, 'reported');
+  eq(JSON.stringify(admin.readSite(fs.readFileSync(files.APP, 'utf8')).customs),
+    JSON.stringify([{ name: 'ranch bottle', n: 2, last: '10/22/2026', by: 'Clay', days: 7 }, { name: 'Frozen Mango', n: 1, last: '10/22/2026', by: 'Cam', days: 90 }]), 'customs');
+  assert(!admin.apply(rows, files).customsChanged, 'nothing twice');
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
 test('Manager tool: the sync adds new ops for every device, rebuilds users, keeps the Recipe Book yields equal; each op once', async () => {
   const admin = require('../tools/admin');
   const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ypl-'));
@@ -732,7 +784,7 @@ test('Manager tool: the sync adds new ops for every device, rebuilds users, keep
   eq(r.ops.length, 2, 'two ops');
   eq(r.warn.length, 0, 'nothing to flag');
   const site = admin.readSite(fs.readFileSync(files.APP, 'utf8'));
-  eq(site.ops.map(o => o.t).join(), 'a1,a2', 'ops added');
+  eq(site.ops.map(o => o.t).slice(-2).join(), 'a1,a2', 'ops added');
   eq(site.users.map(u => u.device + ':' + u.name).join(), '2627971f:Clay,100a4311:Deborah', 'one user per device, last name used');
   eq(admin.bookYield(fs.readFileSync(files.BOOK, 'utf8'), 'pico-de-gallo'), '250 oz', 'book yield follows');
   assert(/const APP_VERSION = "\d{4}-\d{2}-\d{2}\.\d+"/.test(fs.readFileSync(files.APP, 'utf8')) && fs.readFileSync(files.APP, 'utf8') !== fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), 'version bumped');
@@ -754,7 +806,8 @@ test('Yields: the label app uses the Recipe Book\'s batch yields', async () => {
   const app = await p.evaluate(() => ({ Y: window.__ypl.YIELDS, ids: window.__ypl.ITEMS.map(i => i.id) }));
   const f = await openBook(p);
   const book = await f.evaluate(ids => Object.fromEntries(ids.filter(id => BATCH_YIELDS[id]).map(id => [id, (BATCH_YIELDS[id].est ? '≈ ' : '') + BATCH_YIELDS[id].v])), app.ids);
-  eq(JSON.stringify(app.Y), JSON.stringify(book), 'YIELDS match BATCH_YIELDS');
+  const sorted = o => JSON.stringify(Object.keys(o).sort().map(k => [k, o[k]]));
+  eq(sorted(app.Y), sorted(book), 'YIELDS match BATCH_YIELDS');
   const am = await p.evaluate(() => { const a = window.__ypl.amountMade; return [a('pico-de-gallo', 2), a('blackened-fish', 2), a('smoked-ribs', 3), a('bama-white-bbq', 2), a('coleslaw', 2), a('fire-marinara', 3)].join(' | '); });
   eq(am, '480 oz | 36–42 pieces × 2 oz | 3 racks | ≈ 340 oz |  | ≈ 19.5 quarts', 'batches × yield');
   await p.close2();

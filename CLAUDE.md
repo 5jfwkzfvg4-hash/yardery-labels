@@ -56,7 +56,9 @@ The kitchen depends on this page to print legally required date labels. Keep it 
     printed that day for items not on the list (owner 2026-10-28). The labels page shows a "pick today's items" banner
     until at least one item is picked that day (owner 2026-10-28).
 11. **Manager page (owner, 2026-10-24):** the 🔒 button opens a PIN-protected Manager (labels: edit/add/remove any label,
-    shelf life, section, note, pan, oz per pan, par, batch yield, Line Flip; users: allow/deny devices; settings: change PIN).
+    shelf life, section, note, pan, oz per pan, par, batch yield, Line Flip; custom labels: every custom food label printed,
+    from `SITE.customs` (built by tools/admin.js at the daily sync) + recent prints, each with "Make it a label" (owner
+    2026-10-28; the label op carries `custom` so it leaves that list everywhere); users: allow/deny devices; settings: PIN).
     Cooks can't change labels anywhere else. `SITE.pin` holds only the SHA-256 of `"yardery-manager:" + PIN`, never the PIN.
     Each change saves on that device right away and logs an "admin" row to the print log sheet "Yardery Sanford — Prep Label
     Print Log" (id `1X6J9WJorpDE-PzZTXGPzjBFfw1d_QgGHfqLIWIs2Lc4`, tab "Form Responses 1").

@@ -3,9 +3,10 @@
 // <form-responses.json> = the print log's "Form Responses 1" tab as rows (Sheets get_values result, or its "values").
 // Each "admin" row carries "admin {op JSON}" in Source (ops: label / remove / user / pin, see MANAGER EDITS in index.html).
 // New ops (by their "t") are added to SITE.ops in index.html, so every device replays them; SITE.users is rebuilt from the
-// log (one row per device: last name used, last date). Batch yields changed by label ops are copied into the Recipe Book's
+// log (one row per device: last name used, last date), and SITE.customs lists every custom label printed so the Manager can
+// turn one into a shared label (owner 2026-10-28: name, times printed, last date + who, shelf life used). Batch yields changed by label ops are copied into the Recipe Book's
 // BATCH_YIELDS (artifacts/recipe-book.html) so both stay equal. APP_VERSION is bumped when anything changed.
-// Prints JSON: {ops: [...human summaries], doc: [...label changes the Google Doc prep list needs], book: [...], usersChanged,
+// Prints JSON: {ops: [...human summaries], doc: [...label changes the Google Doc prep list needs], book: [...], usersChanged, customsChanged,
 // warn: [...things to raise with the owner: shelf life past the 7-day Food Code limit, a PIN change, changes from a device
 // that isn't the owner's]}. Devices read new ops from the feed within minutes anyway; this writes them into the code.
 // After a change: sync.js build, npm test, publish both artifacts, sync.js mark, commit, push (CLAUDE.md rule 12).
@@ -57,9 +58,10 @@ function bumpVersion(app, now = new Date()) {
 
 function apply(rows, files = { BOOK, APP }) {
   const head = rows[0].map(h => String(h).trim().toLowerCase()), col = re => head.findIndex(h => re.test(h));
-  const c = { event: col(/^event$/), date: col(/^date$/), by: col(/^printed\s*by$/), item: col(/^item/), source: col(/^source$/), device: col(/^device$/) };
+  const c = { event: col(/^event$/), date: col(/^date$/), by: col(/^printed\s*by$/), item: col(/^item/), source: col(/^source$/), device: col(/^device$/),
+    labels: col(/^#\s*labels$/), prep: col(/^prep\s*date$/), useBy: col(/^use[-\s]*by/) };
   let app = fs.readFileSync(files.APP, 'utf8'), book = fs.readFileSync(files.BOOK, 'utf8');
-  const site = readSite(app), seen = new Set(site.ops.map(o => o.t)), out = { ops: [], doc: [], book: [], usersChanged: false, warn: [] };
+  const site = readSite(app), seen = new Set(site.ops.map(o => o.t)), out = { ops: [], doc: [], book: [], usersChanged: false, customsChanged: false, warn: [] };
   // users: one per device, the last name it used
   const users = new Map();
   rows.slice(1).forEach(r => {
@@ -69,6 +71,18 @@ function apply(rows, files = { BOOK, APP }) {
   });
   const list = [...users.values()].sort((a, b) => a.name.localeCompare(b.name) || a.device.localeCompare(b.device));
   if (JSON.stringify(list) !== JSON.stringify(site.users || [])) { site.users = list; out.usersChanged = true; }
+  // custom labels (food with dates; text-only labels aren't food): one per name, the latest print's spelling and shelf life
+  const day = s => { const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(s || '')); return m ? Date.UTC(+m[3], m[1] - 1, +m[2]) : null; };
+  const customs = new Map();
+  rows.slice(1).forEach(r => {
+    if (r[c.event] !== 'print' || !/^custom(?! text)/i.test(String(r[c.source] || '').trim())) return;
+    const name = String(r[c.item] || '').replace(/\s+/g, ' ').trim(), k = name.toLowerCase(); if (!name) return;
+    const a = day(r[c.prep]), b = day(r[c.useBy]), days = a != null && b != null && b >= a ? Math.round((b - a) / 864e5) + 1 : 0;
+    const prev = customs.get(k) || { n: 0 };
+    customs.set(k, { name, n: prev.n + 1, last: String(r[c.date] || '').trim(), by: String(r[c.by] || '').trim(), days: days || prev.days || 0 });
+  });
+  const clist = [...customs.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+  if (JSON.stringify(clist) !== JSON.stringify(site.customs || [])) { site.customs = clist; out.customsChanged = true; }
   // ops
   rows.slice(1).forEach(r => {
     if (r[c.event] !== 'admin') return;
@@ -89,7 +103,7 @@ function apply(rows, files = { BOOK, APP }) {
     else if (op.op === 'user') out.ops.push(`${who}: access ${op.deny ? 'off' : 'on'} for ${op.name || ''} (device ${op.device})`);
     else out.ops.push(`${who}: changed the Manager PIN`);
   });
-  if (out.ops.length || out.usersChanged) {
+  if (out.ops.length || out.usersChanged || out.customsChanged) {
     app = bumpVersion(writeSite(app, site));
     fs.writeFileSync(files.APP, app);
     if (out.book.length) fs.writeFileSync(files.BOOK, book);

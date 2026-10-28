@@ -8,8 +8,9 @@
 const fs = require('fs');
 const path = require('path');
 
-// pull the item data out of index.html, so the archive always matches the app
-function appData(indexHtml) {
+// pull the item data out of index.html, so the archive always matches the app: the built-in lists, then the Manager's
+// changes the app replays (SITE.ops, plus newer "admin" rows from the print log), same rules as applyOp in index.html
+function appData(indexHtml, moreOps = []) {
   // the literal from `start` up to and including the first `keep` characters of `end`
   const grab = (start, end, keep) => {
     const a = indexHtml.indexOf(start); if (a < 0) throw new Error('index.html: missing ' + start);
@@ -19,6 +20,23 @@ function appData(indexHtml) {
   const ITEMS = eval('(' + grab('const ITEMS = ', '].map(', 1) + ')').map(([id, name, cat]) => ({ id, name, cat }));
   const SHELF_DAYS = eval('(' + grab('const SHELF_DAYS = ', '};', 1) + ')');
   const BATCH = eval('(' + grab('const BATCH = ', '] };', 3) + ')');
+  const m = /^const SITE = (.*);$/m.exec(indexHtml), site = m ? JSON.parse(m[1]) : { ops: [] }, done = new Set();
+  (site.ops || []).concat(moreOps).forEach(o => {
+    if (!o || (o.t && done.has(o.t))) return; if (o.t) done.add(o.t);
+    const k = n => String(n || '').toLowerCase();
+    if (o.op === 'label') {
+      let it = ITEMS.find(i => i.id === o.id); const old = it ? it.name : null;
+      if (!it) { it = { id: o.id, name: o.name, cat: o.cat }; ITEMS.push(it); }
+      it.name = o.name; it.cat = o.cat;
+      if (+o.days > 0) SHELF_DAYS[o.id] = +o.days; else delete SHELF_DAYS[o.id];
+      const at = BATCH.items.findIndex(n => k(n) === k(old) || k(n) === k(o.name));
+      if (o.flip && at < 0) BATCH.items.push(o.name); else if (o.flip) BATCH.items[at] = o.name; else if (at >= 0) BATCH.items.splice(at, 1);
+    } else if (o.op === 'remove') {
+      const at = ITEMS.findIndex(i => i.id === o.id); if (at < 0) return;
+      const name = k(ITEMS[at].name); ITEMS.splice(at, 1); delete SHELF_DAYS[o.id];
+      const b = BATCH.items.findIndex(n => k(n) === name); if (b >= 0) BATCH.items.splice(b, 1);
+    }
+  });
   return { CATS, ITEMS, SHELF_DAYS, BATCH };
 }
 const key = n => String(n || '').trim().toLowerCase();
@@ -42,7 +60,10 @@ function build(rows, day, indexHtml) {
   const head = rows[0].map(h => String(h).trim().toLowerCase()), col = re => head.findIndex(h => re.test(h));
   const c = { event: col(/^event$/), date: col(/^date$/), time: col(/^time$/), by: col(/^printed\s*by$/), item: col(/^item/), labels: col(/^#\s*labels$/), source: col(/^source$/) };
   const ev = rows.slice(1).map(r => ({ event: r[c.event], date: r[c.date], time: r[c.time], by: r[c.by], item: r[c.item], labels: r[c.labels], source: r[c.source] }));
-  const dayD = toDate(day), secs = sections(appData(indexHtml)), seen = new Set(secs.flatMap(s => s.rows.map(r => r.key)));
+  // Manager changes logged up to that day (the daily sync also bakes them into SITE.ops)
+  const ops = rows.slice(1).filter(r => r[c.event] === 'admin' && toDate(r[c.date]) && toDate(r[c.date]) <= toDate(day)).map(r => {
+    const m = /^admin (\{.*\})$/.exec(String(r[c.source] || '').trim()); try { return m && JSON.parse(m[1]); } catch (e) { return null; } }).filter(Boolean);
+  const dayD = toDate(day), secs = sections(appData(indexHtml, ops)), seen = new Set(secs.flatMap(s => s.rows.map(r => r.key)));
   // items added on or before this day
   ev.filter(e => e.event === 'prep add' && toDate(e.date) && toDate(e.date) <= dayD).forEach(e => {
     const k = key(e.item); if (!k || seen.has(k)) return; seen.add(k);
