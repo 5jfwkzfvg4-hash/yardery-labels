@@ -394,6 +394,20 @@ async function plPickItems(p, picks){
   p.once('dialog', d => d.accept());
   await p.click('#plPickAdd'); await p.waitForTimeout(300);
 }
+test('Prep List: the labels page reminds the kitchen to pick today\'s items until one is picked', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  assert(await p.isVisible('#pickNag'), 'reminder shows when nothing is picked today');
+  await p.click('#pickNagBtn'); await p.waitForTimeout(200);
+  assert(await p.isVisible('#pl'), 'its button opens the Prep List');
+  assert(/plwarn/.test(await p.getAttribute('#plCount', 'class')), 'the empty list stands out on the Prep List too');
+  await plPickItems(p, [['Toppings & Prep', 'Coleslaw']]);
+  await p.click('#plClose'); await p.waitForTimeout(200);
+  assert(!(await p.isVisible('#pickNag')), 'gone once an item is picked');
+  await p.reload(); await p.waitForTimeout(400);
+  assert(!(await p.isVisible('#pickNag')), 'stays gone for the rest of the day');
+  await p.close2();
+});
+
 test('Prep List: starts empty each day; items are picked one by one from every label item; picks can\'t be removed', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await p.click('#plBtn'); await p.waitForTimeout(200);
@@ -554,6 +568,15 @@ test('Prep List archive: the day\'s picked items, same sections as the screen; d
   assert(/Croutons<\/td><td>Not done/.test(out), 'another day\'s print doesn\'t count');
   assert(!/Brownies|Pickles/.test(out), 'only the items picked that day');
   assert(/<b>No items were picked/.test(arch.build([H], '10/17/2026', html)), 'a day with no picks says so');
+  // labels printed that day for items not on the list still go on record (owner 2026-10-28); text-only labels don't
+  const noPick = arch.build([H, ['', 'print', '10/17/2026', '9:10 AM', 'Cam', 'Pickles', '2', '', '', 'labels page', ''],
+    ['', 'print', '10/17/2026', '8:05 AM', 'Caleb', 'Croutons', '1', '', '', 'labels page', ''], ['', 'print', '10/17/2026', '8:30 AM', 'Cam', 'Croutons', '2', '', '', 'labels page', ''],
+    ['', 'print', '10/17/2026', '9:00 AM', 'Cam', 'Walk-in door', '1', '', '', 'custom text', '']], '10/17/2026', html);
+  assert(/No items were picked for this day\.<\/b> 2 other items had labels printed/.test(noPick), 'summary counts the other items');
+  assert(/Labels printed, not on the list<\/h2>.*First printed by.*Croutons<\/td><td>✓ Caleb<\/td><td>8:05 AM<\/td><td>3<.*Pickles<\/td><td>✓ Cam<\/td><td>9:10 AM<\/td><td>2</.test(noPick), 'listed by first print, labels counted');
+  assert(!/Walk-in door/.test(noPick), 'text-only labels left out');
+  assert(/Labels printed, not on the list[\s\S]*Brownies/.test(arch.build([H, ['', 'prep pick', '10/17/2026', '7:00 AM', 'Debo', 'Coleslaw', '', '', '', 'Toppings & Prep', ''],
+    ['', 'print', '10/17/2026', '9:00 AM', 'Debo', 'Brownies', '1', '', '', 'labels page', '']], '10/17/2026', html)), 'off-list prints listed on picked days too');
   await p.close2();
 });
 

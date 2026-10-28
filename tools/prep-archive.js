@@ -3,7 +3,8 @@
 // <form-responses.json> = the "Form Responses 1" tab as rows (the Sheets get_values result, or just its "values" array).
 // Uses the same items, sections and rules as the Prep List screen in index.html: the day's list is the items picked that
 // day ("prep pick" rows: item + section), items people added stay pickable, an item is done when its first label printed
-// that day (who + time), Line Flip rows by name.
+// that day (who + time), Line Flip rows by name. Labels printed that day for items not on the list get their own section
+// (owner 2026-10-28), so a day with no picks still has a record; text-only custom labels are left out.
 const fs = require('fs');
 const path = require('path');
 
@@ -52,19 +53,28 @@ function build(rows, day, indexHtml) {
   // that day's list: only the rows picked that day, in the screen's sections and order
   const picks = new Set(ev.filter(e => e.event === 'prep pick' && e.date === day).map(e => e.source + '|' + key(e.item)));
   const list = secs.map(s => Object.assign({}, s, { rows: s.rows.filter(r => picks.has(s.name + '|' + r.key)) })).filter(s => s.rows.length);
-  const done = {}, count = {};
+  const done = {}, count = {}, names = {};
   ev.filter(e => e.event === 'print' && e.date === day).forEach(e => {
-    const k = key(e.item);
+    const k = key(e.item); if (!k) return;
+    names[k] = names[k] || e.item;
     count[k] = (count[k] || 0) + (parseInt(e.labels, 10) || 1);
-    if (!done[k] || mins(e.time) < mins(done[k].time)) done[k] = { by: e.by, time: e.time };
+    if (!done[k] || mins(e.time) < mins(done[k].time)) done[k] = { by: e.by, time: e.time, source: String(e.source || '') };
   });
-  const n = list.reduce((t, s) => t + s.rows.length, 0), k = list.reduce((t, s) => t + s.rows.filter(r => done[r.key]).length, 0);
+  // printed that day but not on the list, in the order they were first printed
+  const onList = new Set(list.flatMap(s => s.rows.map(r => r.key)));
+  const extra = Object.keys(done).filter(k => !onList.has(k) && !/^custom text/i.test(done[k].source))
+    .sort((a, b) => mins(done[a].time) - mins(done[b].time) || names[a].localeCompare(names[b]))
+    .map(k => ({ key: k, name: names[k] }));
+  if (extra.length) list.push({ name: n0 => n0, extra: true, rows: extra });
+  const picked = list.filter(s => !s.extra);
+  const n = picked.reduce((t, s) => t + s.rows.length, 0), k = picked.reduce((t, s) => t + s.rows.filter(r => done[r.key]).length, 0);
+  const extraN = extra.length ? ` ${extra.length} other item${extra.length === 1 ? '' : 's'} had labels printed (last section).` : '';
   const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayD.getDay()];
   const title = `Prep List — ${dow} ${day}`;
   return `<html><head><meta charset="utf-8"><title>${esc(title)}</title></head><body style="font-family:Arial">` +
-    `<h1>${esc(title)}</h1><p>` + (n ? `<b>${k} of ${n} done.</b> An item is done when its label prints; the first print of the day is shown.` : '<b>No items were picked for this day.</b>') + '</p>' +
-    list.map(s => `<h2>${esc(s.name)}</h2><table border="1" cellpadding="4" style="border-collapse:collapse;width:100%">` +
-      `<tr><th bgcolor="#2F5233" style="color:#ffffff">Item</th><th bgcolor="#2F5233" style="color:#ffffff">Done by</th><th bgcolor="#2F5233" style="color:#ffffff">Time</th><th bgcolor="#2F5233" style="color:#ffffff">Labels</th></tr>` +
+    `<h1>${esc(title)}</h1><p>` + (n ? `<b>${k} of ${n} done.</b> An item is done when its label prints; the first print of the day is shown.` : '<b>No items were picked for this day.</b>') + extraN + '</p>' +
+    list.map(s => `<h2>${esc(s.extra ? 'Labels printed, not on the list' : s.name)}</h2><table border="1" cellpadding="4" style="border-collapse:collapse;width:100%">` +
+      `<tr><th bgcolor="#2F5233" style="color:#ffffff">Item</th><th bgcolor="#2F5233" style="color:#ffffff">${s.extra ? 'First printed by' : 'Done by'}</th><th bgcolor="#2F5233" style="color:#ffffff">Time</th><th bgcolor="#2F5233" style="color:#ffffff">Labels</th></tr>` +
       s.rows.map(r => { const v = done[r.key];
         return `<tr><td>${esc(r.name)}${r.added != null ? ' (added' + (r.added ? ' by ' + esc(r.added) : '') + ')' : ''}</td>` +
           (v ? `<td>✓ ${esc(v.by)}</td><td>${esc(v.time)}</td><td>${count[r.key]}</td>` : '<td>Not done</td><td> </td><td> </td>') + '</tr>'; }).join('') +

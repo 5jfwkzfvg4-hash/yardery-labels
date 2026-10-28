@@ -51,7 +51,10 @@ The kitchen depends on this page to print legally required date labels. Keep it 
     individually from every label item (or adds a new item, which stays pickable for good); nobody can remove a picked item or
     un-check one (no remove/undo/uncheck controls, ever); an item is complete only when a label prints for it, and shows
     who printed it and when (first print of the day). Every item with a Recipe Book page links to it. Each day is archived
-    (`tools/prep-archive.js`, Drive folder "Prep List Archive" id `1p7Fg1TkNJGr0crpQgfhFqHjs9PQGkaXY`).
+    (`tools/prep-archive.js`, Drive folder "Prep List Archive" id `1p7Fg1TkNJGr0crpQgfhFqHjs9PQGkaXY`) by the owner's 8:59 am
+    "Sanford recap log" scheduled task (yesterday + any missing day of the past week). The archive also lists every label
+    printed that day for items not on the list (owner 2026-10-28). The labels page shows a "pick today's items" banner
+    until at least one item is picked that day (owner 2026-10-28).
 11. **Manager page (owner, 2026-10-24):** the 🔒 button opens a PIN-protected Manager (labels: edit/add/remove any label,
     shelf life, section, note, pan, oz per pan, par, batch yield, Line Flip; users: allow/deny devices; settings: change PIN).
     Cooks can't change labels anywhere else. `SITE.pin` holds only the SHA-256 of `"yardery-manager:" + PIN`, never the PIN.

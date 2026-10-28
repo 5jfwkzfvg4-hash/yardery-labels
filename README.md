@@ -22,7 +22,8 @@ Everything lives in `index.html`. Near the top of the `<script>`:
   (item + section) and every "prep add", and the sheet's **Prep Feed** tab (today's and yesterday's prints and picks + all
   added items) is read back as published CSV from `PREP_FEED_URL`. `RECIPE_PAGES` (items with a
   Recipe Book page, linked from the list) must equal the book's `PREP_LABEL_IDS`. Each day is archived to Drive folder
-  "Prep List Archive" by `tools/prep-archive.js` (`node tools/prep-archive.js <form-responses.json> <M/D/YYYY>`).
+  "Prep List Archive" by `tools/prep-archive.js` (`node tools/prep-archive.js <form-responses.json> <M/D/YYYY>`), run each
+  morning by the owner's "Sanford recap log" scheduled task; it also lists labels printed for items not on the day's list.
 - **Custom labels, not buttons yet** (Clay 2026-10-21): every dated custom label printed is listed at the bottom of the
   label page (name, usual shelf life, times printed, last by) until a button with that name exists, so the owner can pick
   which to add for good. Text-only labels aren't listed. Source: this device's prints + the feed's `custom` prints.
