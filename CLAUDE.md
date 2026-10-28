@@ -74,3 +74,11 @@ The kitchen depends on this page to print legally required date labels. Keep it 
 13. **Daily review (owner, 2026-10-24), part of the 5:55 am sync:** full `npm test`; open the staff link's data (labels,
     shelf lives vs the Recipe Book, Line Flip set, pans/yields, Prep Feed rows and formula, users list) and look for anything
     wrong or inconsistent; fix real bugs (with a check, rule 2) and report them; list suggestions but ask before building them.
+14. **Use the owner's usage sparingly (owner, 2026-10-28), never at the cost of accuracy.**
+    - One task per session: start a fresh session for each new request; this file and README hold everything needed.
+    - While working, run only the affected checks (`node tests/run.js "<part of test name>"`); run the full `npm test`
+      once, right before the push. Don't re-run the full suite for a docs-only or publish-only change.
+    - Read big files by path and search them (grep/jq); never load a whole artifact, sheet or doc into the conversation.
+    - Plan the change, then make it in as few edits as possible; publish once (a refusal that only shows your own
+      changes means publish again unchanged — don't re-read the page).
+    - Keep replies short: what changed, what's needed from the owner.
