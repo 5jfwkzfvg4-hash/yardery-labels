@@ -598,9 +598,9 @@ const ITEMS = [
 const SHELF_DAYS = {
   "ahi-tuna-prep":2, "smoked-ribs":4, "blackened-fish":2, "corn-dogs":7 /* Clay 2026-10-20 */, "crab-cakes":2, "fried-cod":2, "hamburger-patty":2,
   "marinated-chicken-tenders":2, "wing-marinade":2, "pulled-pork":4, "smoked-chicken-breast":4,
-  "bama-white-bbq":5, "buffalo-sauce":7, "cilantro-lime-sauce":5, "fire-marinara":5, "fire-sauce":5,
-  "honey-mustard":5, "hot-honey-chicken-marinade":2, "hot-honey-sauce":14, "pickling-liquid":14,
-  "ranch-dressing":7, "tartar-sauce":5, "yardery-sauce":5, "bbq-dry-rub":30, "burger-seasoning":10,
+  "bama-white-bbq":7, "buffalo-sauce":7, "cilantro-lime-sauce":7, "fire-marinara":7, "fire-sauce":5,
+  "honey-mustard":7, "hot-honey-chicken-marinade":2, "hot-honey-sauce":14, "pickling-liquid":14,
+  "ranch-dressing":7, "tartar-sauce":7, "yardery-sauce":7, "bbq-dry-rub":30, "burger-seasoning":10,
   "hot-honey-dredge":30, "poultry-seasoning":30, "seafood-breading":30, "black-beans":4, "brussels-sprouts":7 /* Clay 2026-10-17 */, "cavatappi":3,
   "street-corn-batch":4, "balsamic-strawberries":5, "candied-bacon":4, "candied-pecans":7,
   "caramelized-onions":3, "chopped-green-onions":2, "chopped-romaine":3, "coleslaw":3, "crispy-wontons":7,
@@ -1545,7 +1545,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-28.8";
+const APP_VERSION = "2026-10-28.9";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
