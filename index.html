@@ -1545,7 +1545,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-28.7";
+const APP_VERSION = "2026-10-28.8";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
@@ -1633,7 +1633,7 @@ window.addEventListener("message", e => {
    print log: they write to the Google Form (LOG) and read back today's prints and every added item from the sheet's
    "Prep Feed" tab, published as CSV (PREP_FEED_URL; empty = this device only). Picks are "prep pick" rows (item, section). A scheduled task archives each day to Drive.
    Item names link to their Recipe Book page. Same sections and order as the "Line Item Prep List" Google Doc. */
-let PREP_FEED_URL = "";
+let PREP_FEED_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvbsb2PEuGZTxx0ulexNK8zY0Yj0nREc3MswNPKzoS_RxsiedvK0lynGudVGtfXxmvklkL5Cq4cdXY/pub?gid=892374626&single=true&output=csv";   // the print log's "Prep Feed" tab, published as CSV (Clay 2026-10-28)
 // label items with a Recipe Book page (= the book's PREP_LABEL_IDS; a check keeps them equal)
 const RECIPE_PAGES = new Set([
   "ahi-tuna-prep","smoked-ribs","blackened-fish","crab-cakes","fried-cod","hamburger-patty",

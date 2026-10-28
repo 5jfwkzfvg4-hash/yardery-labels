@@ -37,6 +37,8 @@ async function open(opts = {}, { width = 1024, height = 760, clock = false, ua, 
   await ctx.addInitScript(mockPrinter(opts));
   // never post to the owner's real Google Form from a test; log tests add their own route on top
   await ctx.route('**/formResponse', r => r.abort());
+  // nor read the real shared Prep Feed: every device starts with an empty one; feed tests route their own
+  await ctx.route('**/pub?*output=csv*', r => r.fulfill({ status: 200, body: 'Event,Date,Time,Printed By,Item,#Labels,Source', contentType: 'text/csv' }));
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -632,7 +634,7 @@ test('Manager: change a label (shelf life, note, pan, yield, par, Line Flip) —
   await p.fill(f + ' [name=pan]', '1/3 pan 6"'); await p.fill(f + ' [name=par]', '4'); await p.check(f + ' [name=flip]');
   await p.click(f + ' button[type=submit]'); await p.waitForTimeout(300);
   assert(/2 days · 1\/3 pan 6", 60 oz, par 4 · batch 240 oz · Line Flip/.test(await p.textContent('#mg tr[data-id="pico-de-gallo"]')), 'row updated: ' + await p.textContent('#mg tr[data-id="pico-de-gallo"]'));
-  assert(/\d changes? saved\. Every other device gets (it|them) at the daily sync/.test(await p.textContent('#mgBody')), 'says it waits for the sync');
+  assert(/\d changes? saved\. Every other device gets (it|them) within a few minutes/.test(await p.textContent('#mgBody')), 'says it waits for the sync');
   const row = got.find(g => g['entry.1'] === 'admin');
   const op = row && JSON.parse(row['entry.9'].replace(/^admin /, ''));
   assert(op && op.op === 'label' && op.id === 'pico-de-gallo' && op.days === 2 && op.pan === '1/3 pan 6"' && op.flip === true && op.yield === '240 oz', 'logged: ' + JSON.stringify(row));
@@ -690,6 +692,17 @@ test('Manager: users list; turning a device off blocks it; changing the PIN', as
   await me.reload(); await me.waitForTimeout(300);
   assert(await me.isVisible('#blocked'), 'turned-off device sees the block screen');
   await me.close2();
+});
+
+test('Manager: every device reads the published Prep Feed (owner, 2026-10-28)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true });
+  let hit = '';
+  await p.context().route('**/pub?*output=csv*', r => { hit = r.request().url(); return r.fulfill({ status: 200, body: 'Event,Date,Time,Printed By,Item,#Labels,Source', contentType: 'text/csv' }); });
+  await p.evaluate(() => window.__ypl.loadFeed()); await p.waitForTimeout(300);
+  assert(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/e\/[^/]+\/pub\?gid=892374626&single=true&output=csv/.test(hit), 'reads the Prep Feed tab as CSV, got ' + hit);
+  await p.click('#mgBtn'); await p.waitForTimeout(200);
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
 });
 
 test('Manager: changes reach every other device from the shared feed, once nobody is using it (owner, 2026-10-24)', async () => {
