@@ -264,7 +264,7 @@ test('Labels: every Line Flip Labels item has its own button, with no repeats', 
   eq(r.missing.join(', '), '', 'Line Flip Labels items without a button');
   eq(r.dupes.join(', '), '', 'repeated buttons');
   // Food Code 3-501.17 (Florida): TCS items 7 days max; parmesan (hard cheese) exempt
-  eq(JSON.stringify(r.days), JSON.stringify({ feta: 7, parmesan: 14, 'sliced-tomatoes': 3, american: 7, beef: 4, sausage: 4, pepperoni: 7,
+  eq(JSON.stringify(r.days), JSON.stringify({ feta: 7, parmesan: 14, 'sliced-tomatoes': 3, american: 7, beef: 7, sausage: 7, pepperoni: 7,
     'sliced-mozzarella': 7, pineapple: 5, 'shredded-mozzarella': 7, 'mix-cheese-blend': 7 }), 'line item shelf lives');
   await p.close2();
 });
@@ -291,11 +291,11 @@ test('Labels: dates — prep day counts as day 1; frozen/thawing day it goes in 
   await p.close2();
 });
 
-test('Labels: Line Flip Labels prints all 21 with the same 2-day date', async () => {
+test('Labels: Line Flip Labels prints all 23 with the same 2-day date', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await p.click('#batchBtn'); await printAndWait(p, /Printed all/);
   const f = formats(await zpl(p));
-  eq(f.length, 21, 'label count');
+  eq(f.length, 23, 'label count');
   eq(new Set(f.map(x => (x.match(/\^FD(\d+\/\d+)\^FS/) || [])[1])).size, 1, 'one use-by date');
   await p.close2();
 });
@@ -625,7 +625,7 @@ test('Manager: change a label (shelf life, note, pan, yield, par, Line Flip) —
   await p.fill('#mgSearch', 'pico de'); await p.waitForTimeout(100);
   await p.click('#mg tr[data-id="pico-de-gallo"] [data-act=edit]');
   const f = '#mg form[data-id="pico-de-gallo"]';
-  eq(await p.inputValue(f + ' [name=days]'), '3', 'form shows the current shelf life');
+  eq(await p.inputValue(f + ' [name=days]'), String(await p.evaluate(() => window.__ypl.SHELF_DAYS['pico-de-gallo'])), 'form shows the current shelf life');
   await p.fill(f + ' [name=name]', ''); await p.click(f + ' button[type=submit]'); await p.waitForTimeout(150);
   assert(/Type the label name/.test(await toastText(p)), 'name required');
   await p.fill(f + ' [name=name]', 'Pico de Gallo'); await p.fill(f + ' [name=days]', '2'); await p.fill(f + ' [name=note]', 'Keep covered.');
@@ -734,16 +734,16 @@ test('Manager: Custom labels tab lists custom food labels people printed; "Make 
   await p.click('#customTop'); await p.click('#cDated'); await p.fill('#customName', 'Lemon Bars'); await p.click('#days button[aria-label="4 days"]'); await printAndWait(p);
   await p.click('#customTop'); await p.click('#cText'); await p.fill('#customName', 'Walk-in Door'); await printAndWait(p);
   await p.evaluate(() => { const l = JSON.parse(localStorage.getItem('ypl:customPrints') || '[]');
-    l.push({ name: 'Coleslaw', date: '10/20/2026', by: 'Cam', days: 3 }, { name: 'Ranch Bottle', date: '10/21/2026', by: 'Debo', days: 7 }, { name: 'ranch bottle', date: '10/22/2026', by: 'Clay', days: 7 });
+    l.push({ name: 'Coleslaw', date: '10/20/2026', by: 'Cam', days: 3 }, { name: 'Lime Wedges', date: '10/21/2026', by: 'Debo', days: 7 }, { name: 'lime wedges', date: '10/22/2026', by: 'Clay', days: 7 });
     localStorage.setItem('ypl:customPrints', JSON.stringify(l)); });
   await unlock(p);
-  const want = await p.evaluate(() => { const have = new Set(window.__ypl.ITEMS.map(i => i.name.toLowerCase()));
-    return new Set((window.__ypl.SITE.customs || []).map(c => c.name.toLowerCase()).concat(['lemon bars', 'ranch bottle']).filter(n => !have.has(n))).size; });
+  const want = await p.evaluate(() => { const have = new Set(window.__ypl.ITEMS.map(i => i.name.toLowerCase()).concat(window.__ypl.SITE.ops.filter(o => o.custom).map(o => o.custom)));
+    return new Set((window.__ypl.SITE.customs || []).map(c => c.name.toLowerCase()).concat(['lemon bars', 'lime wedges']).filter(n => !have.has(n))).size; });
   assert(new RegExp('Custom labels \\(' + want + '\\)').test(await p.textContent('#mgBody .mgtabs')), 'tab shows how many (' + want + '): ' + await p.textContent('#mgBody .mgtabs'));
   await p.click('#mgBody [data-tab="customs"]'); await p.waitForTimeout(150);
   const txt = await p.textContent('#mgBody');
   assert(/Lemon Bars\s*Printed 1 time · last \d+\/\d+\/\d{4} by Maria · 4-day shelf life/.test(txt), 'shows times, last print, who, shelf life: ' + txt.slice(0, 400));
-  assert(/ranch bottle\s*Printed \d+ times · last/i.test(txt) && (txt.match(/ranch bottle/gi) || []).length === 1, 'same name counted together, once');
+  assert(/lime wedges\s*Printed \d+ times · last/i.test(txt) && (txt.match(/lime wedges/gi) || []).length === 1, 'same name counted together, once');
   assert(!/Coleslaw|Walk-in Door/.test(txt), 'existing labels and text-only labels left out');
   await p.click('#mgBody tr[data-custom="lemon bars"] [data-act="make"]'); await p.waitForTimeout(150);
   eq(await p.inputValue('#mgBody form[data-custom="lemon bars"] [name=name]'), 'Lemon Bars', 'name filled in');
@@ -822,7 +822,7 @@ test('Yields: the label app uses the Recipe Book\'s batch yields', async () => {
   const sorted = o => JSON.stringify(Object.keys(o).sort().map(k => [k, o[k]]));
   eq(sorted(app.Y), sorted(book), 'YIELDS match BATCH_YIELDS');
   const am = await p.evaluate(() => { const a = window.__ypl.amountMade; return [a('pico-de-gallo', 2), a('blackened-fish', 2), a('smoked-ribs', 3), a('bama-white-bbq', 2), a('coleslaw', 2), a('fire-marinara', 3)].join(' | '); });
-  eq(am, '480 oz | 36–42 pieces × 2 oz | 3 racks | ≈ 340 oz |  | ≈ 19.5 quarts', 'batches × yield');
+  eq(am, '480 oz | 36–42 pieces × 3 oz | 3 racks | ≈ 340 oz |  | ≈ 19.5 quarts', 'batches × yield');
   await p.close2();
 });
 
@@ -957,7 +957,7 @@ test('Log: prints made before the form is set up are kept and sent once it is', 
   await p.close2();
 });
 
-test('Log: Line Flip Labels writes one row per item (21 rows)', async () => {
+test('Log: Line Flip Labels writes one row per item (23 rows)', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const got = [];
   await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
@@ -966,8 +966,8 @@ test('Log: Line Flip Labels writes one row per item (21 rows)', async () => {
     Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); });
   });
   await p.click('#batchBtn'); await printAndWait(p, /Printed all/); await p.waitForTimeout(1500);
-  eq(got.length, 21, 'rows');
-  eq(new Set(got.map(g => g['entry.5'])).size, 21, 'one row per item');
+  eq(got.length, 23, 'rows');
+  eq(new Set(got.map(g => g['entry.5'])).size, 23, 'one row per item');
   assert(got.every(g => g['entry.9'] === 'Line Flip Labels' && g['entry.6'] === '1'), 'source and count');
   await p.close2();
 });
