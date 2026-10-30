@@ -888,7 +888,7 @@ const RECIPES = [
       "Combine all ingredients in a storage container and blend with a stick blender until the cloves are emulsified.",
       "Label and store in the walk-in."] },
   { id: "wing-marinade", title: "Marinated Wings", category: "proteins",
-    ingredients: ["40 lb wings", "1 cup garlic cloves", "1 cup crushed red pepper", "2 bunches cilantro", "6 tbsp salt", "4 tbsp black pepper"],
+    ingredients: ["40 lb wings", "1 cup garlic cloves", "1 cup crushed red pepper", "2 bunches cilantro", "6 tbsp salt", "4 tbsp black pepper", "8 cups oil blend"],
     steps: ["Combine all ingredients except the wings in a container and emulsify with a stick blender.",
       "Strain the liquid from the raw chicken wings.",
       "One bag at a time, add wings to a large 22 qt container. Pour 1/4 of the marinade over and mix. Repeat until all 40 lb of wings are marinated.",
@@ -1842,8 +1842,9 @@ PAGES.forEach((p, i) => { if (p.type === "divider") dividerPageIndex[p.cat] = i;
 const menuPageIndex = PAGES.findIndex(p => p.type === "menu");
 const conversionsPageIndex = PAGES.findIndex(p => p.type === "conversions");
 // ---------------- Update log (newest first). Add an entry whenever a page changes. ----------------
-const BOOK_UPDATED = "2026-10-19";
+const BOOK_UPDATED = "2026-10-30";
 const UPDATE_LOG = [
+  { to: "wing-marinade", date: "2026-10-30", what: "Added 8 cups oil blend to the marinade" },
   { to: "hot-honey-chicken-marinade", date: "2026-10-19", what: "Batch yield added: 3 cups marinade before chicken" },
   { to: "sliced-cucumbers", date: "2026-10-17", what: "Cucumbers are sliced, not diced: Diced Cucumbers page removed; House salad uses Sliced Cucumbers" },
   { to: "coleslaw", date: "2026-10-17", what: "Slaw sauce changed to 3 cups" },

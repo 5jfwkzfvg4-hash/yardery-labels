@@ -1545,7 +1545,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-10-30.1";
+const APP_VERSION = "2026-10-30.2";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
