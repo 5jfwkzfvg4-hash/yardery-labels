@@ -4,6 +4,11 @@ Prints 1" x 1" prep labels (item, made date/time, use-by day and date, initials)
 
 **Printing link:** https://5jfwkzfvg4-hash.github.io/yardery-labels/
 
+**Bar Guide (separate site for bartenders and servers):** https://5jfwkzfvg4-hash.github.io/yardery-labels/bar/ —
+`bar/index.html`, standalone (no shared code with the label app). Drink spec cards, bar prep, liquor list and FOH
+daily cleaning checklists. Cleaning checks log to a Google Form and read back from its published CSV (`LOG` and
+`FEED_URL` at the top of its script); while those are empty, checks stay on each tablet.
+
 ## Use it
 - **Android tablet:** open the link in Chrome.
 - **iPad:** open the link in the free Bluefy app (Safari/Chrome on iPad can't reach Bluetooth printers).

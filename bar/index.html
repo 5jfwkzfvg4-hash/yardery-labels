@@ -1,0 +1,605 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Yardery Bar Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>/* Layout: stacked letter-size spec cards, one per printed page. Cards are black ink on white paper only (ink friendly); emphasis comes from weight, size and rules, never fills. */
+:root{
+  --bg:#E8E8E6; --fg:#111111; --muted:#555555; --chip:#FFFFFF;
+  --paper:#FFFFFF; --ink:#000000; --ink-soft:#444444; --line:#BBBBBB;
+  --display:"Bitter","Bitstream Charter","Charter","Caladea",Georgia,serif;
+  --body:"Public Sans","Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#161616;--fg:#EEEEEE;--muted:#AAAAAA;--chip:#262626;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161616;--fg:#EEEEEE;--muted:#AAAAAA;--chip:#262626;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.wrap{max-width:860px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+.intro h1{font-family:var(--display);font-size:2rem;margin:0 0 6px;text-wrap:balance}
+.intro p{margin:0 0 14px;color:var(--muted);max-width:62ch}
+.intro nav{display:flex;flex-wrap:wrap;gap:8px}
+.intro nav a{background:var(--chip);color:var(--fg);text-decoration:none;font-weight:600;font-size:.88rem;padding:6px 12px;border-radius:999px;border:1px solid var(--muted)}
+.intro nav a:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+
+.card{background:var(--paper);color:var(--ink);box-shadow:0 2px 14px rgba(0,0,0,.15);overflow:hidden;scroll-margin-top:12px;display:flex;flex-direction:column}
+.band{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 28px;padding:14px 0 8px;border-bottom:3px solid var(--ink);font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.inner{padding:18px 28px 18px;display:flex;flex-direction:column;gap:16px;flex:1}
+.titlerow{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+h2{font-family:var(--display);font-weight:800;font-size:2.6rem;line-height:1.05;margin:0;text-wrap:balance}
+.tag{font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1.5px solid var(--ink);padding:2px 8px}
+.glass{margin:-6px 0 0;font-size:1.1rem}
+.glass b,h3,h4{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.glass b{margin-right:8px}
+.tbd{font-weight:700;text-decoration:underline}
+
+.garnish{border:4px solid var(--ink);outline:1.5px solid var(--ink);outline-offset:3px;margin:3px;padding:14px 20px;display:grid;grid-template-columns:auto 1fr;gap:6px 22px;align-items:center}
+.garnish h3{margin:0;padding:0;border:0;color:var(--ink);font-size:1rem;letter-spacing:.18em;font-weight:800}
+.garnish ul{margin:0;padding:0 0 0 22px;border-left:2px solid var(--ink);list-style:none;display:grid;gap:4px}
+.garnish li{font-family:var(--display);font-weight:800;font-size:1.6rem;line-height:1.2}
+.garnish li::before{content:"□";margin-right:10px;font-family:var(--body);font-weight:400}
+.garnish.missing{border-style:dashed;outline-style:dashed}
+.garnish.missing p{margin:0;padding-left:22px;border-left:2px solid var(--ink);font-weight:700;font-size:1.05rem}
+
+.cols{display:grid;grid-template-columns:1fr 1.15fr;gap:28px}
+.cols>section{min-width:0}
+h3{margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid var(--ink)}
+.ing{list-style:none;margin:0;padding:0}
+.ing li{display:grid;grid-template-columns:5.6em 1fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:1.12rem;line-height:1.3}
+.amt{font-weight:800;font-variant-numeric:tabular-nums}
+.ing.small li{font-size:.95rem;padding:5px 0;grid-template-columns:4.6em 1fr}
+.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:10px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:1.9em 1fr;gap:10px;font-size:1.1rem;line-height:1.35}
+.steps li::before{content:counter(s);font-weight:800;font-family:var(--display);border:1.5px solid var(--ink);border-radius:50%;width:1.7em;height:1.7em;display:grid;place-items:center;font-size:.9rem}
+.steps li.g{font-weight:800;border:2.5px solid var(--ink);padding:6px 8px;margin:0 -8px}
+.steps li.g::after{content:"GARNISH";grid-column:2;font-size:.7rem;letter-spacing:.16em;font-weight:800;margin-top:-2px}
+.batch{margin-top:18px;border:1.5px solid var(--ink);padding:10px 14px}
+.batch h4{margin:0 0 4px}
+.batch p{margin:8px 0 0;font-size:.9rem;color:var(--ink-soft)}
+.note{margin:14px 0 0;font-weight:700}
+.flag{margin:12px 0 0;font-size:.9rem;font-weight:600;font-style:italic}
+.upsell{margin-top:16px;border:1.5px dashed var(--ink);padding:10px 14px}
+.upsell h4{margin:0 0 6px;color:var(--ink)}
+.upsell ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.upsell li{display:flex;justify-content:space-between;gap:12px;font-size:.98rem;line-height:1.3}
+.upsell li span:first-child{min-width:0}
+.price{font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+.list .inner{gap:12px}
+.lt{width:100%;border-collapse:collapse;font-size:.92rem;line-height:1.25}
+.lt th{text-align:left;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);padding:2px 8px 4px 0;border-bottom:1.5px solid var(--ink)}
+.lt td{padding:3.5px 8px 3.5px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.lt td:first-child{font-weight:700;width:42%}
+.lt td:nth-child(3){white-space:nowrap;font-variant-numeric:tabular-nums}
+.list h3{margin-bottom:4px}
+.list h2{font-size:2.1rem}
+.list .lt{font-size:.84rem}
+.list .lt td{padding:2.5px 8px 2.5px 0}
+.list .inner{gap:10px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.pair>section{min-width:0}
+.pair .lt td:first-child{width:50%}
+@media (max-width:640px){.pair{grid-template-columns:1fr}}
+.prep .titlerow{justify-content:space-between}
+.fill{margin:0;display:flex;flex-wrap:wrap;gap:8px 28px;font-size:.9rem;font-weight:600}
+.pt{font-size:.76rem;line-height:1.15}
+.list .pt td{padding:1.5px 6px 1.5px 0}
+.pt td:first-child{width:64%}
+.pt td b{display:block;font-weight:700}
+.pt td small{display:block;font-size:.66rem;color:var(--ink-soft)}
+.pt th:nth-child(n+2),.pt td.box{width:12%}
+.pt td.box{border-left:1px solid var(--line);padding:0}
+.pt tr.sec th{padding:5px 0 1px;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;text-align:left;color:var(--ink);border-bottom:1.5px solid var(--ink)}
+.fn{margin:4px 0 0;font-size:.8rem;font-style:italic}
+footer{margin-top:auto;border-top:1px solid var(--ink);padding-top:10px;font-size:.85rem;color:var(--ink-soft)}
+footer p{margin:0}
+.menu{margin-bottom:6px!important}
+.foot{display:flex;justify-content:space-between}
+
+@media (max-width:640px){
+  .cols{grid-template-columns:1fr;gap:20px}
+  h2{font-size:2rem}
+  .band{margin:0 18px}
+  .inner{padding-left:18px;padding-right:18px}
+  .garnish{grid-template-columns:1fr}
+  .garnish ul,.garnish.missing p{border-left:0;padding-left:0}
+  .garnish li{font-size:1.3rem}
+}
+
+@page{size:letter;margin:0.4in}
+@media print{
+  :root{padding:0!important}
+  body{background:#fff;margin:0}
+  .intro{display:none}
+  .wrap{max-width:none;padding:0;display:block}
+  .card{box-shadow:none;height:10.1in;break-after:page;break-inside:avoid}
+  .card:last-child{break-after:auto}
+  .band{margin:0}
+  .inner{padding:16px 2px 0}
+  .cols{grid-template-columns:1fr 1.15fr}
+}
+.prepcols{align-items:start}
+
+/* ---- Cocktail spec cards: one fixed layout, every size in em so the whole card scales with --fs (fitted per card to fill the printed page) ---- */
+.drink{font-size:16px}
+.drink .band{font-size:.72em;margin:0 1.75em;padding:.9em 0 .5em}
+.drink .inner{gap:.85em;padding:1.1em 1.75em 1.1em;min-height:0}
+.drink h2{font-size:2.7em}
+.drink .tag{font-size:.7em}
+.drink .head{display:grid;gap:.35em}
+.drink .glass{font-size:1.15em;margin:0}
+.drink .glass b{font-size:.68em}
+.drink h3{font-size:.72em;margin:0 0 .5em;padding-bottom:.4em}
+.drink .garnish{padding:.7em 1.1em;gap:.3em 1.2em;margin:.2em}
+.drink .garnish h3{font-size:.95em;margin:0;padding:0}
+.drink .garnish ul{padding-left:1.2em;gap:.15em}
+.drink .garnish li{font-size:1.65em}
+.drink .cols{gap:1.6em}
+.drink .ing li{font-size:1.15em;padding:.38em 0;grid-template-columns:5em 1fr;gap:.5em}
+.drink .amt{white-space:nowrap}
+.drink .ing.two{display:grid;grid-template-columns:1fr 1fr;column-gap:1.6em}
+.drink .ing.two li{font-size:1em}
+.drink .steps{gap:.55em}
+.drink .steps li{font-size:1.12em;gap:.55em}
+.drink .steps li.g{padding:.35em .45em;margin:0 -.45em}
+.drink .steps li.g::after{font-size:.62em}
+.drink .batch,.drink .upsell{margin:0;padding:.6em .9em}
+.drink .batch{border:1.5px solid var(--ink)}
+.drink .batch .sub{margin:.4em 0 0;font-size:.9em;color:var(--ink-soft)}
+.drink .upsell h3,.drink .batch h3{border:0;padding:0;margin:0 0 .35em;color:var(--ink)}
+.drink .upsell ul{gap:.3em}
+.drink .upsell li{font-size:1.05em}
+.drink .notes{display:grid;gap:.3em}
+.drink .notes p{margin:0}
+.drink .note{font-size:1.05em}
+.drink .flag{font-size:.9em}
+.drink footer{font-size:.8em;padding-top:.6em}
+@media (max-width:640px){
+  .drink .band{margin:0 18px}
+  .drink .inner{padding-left:18px;padding-right:18px}
+  .drink h2{font-size:2.1em}
+  .drink .garnish li{font-size:1.35em}
+  .drink .ing.two{grid-template-columns:1fr}
+}
+@media print{
+  .drink{font-size:var(--fs,16px)}
+  .drink .band{margin:0}
+  .drink .inner{padding:1em 2px 0;overflow:hidden;justify-content:space-between}
+  .drink footer{margin-top:0}
+  .drink .cols{grid-template-columns:1fr 1.15fr}
+  .drink .garnish{grid-template-columns:auto 1fr}
+  .drink .garnish ul{border-left:2px solid var(--ink)}
+}
+.drink .titlerow{justify-content:space-between;align-items:baseline;flex-wrap:nowrap;gap:.6em}
+.drink .titlerow h2{min-width:0}
+.drink .pricetag{font-family:var(--display);font-weight:800;font-size:2.7em;line-height:1.05;white-space:nowrap;font-variant-numeric:tabular-nums}
+.drink .head>.tag{justify-self:start}
+@media (max-width:640px){.drink .pricetag{font-size:2.1em}}
+.recipes .rec{display:grid;gap:.5em;border:2.5px solid var(--ink);padding:.8em 1em}
+.recipes .rec h2{font-size:1.9em}
+.recipes .steps li.g::after{content:none}
+</style>
+<style>
+/* Guide shell: sticky two-tab bar over the existing spec cards; cleaning view reuses the card paper/ink tokens. */
+:root{--tab:#FFFFFF;--tabfg:#111111;--done:#2F6B3A;--doneBg:#E6F0E7;--warn:#8A4B00}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tab:#1F1F1F;--tabfg:#EEEEEE;--done:#8CCB96;--doneBg:#1E3323;--warn:#F0B46B}}
+:root[data-theme="dark"]{--tab:#1F1F1F;--tabfg:#EEEEEE;--done:#8CCB96;--doneBg:#1E3323;--warn:#F0B46B}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--tab)}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--tab);color:var(--tabfg);border-bottom:1px solid var(--muted)}
+.topbar .in{max-width:860px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.15rem;margin-right:auto}
+.tabs{display:flex;gap:6px}
+.tabs a{color:var(--tabfg);text-decoration:none;font-weight:700;font-size:.92rem;padding:8px 14px;border-radius:999px;border:1.5px solid var(--muted)}
+.tabs a[aria-current="page"]{background:var(--tabfg);color:var(--tab);border-color:var(--tabfg)}
+.tabs a:focus-visible{outline:3px solid var(--tabfg);outline-offset:2px}
+.clean .sheet{background:var(--paper);color:var(--ink);box-shadow:0 2px 14px rgba(0,0,0,.15);padding:18px 24px;display:grid;gap:12px}
+.clean .sheet h2{font-family:var(--display);font-size:1.45rem;margin:0;text-wrap:balance}
+.clean .when{font-size:.74rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);display:flex;justify-content:space-between;gap:10px;border-bottom:3px solid var(--ink);padding-bottom:8px}
+.clean .count{font-variant-numeric:tabular-nums}
+.clean ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.clean li label{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:start;padding:10px 6px;border-bottom:1px solid var(--line);cursor:pointer}
+.clean li input{width:22px;height:22px;margin:1px 0 0;accent-color:#000}
+.clean li .t{font-size:1.02rem;line-height:1.4}
+.clean li .t small{display:block;color:var(--ink-soft);font-size:.86rem}
+.clean li .by{font-size:.8rem;font-weight:700;color:var(--done);white-space:nowrap;font-variant-numeric:tabular-nums}
+.clean li.on label{background:var(--doneBg)}
+.clean li.on .t{color:var(--ink-soft)}
+.clean .me{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.clean .me label{font-weight:700}
+.clean .me input{font:inherit;font-size:1.05rem;width:6.5em;padding:8px 10px;border:2px solid var(--muted);border-radius:8px;background:var(--chip);color:var(--fg);text-transform:uppercase}
+.clean .need{color:var(--warn);font-weight:700}
+.clean ol.chain{margin:0;padding-left:1.3em;display:grid;gap:6px}
+.clean .src{font-size:.85rem;color:var(--muted)}
+@media (max-width:640px){.clean .sheet{padding:16px}.topbar .in{gap:8px}}
+.clean .sync{font-size:.88rem;font-weight:600;color:var(--muted);margin:8px 0 0}
+.clean .sync.live{color:var(--done)}
+.clean .sync.err{color:var(--warn)}
+.clean .sum{margin:10px 0 0;font-weight:700}
+.clean .closing{border:2.5px solid var(--ink);padding:12px 14px;display:grid;gap:6px}
+.clean .closing.ok{border-color:var(--done);background:var(--doneBg)}
+.clean .closing b{font-size:1.05rem}
+.clean .closing ul{list-style:disc;padding-left:1.2em;gap:2px}
+.clean .closing li{font-size:.95rem}
+.clean .closing.ok b{color:var(--done)}
+.clean .closing:not(.ok) b{color:var(--warn)}
+@media print{.topbar,body::before{display:none}}
+</style>
+<header class="topbar"><div class="in"><span class="brand">The Yardery Bar Guide</span>
+<nav class="tabs" aria-label="Guide sections"><a href="#drinks" data-v="drinks">Drinks &amp; Prep</a><a href="#cleaning" data-v="cleaning">FOH Cleaning</a></nav></div></header>
+<div class="wrap" id="view-drinks">
+  <div class="intro">
+    <h1>Drinks &amp; Bar Prep</h1>
+    <p>One page per cocktail, built from the Beverage Book. Black and white for low ink use. Garnish sits in the heavy double box and is boxed again in the build steps. To print, open this page in your browser and use the browser's Print option; each drink prints on its own letter page.</p>
+    <nav><a href="#pops-moonshine">Pop&#x27;s Moonshine</a><a href="#lawn-chair-lemonade">Lawn Chair Lemonade</a><a href="#backyard-cooler">Backyard Cooler</a><a href="#its-just-peachy-sangria">It&#x27;s Just Peachy Sangria</a><a href="#golden-hour-tea">Golden Hour Tea</a><a href="#category-five">Category Five</a><a href="#the-yard-fashion">The Yard Fashion</a><a href="#sirens-fizz">Siren&#x27;s Fizz</a><a href="#real-good-margarita">Real Good Margarita</a><a href="#storm-warning">Storm Warning</a><a href="#apple-pie-pop-mocktail">Apple Pie Pop Mocktail</a><a href="#spiked-caramel-coffee">Spiked Caramel Coffee</a><a href="#pumpkin-old-fashion">Pumpkin Old Fashion</a><a href="#apple-cider-white-sangria">Apple Cider White Sangria</a><a href="#bar-prep-list">Bar Prep List</a><a href="#bar-prep-recipes">Bar Prep Recipes</a><a href="#liquor-list">Liquor List</a></nav>
+  </div>
+  
+<article class="card drink sig" id="pops-moonshine" style="--fs:23px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Pop&#x27;s Moonshine</h2><span class="pricetag">$13</span></div>
+    <p class="glass"><b>Glass</b> Pint (16 oz)</p></div>
+    
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">2 oz</span><span class="what">Ole Smoky Strawberry moonshine</span></li><li><span class="amt">0.5 oz</span><span class="what">simple syrup</span></li><li><span class="amt">0.5 oz</span><span class="what">Strawberry Real</span></li><li><span class="amt">1</span><span class="what">lime wedge, squeezed</span></li><li><span class="amt">8–10</span><span class="what">mint leaves</span></li><li><span class="amt">Top</span><span class="what">soda</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">Add all ingredients except soda to a shaker.</li><li class="">Shake vigorously 10–15 times.</li><li class="">Dirty dump into a pint glass and top with soda.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Make it a double (extra moonshine)</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> Ole Smoky Strawberry Moonshine, fresh mint, strawberry purée, lime, sparkling soda</p><p class="foot"><span>Updated Oct 30, 2026</span><span>1 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink sig" id="lawn-chair-lemonade" style="--fs:20.5px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Lawn Chair Lemonade</h2><span class="pricetag">$12</span></div>
+    <p class="glass"><b>Glass</b> Collins (12 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Lemon wedge</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">1.5 oz</span><span class="what">44 North Huckleberry vodka</span></li><li><span class="amt">1 oz</span><span class="what">lemon juice</span></li><li><span class="amt">1 oz</span><span class="what">simple syrup</span></li><li><span class="amt">1 bsp</span><span class="what">defrosted IQF blueberries with juice (barspoon)</span></li><li><span class="amt">Top</span><span class="what">Sprite</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">Add all ingredients except Sprite to a shaker.</li><li class="">Shake with ice.</li><li class="">Pour into a Collins glass.</li><li class="">Top with Sprite.</li><li class="g">Garnish with a lemon wedge.</li></ol></section>
+    </div>
+    <section class="notes"><p class="flag">To confirm: New menu proof drops the Huckleberry name, the Sprite and the Jack Daniel&#x27;s Blackberry +$1 swap.</p></section><section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Jack Daniel&#x27;s Blackberry in place of vodka</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> 44 North Vodka, shaken with fresh blueberries &amp; lemonade</p><p class="foot"><span>Updated Oct 30, 2026</span><span>2 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink sig" id="backyard-cooler" style="--fs:20px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Backyard Cooler</h2><span class="pricetag">$13</span></div>
+    <p class="glass"><b>Glass</b> Collins (12 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Cucumber slice, sunk</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">1.5 oz</span><span class="what">44 North Watermelon vodka</span></li><li><span class="amt">0.5 oz</span><span class="what">fresh lemon juice</span></li><li><span class="amt">0.25 oz</span><span class="what">simple syrup</span></li><li><span class="amt">0.25 oz</span><span class="what">watermelon puree</span></li><li><span class="amt">1</span><span class="what">lemon wedge, squeezed</span></li><li><span class="amt">Top</span><span class="what">soda</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">Add all ingredients except soda to a shaker and shake with ice.</li><li class="">Top with soda.</li><li class="g">Sink a cucumber slice.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Add 0.5 oz Western Son Cucumber vodka</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> 44 North Watermelon Vodka, fresh lemon juice, watermelon purée, simple syrup, sparkling soda</p><p class="foot"><span>Updated Oct 30, 2026</span><span>3 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink sig" id="its-just-peachy-sangria" style="--fs:15px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>It&#x27;s Just Peachy Sangria</h2><span class="pricetag">$12</span></div><span class="tag">Single serving</span>
+    <p class="glass"><b>Glass</b> Pint (16 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Frozen (IQF) peach, sunk in the glass</li><li>Orange and cherry, picked</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">4.25 oz</span><span class="what">White Zinfandel</span></li><li><span class="amt">0.375 oz</span><span class="what">New Amsterdam Peach vodka</span></li><li><span class="amt">0.375 oz</span><span class="what">orange juice</span></li><li><span class="amt">0.625 oz</span><span class="what">cranberry juice</span></li><li><span class="amt">0.375 oz</span><span class="what">simple syrup</span></li><li><span class="amt">Top</span><span class="what">Sprite</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">Fill a pint glass with ice.</li><li class="">Add the wine, peach vodka, OJ, cranberry and simple syrup (6 oz total). Stir briefly.</li><li class="">Top with Sprite.</li><li class="g">Sink a frozen (IQF) peach into the glass.</li><li class="g">Garnish with a picked orange and cherry.</li></ol></section>
+    </div>
+    <section class="batch"><h3>Batch mix · pre-shift</h3><ul class="ing two"><li><span class="amt">3 L</span><span class="what">White Zinfandel (2 × 1.5 L bottles)</span></li><li><span class="amt">8 oz</span><span class="what">New Amsterdam Peach vodka</span></li><li><span class="amt">8 oz</span><span class="what">orange juice</span></li><li><span class="amt">16 oz</span><span class="what">cranberry juice</span></li><li><span class="amt">8 oz</span><span class="what">simple syrup</span></li></ul><p class="sub">Makes about 23 drinks. Pour 6 oz of mix per glass, then finish steps 3–5.</p></section><section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Float 0.5 oz peach schnapps</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> New Amsterdam Peach Vodka, White Zinfandel, fresh citrus, juicy peaches, cranberry juice, OJ</p><p class="foot"><span>Updated Oct 30, 2026</span><span>4 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink sig" id="golden-hour-tea" style="--fs:22.75px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Golden Hour Tea</h2><span class="pricetag">$14</span></div>
+    <p class="glass"><b>Glass</b> Collins (12 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Lemon wedge</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">1.5 oz</span><span class="what">44 North Nectarine vodka</span></li><li><span class="amt">0.75 oz</span><span class="what">lemon juice</span></li><li><span class="amt">0.75 oz</span><span class="what">passion fruit puree</span></li><li><span class="amt">3 oz</span><span class="what">sweet tea, to top</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">In an iced shaker, add the vodka, lemon juice and passion fruit puree.</li><li class="">Shake and dirty dump.</li><li class="">Top with sweet tea.</li><li class="g">Garnish with a lemon wedge.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Make it a double (extra vodka)</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> 44 North Nectarine Vodka, passion fruit purée, fresh lemon juice, sweet tea</p><p class="foot"><span>Updated Oct 30, 2026</span><span>5 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink sig" id="category-five" style="--fs:21.75px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Category Five</h2><span class="pricetag">$14</span></div>
+    <p class="glass"><b>Glass</b> Collins (12 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Toasted coconut</li><li>Cherry</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">1.5 oz</span><span class="what">RumHaven rum</span></li><li><span class="amt">0.5 oz</span><span class="what">Coco Real</span></li><li><span class="amt">0.75 oz</span><span class="what">lime juice</span></li><li><span class="amt">2 oz</span><span class="what">pineapple juice</span></li><li><span class="amt">0.5 oz</span><span class="what">amaretto, float</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">In an iced shaker, add the rum, Coco Real, lime juice and pineapple juice.</li><li class="">Shake vigorously.</li><li class="">Dirty dump.</li><li class="">Float the amaretto on top.</li><li class="g">Garnish with toasted coconut and a cherry.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Make it a double (extra RumHaven)</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> Rumhaven Coconut Rum, amaretto, Coco Real, pineapple juice, fresh lime</p><p class="foot"><span>Updated Oct 30, 2026</span><span>6 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink sig" id="the-yard-fashion" style="--fs:19px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>The Yard Fashion</h2><span class="pricetag">$14</span></div>
+    <p class="glass"><b>Glass</b> Rocks (9 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Orange rind, expressed and dropped in</li><li>Bourbon-soaked (“dirty”) cherry</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">2 oz</span><span class="what">Old Forester bourbon</span></li><li><span class="amt">2 dashes</span><span class="what">aromatic bitters</span></li><li><span class="amt">0.5 oz</span><span class="what">clove simple syrup</span></li><li><span class="amt">1</span><span class="what">dirty cherry</span></li><li><span class="amt">1</span><span class="what">orange rind, expressed</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="g">In a rocks glass, express one orange rind and drop it in with a dirty cherry and ice.</li><li class="">Fill a mixing glass halfway with ice.</li><li class="">Add the Old Forester, clove simple syrup and bitters.</li><li class="">Stir and strain over the fresh ice in the rocks glass.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Woodford Reserve or Maker&#x27;s Mark in place of Old Forester</span></li><li><span>Rye Fashion: Bulleit Rye</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> Old Forester Bourbon, house-made clove syrup, aromatic bitters, fresh orange</p><p class="foot"><span>Updated Oct 30, 2026</span><span>7 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink sig" id="sirens-fizz" style="--fs:20.75px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Siren&#x27;s Fizz</h2><span class="pricetag">$14</span></div>
+    <p class="glass"><b>Glass</b> Collins (12 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Bourbon-soaked (“dirty”) cherry, dropped in</li><li>Maraschino cherry on top</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">1.5 oz</span><span class="what">Mermaid Gin</span></li><li><span class="amt">0.75 oz</span><span class="what">simple syrup</span></li><li><span class="amt">0.75 oz</span><span class="what">lemon juice</span></li><li><span class="amt">Top</span><span class="what">soda</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">Add ice, gin, simple syrup and lemon juice to a shaker.</li><li class="">Shake and dirty dump; top with ice and fill with soda.</li><li class="g">Drop in a dirty cherry and top with a maraschino cherry.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Hendrick&#x27;s Gin in place of Mermaid</span></li><li><span>Add 0.5 oz Bols Elderflower liqueur</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> Mermaid Gin, fresh lemon juice, simple syrup, sparkling soda</p><p class="foot"><span>Updated Oct 30, 2026</span><span>8 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink sig" id="real-good-margarita" style="--fs:18.75px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Real Good Margarita</h2><span class="pricetag">$14</span></div>
+    <p class="glass"><b>Glass</b> Collins (12 oz), salt rim</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Salt rim</li><li>Lime wedge</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">Rim</span><span class="what">salt</span></li><li><span class="amt">1.5 oz</span><span class="what">Herradura Silver tequila</span></li><li><span class="amt">0.75 oz</span><span class="what">lemon juice</span></li><li><span class="amt">0.75 oz</span><span class="what">lime juice</span></li><li><span class="amt">1 oz</span><span class="what">agave</span></li><li><span class="amt">1</span><span class="what">lemon wedge, squeezed</span></li><li><span class="amt">1</span><span class="what">lime wedge, squeezed</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="g">Rim a Collins glass with salt.</li><li class="">Squeeze the lemon and lime wedges into an iced shaker.</li><li class="">Add the remaining ingredients and shake.</li><li class="">Dirty dump into the Collins glass.</li><li class="g">Garnish with a lime wedge.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Top shelf: Casamigos or Tres Agaves Reposado</span></li><li><span>Flavor it: 0.5 oz mango, strawberry or passion fruit puree</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> Herradura Blanco Tequila, fresh squeezed lemon &amp; lime, sweet agave</p><p class="foot"><span>Updated Oct 30, 2026</span><span>9 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink sig" id="storm-warning" style="--fs:18.5px">
+  <header class="band"><span>Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Storm Warning</h2><span class="pricetag">$14</span></div>
+    <p class="glass"><b>Glass</b> Pint (16 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Orange and cherry, speared</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">0.75 oz</span><span class="what">Parrot Bay Silver rum</span></li><li><span class="amt">0.75 oz</span><span class="what">Parrot Bay Spiced rum</span></li><li><span class="amt">0.75 oz</span><span class="what">orange juice</span></li><li><span class="amt">0.75 oz</span><span class="what">cranberry juice</span></li><li><span class="amt">0.75 oz</span><span class="what">pineapple juice</span></li><li><span class="amt">0.5 oz</span><span class="what">grenadine, sunk</span></li><li><span class="amt">0.25 oz</span><span class="what">Diplomático Dark Rum, float</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">In an iced shaker, add the rums and juices.</li><li class="">Dirty dump into a pint glass.</li><li class="">Sink the grenadine and float the Diplomático dark rum on top.</li><li class="g">Garnish with a speared orange and cherry.</li></ol></section>
+    </div>
+    <section class="notes"><p class="flag">To confirm: Menu lists Red Bull, but the spec has no Red Bull amount. About 4.5 oz of liquid will look short in a 16 oz pint: add a measured top or use the Collins.</p></section><section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Make it a double (extra rum)</span></li></ul></section>
+    <footer><p class="menu"><b>Guest menu:</b> Parrot Bay Silver Rum, Parrot Bay Spiced Rum, tropical pineapple, orange and cranberry juice, Red Bull, Diplomático Dark Rum float</p><p class="foot"><span>Updated Oct 30, 2026</span><span>10 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink fall" id="apple-pie-pop-mocktail" style="--fs:21.75px">
+  <header class="band"><span>Fall Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Apple Pie Pop Mocktail</h2><span class="pricetag">$____</span></div>
+    <p class="glass"><b>Glass</b> Pint (16 oz) <span class="tbd">Suggested. Confirm</span></p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Whipped cream</li><li>Cinnamon, dusted</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">Drizzle</span><span class="what">caramel</span></li><li><span class="amt">Pour</span><span class="what">apple juice</span></li><li><span class="amt">Top</span><span class="what">Sprite</span></li><li><span class="amt">Top</span><span class="what">whipped cream</span></li><li><span class="amt">Dust</span><span class="what">cinnamon</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">Build with caramel drizzle and apple juice.</li><li class="">Top with Sprite.</li><li class="g">Top with whipped cream and dust with cinnamon.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Spike it: 2 oz Jack Daniel&#x27;s</span></li><li><span>Or spike with Loggerhead Apple Pie moonshine</span></li></ul></section>
+    <footer><p class="foot"><span>Updated Oct 30, 2026</span><span>11 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink fall" id="spiked-caramel-coffee" style="--fs:19.25px">
+  <header class="band"><span>Fall Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Spiked Caramel Coffee</h2><span class="pricetag">$____</span></div>
+    <p class="glass"><b>Glass</b> Pint cup (16 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Whipped cream</li><li>Caramel drizzle</li><li>Cinnamon, dusted</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">1.5 oz</span><span class="what">Absolut Vanilla vodka</span></li><li><span class="amt">1 oz</span><span class="what">Ryan&#x27;s Salted Caramel Irish Cream</span></li><li><span class="amt">3 oz</span><span class="what">chilled coffee</span></li><li><span class="amt">0.5 oz</span><span class="what">simple syrup</span></li><li><span class="amt">Top</span><span class="what">whipped cream, caramel drizzle, cinnamon</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">Build in a shaker and shake.</li><li class="">Dirty dump into a pint cup.</li><li class="g">Top with whipped cream and caramel drizzle, and dust with cinnamon.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Add 0.5 oz Grind Espresso Mocha Rum</span></li><li><span>Or add 0.5 oz Chocolat Royale liqueur</span></li></ul></section>
+    <footer><p class="foot"><span>Updated Oct 30, 2026</span><span>12 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink fall" id="pumpkin-old-fashion" style="--fs:22.25px">
+  <header class="band"><span>Fall Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Pumpkin Old Fashion</h2><span class="pricetag">$____</span></div>
+    <p class="glass"><b>Glass</b> Rocks (9 oz) <span class="tbd">Suggested. Confirm</span></p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Cherry</li><li>Orange peel</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">2 oz</span><span class="what">Buffalo Trace bourbon</span></li><li><span class="amt">0.75 oz</span><span class="what">pumpkin puree</span></li><li><span class="amt">0.5 oz</span><span class="what">cinnamon simple syrup</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">Combine all ingredients in a mixing glass with ice and stir.</li><li class="">Strain over fresh ice.</li><li class="g">Garnish with a cherry and an orange peel.</li></ol></section>
+    </div>
+    <section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Woodford Reserve in place of Buffalo Trace</span></li><li><span>Rye version: Bulleit Rye</span></li></ul></section>
+    <footer><p class="foot"><span>Updated Oct 30, 2026</span><span>13 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink fall" id="apple-cider-white-sangria" style="--fs:15.25px">
+  <header class="band"><span>Fall Signature Cocktail</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Apple Cider White Sangria</h2><span class="pricetag">$____</span></div><span class="tag">Single serving</span>
+    <p class="glass"><b>Glass</b> Pint (16 oz)</p></div>
+    <section class="garnish"><h3>Garnish</h3><ul><li>Mixed IQF berries, in the drink</li><li>Diced apples on top</li><li>Orange wheel on the rim</li></ul></section>
+    <div class="cols">
+      <section><h3>Ingredients</h3><ul class="ing"><li><span class="amt">3.875 oz</span><span class="what">Sauvignon Blanc</span></li><li><span class="amt">1.25 oz</span><span class="what">apple cider</span></li><li><span class="amt">0.625 oz</span><span class="what">Loggerhead Apple Pie moonshine</span></li><li><span class="amt">0.25 oz</span><span class="what">cinnamon simple syrup</span></li><li><span class="amt">Top</span><span class="what">Sprite</span></li></ul></section>
+      <section><h3>Build</h3><ol class="steps"><li class="">Fill a pint glass with ice.</li><li class="">Add the wine, cider, moonshine and cinnamon syrup (6 oz total). Stir briefly.</li><li class="">Top with Sprite.</li><li class="g">Add the defrosted berry mix into the drink.</li><li class="g">Top with diced apples and set an orange wheel on the rim.</li></ol></section>
+    </div>
+    <section class="batch"><h3>Batch mix · pre-shift</h3><ul class="ing two"><li><span class="amt">1.5 L</span><span class="what">Sauvignon Blanc</span></li><li><span class="amt">16 oz</span><span class="what">apple cider</span></li><li><span class="amt">8 oz</span><span class="what">Loggerhead Apple Pie moonshine</span></li><li><span class="amt">4 oz</span><span class="what">cinnamon simple syrup</span></li></ul><p class="sub">Makes about 13 drinks. Pour 6 oz of mix per glass, then finish steps 3–5.</p></section><section class="upsell"><h3>Offer the upsell</h3><ul><li><span>Float 0.5 oz Fireball Cinnamon</span></li></ul></section>
+    <footer><p class="foot"><span>Updated Oct 30, 2026</span><span>14 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card list prep" id="bar-prep-list">
+  <header class="band"><span>Bar Reference</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="titlerow"><h2>Bar Prep List</h2><p class="fill"><span>Date ________</span><span>Prepped by ____________</span><span>Checked by ____________</span></p></div>
+    <div class="pair prepcols"><table class="lt pt"><thead><tr><th>Item · used in</th><th>Par</th><th>Have</th><th>Prep</th></tr></thead><tbody><tr class="sec"><th colspan="5">Garnishes</th></tr><tr><td><b>Maraschino cherries</b><small>Siren&#x27;s, Storm, Cat 5, Peachy, Pumpkin</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Dirty (bourbon-soaked) cherries</b><small>Siren&#x27;s, Yard Fashion</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Orange pieces, for picks</b><small>Storm Warning, Peachy</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Orange peels / rinds</b><small>Yard Fashion, Pumpkin OF</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Orange wheels</b><small>Apple Cider Sangria</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Lemon wedges</b><small>Marg, Golden Hour, Lawn Chair, Backyard</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Lime wedges</b><small>Margarita, Pop&#x27;s</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Cucumber slices</b><small>Backyard Cooler</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Mint leaves</b><small>Pop&#x27;s</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Toasted coconut</b><small>Category Five</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>IQF peaches, frozen</b><small>Peachy Sangria</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>IQF blueberries, defrosted with juice</b><small>Lawn Chair</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Mixed IQF berries, defrosted</b><small>Apple Cider Sangria</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Diced apples</b><small>Apple Cider Sangria</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Whipped cream</b><small>Apple Pie Pop, Caramel Coffee</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Caramel drizzle</b><small>Apple Pie Pop, Caramel Coffee</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Cinnamon, for dusting</b><small>Apple Pie Pop, Caramel Coffee</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Salt, for rims</b><small>Margarita</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Picks</b><small>Storm Warning, Peachy</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr class="sec"><th colspan="5">Toppers</th></tr><tr><td><b>Soda water</b><small>Siren&#x27;s, Backyard, Pop&#x27;s</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Sprite</b><small>Peachy, Lawn Chair, Apple Pie Pop, Cider Sangria</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr></tbody></table><table class="lt pt"><thead><tr><th>Item · used in</th><th>Par</th><th>Have</th><th>Prep</th></tr></thead><tbody><tr class="sec"><th colspan="5">Juices</th></tr><tr><td><b>Lemon juice</b><small>Siren&#x27;s, Marg, Golden Hour, Backyard, Lawn Chair</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Lime juice</b><small>Margarita, Category Five</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Orange juice</b><small>Storm Warning, Peachy</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Cranberry juice</b><small>Storm Warning, Peachy</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Pineapple juice</b><small>Storm Warning, Category Five</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Apple juice</b><small>Apple Pie Pop</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Apple cider</b><small>Apple Cider Sangria</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr class="sec"><th colspan="5">Syrups &amp; batches</th></tr><tr><td><b>Simple syrup</b><small>Siren&#x27;s, Backyard, Lawn Chair, Pop&#x27;s, Peachy, Coffee</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Sour mix</b><small>House recipe, next page</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Clove simple syrup</b><small>Yard Fashion</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Cinnamon simple syrup</b><small>Pumpkin OF, Apple Cider Sangria</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Agave</b><small>Margarita</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Grenadine</b><small>Storm Warning</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>It&#x27;s Just Peachy Sangria batch</b><small>Peachy Sangria</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Apple Cider White Sangria batch</b><small>Apple Cider Sangria</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr class="sec"><th colspan="5">Purees &amp; mixers</th></tr><tr><td><b>Passion fruit puree</b><small>Golden Hour</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Watermelon puree</b><small>Backyard Cooler</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Pumpkin puree</b><small>Pumpkin OF</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Strawberry Real</b><small>Pop&#x27;s</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Coco Real</b><small>Category Five</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Sweet tea</b><small>Golden Hour</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr><tr><td><b>Chilled coffee</b><small>Caramel Coffee</small></td><td class="box"></td><td class="box"></td><td class="box"></td></tr></tbody></table></div>
+    <footer><p class="foot"><span>Fill in pars once and keep them. Updated Oct 30, 2026</span><span>15 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card drink recipes" id="bar-prep-recipes" style="--fs:22.25px">
+  <header class="band"><span>Bar Reference</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="head"><div class="titlerow"><h2>Bar Prep Recipes</h2></div><p class="glass"><b>Batch</b> Any size: keep the parts equal</p></div>
+    <section class="rec"><h2>Simple Syrup</h2><div class="cols"><div><h3>Ingredients</h3><ul class="ing"><li><span class="amt">1 part</span><span class="what">water</span></li><li><span class="amt">1 part</span><span class="what">sugar</span></li></ul></div><div><h3>Method</h3><ol class="steps"><li class="">Mix the sugar into hot water until it dissolves.</li><li class="g">Label, date and initial.</li></ol></div></div></section><section class="rec"><h2>Sour Mix</h2><div class="cols"><div><h3>Ingredients</h3><ul class="ing"><li><span class="amt">1 part</span><span class="what">water</span></li><li><span class="amt">1 part</span><span class="what">lemon juice</span></li><li><span class="amt">1 part</span><span class="what">lime juice</span></li><li><span class="amt">1 part</span><span class="what">sugar</span></li></ul></div><div><h3>Method</h3><ol class="steps"><li class="">Mix the sugar into hot water until it dissolves.</li><li class="">Mix in the lemon and lime juice.</li><li class="g">Label, date and initial.</li></ol></div></div></section>
+    <footer><p class="foot"><span>Updated Oct 30, 2026</span><span>16 / 18</span></p></footer>
+  </div>
+</article>
+<article class="card list" id="liquor-list">
+  <header class="band"><span>Bar Reference</span><span>The Yardery · Bar Spec</span></header>
+  <div class="inner">
+    <div class="titlerow"><h2>Liquor List</h2></div>
+    <section><h3>Used in the specs · in stock</h3>
+      <table class="lt"><thead><tr><th>Liquor</th><th>Used in</th><th>Oct 11 count</th></tr></thead><tbody><tr><td>44 North Huckleberry vodka</td><td>Lawn Chair Lemonade</td><td>15.5 × 750 mL</td></tr><tr><td>44 North Nectarine vodka</td><td>Golden Hour Tea</td><td>20 × 750 mL</td></tr><tr><td>44 North Watermelon vodka</td><td>Backyard Cooler</td><td>12 × 750 mL</td></tr><tr><td>Absolut Vanilla vodka</td><td>Spiked Caramel Coffee</td><td>2 × 1 L</td></tr><tr><td>RumHaven Coconut rum</td><td>Category Five</td><td>5.75 × 1 L</td></tr><tr><td>Amaretto (Bols)</td><td>Category Five</td><td>0.5 × 1 L</td></tr><tr><td>Buffalo Trace bourbon</td><td>Pumpkin Old Fashion</td><td>4.5 × 1 L</td></tr><tr><td>Loggerhead Apple Pie moonshine</td><td>Apple Cider White Sangria</td><td>8.75 × 750 mL</td></tr><tr><td>Jack Daniel&#x27;s</td><td>Apple Pie Pop (spiked)</td><td>3 × 1 L</td></tr><tr><td>Aromatic bitters (Angostura)</td><td>The Yard Fashion</td><td>2 × 4 oz</td></tr><tr><td>Sauvignon Blanc (Canyon Road)</td><td>Apple Cider White Sangria</td><td>5.7 × 750 mL</td></tr><tr><td>Ryan&#x27;s Irish Cream</td><td>Spiked Caramel Coffee</td><td>11 × 750 mL *</td></tr></tbody></table>
+      <p class="fn">* Count lists Ryan's Irish Cream; spec calls for Ryan's Salted Caramel. Confirm the flavor.</p></section>
+    <div class="pair"><section><h3>Not in the Oct 11 count</h3>
+      <table class="lt"><thead><tr><th>Liquor</th><th>Used in</th></tr></thead><tbody><tr><td>Mermaid Gin</td><td>Siren&#x27;s Fizz</td></tr><tr><td>Herradura Silver tequila</td><td>Real Good Margarita</td></tr><tr><td>Parrot Bay Silver rum</td><td>Storm Warning</td></tr><tr><td>Parrot Bay Spiced rum</td><td>Storm Warning</td></tr><tr><td>Diplomático Dark rum</td><td>Storm Warning</td></tr><tr><td>Old Forester bourbon</td><td>The Yard Fashion</td></tr><tr><td>New Amsterdam Peach vodka</td><td>It&#x27;s Just Peachy Sangria</td></tr><tr><td>White Zinfandel</td><td>It&#x27;s Just Peachy Sangria</td></tr><tr><td>Ole Smoky Strawberry moonshine</td><td>Pop&#x27;s Moonshine</td></tr><tr><td>Jack Daniel&#x27;s Blackberry</td><td>Lawn Chair (+$1)</td></tr></tbody></table></section>
+    <section><h3>Upsell bottles</h3>
+      <table class="lt"><thead><tr><th>Liquor</th><th>Upsell on</th></tr></thead><tbody><tr><td>Hendrick&#x27;s Gin</td><td>Siren&#x27;s Fizz</td></tr><tr><td>Bols Elderflower liqueur</td><td>Siren&#x27;s Fizz</td></tr><tr><td>Casamigos Reposado tequila</td><td>Real Good Margarita</td></tr><tr><td>Tres Agaves Reposado tequila</td><td>Real Good Margarita</td></tr><tr><td>Woodford Reserve bourbon</td><td>Yard Fashion, Pumpkin OF</td></tr><tr><td>Maker&#x27;s Mark bourbon</td><td>The Yard Fashion</td></tr><tr><td>Bulleit Rye</td><td>Yard Fashion, Pumpkin OF</td></tr><tr><td>Western Son Cucumber vodka</td><td>Backyard Cooler</td></tr><tr><td>Peach schnapps</td><td>It&#x27;s Just Peachy Sangria</td></tr><tr><td>Grind Espresso Mocha Rum</td><td>Spiked Caramel Coffee</td></tr><tr><td>Marie Brizard Chocolat Royale</td><td>Spiked Caramel Coffee</td></tr><tr><td>Fireball Cinnamon whisky</td><td>Apple Cider White Sangria</td></tr></tbody></table></section></div>
+    <footer><p class="foot"><span>Counts from MarginEdge inventory, Oct 11, 2026 · Updated Oct 30, 2026</span><span>17 / 18</span></p></footer>
+  </div>
+</article>
+</div>
+<div class="wrap clean" id="view-cleaning" hidden>
+  <div class="intro">
+    <h1>FOH Daily Cleaning</h1>
+    <p>Tap a task when it’s done; it stamps your initials and the time. The list starts fresh every morning. Keep initialing the posted side-work sheets too.</p>
+    <p class="sync" id="sync">Saving on this tablet only.</p>
+    <div class="me"><label for="initials">Your initials</label><input id="initials" maxlength="4" autocomplete="off" placeholder="ABC"><span class="need" id="need" hidden>Enter your initials first</span></div>
+    <p class="sum" id="sum"></p>
+  </div>
+  <section class="sheet" data-s="open"><div class="when"><span>Every opener · every day</span><span class="count"></span></div><h2>Opening: Entrance &amp; Grounds</h2><ul><li data-k="open-0"><label><input type="checkbox" id="open-0"><span class="t">Windex the front door. <small>Every opener, every day, no exceptions.</small></span><span class="by"></span></label></li><li data-k="open-1"><label><input type="checkbox" id="open-1"><span class="t">Pick up all trash across the patio and yard.</span><span class="by"></span></label></li></ul></section><section class="sheet" data-s="svc"><div class="when"><span>All servers · all shift</span><span class="count"></span></div><h2>During Service: Dining Room</h2><ul><li data-k="svc-0"><label><input type="checkbox" id="svc-0"><span class="t">Bus <b>and</b> wipe every table as soon as guests get up. <small>Don’t wait to be told or for someone else.</small></span><span class="by"></span></label></li><li data-k="svc-1"><label><input type="checkbox" id="svc-1"><span class="t">Pre-bus plates and glassware as guests finish, before the table turns.</span><span class="by"></span></label></li><li data-k="svc-2"><label><input type="checkbox" id="svc-2"><span class="t">No dirty tables sitting out, especially when slow. <small>No guest should ever look for a clean table.</small></span><span class="by"></span></label></li><li data-k="svc-3"><label><input type="checkbox" id="svc-3"><span class="t">Clean the table slats: remove straw wrappers and debris. <small>Daily.</small></span><span class="by"></span></label></li><li data-k="svc-4"><label><input type="checkbox" id="svc-4"><span class="t">Clear menus once guests order (leave one only for drinks).</span><span class="by"></span></label></li><li data-k="svc-5"><label><input type="checkbox" id="svc-5"><span class="t">See it, clean it: walk past a dirty table and it’s yours.</span><span class="by"></span></label></li></ul></section><section class="sheet" data-s="stn"><div class="when"><span>Closing servers · every night</span><span class="count"></span></div><h2>Closing: Server Station</h2><ul><li data-k="stn-0"><label><input type="checkbox" id="stn-0"><span class="t">Wipe the soda machine exterior and the countertop.</span><span class="by"></span></label></li><li data-k="stn-1"><label><input type="checkbox" id="stn-1"><span class="t">Wash the soda machine grate.</span><span class="by"></span></label></li><li data-k="stn-2"><label><input type="checkbox" id="stn-2"><span class="t">Wipe out the ice bin / ice catch.</span><span class="by"></span></label></li><li data-k="stn-3"><label><input type="checkbox" id="stn-3"><span class="t">Clean the ketchup dispenser.</span><span class="by"></span></label></li><li data-k="stn-4"><label><input type="checkbox" id="stn-4"><span class="t">Station clean and organized for open.</span><span class="by"></span></label></li></ul></section><section class="sheet" data-s="bar"><div class="when"><span>Bartenders · every night</span><span class="count"></span></div><h2>Closing: Bar</h2><ul><li data-k="bar-0"><label><input type="checkbox" id="bar-0"><span class="t">Wipe down and organize the entire bar: counter, bar top and guest seating.</span><span class="by"></span></label></li><li data-k="bar-1"><label><input type="checkbox" id="bar-1"><span class="t">Every beer and liquor delivery fully put away and organized. <small>No beer or cans on the kegs, nothing on the floor or staged in random spots.</small></span><span class="by"></span></label></li><li data-k="bar-2"><label><input type="checkbox" id="bar-2"><span class="t">Bar clean enough to open on with no re-cleaning in the morning.</span><span class="by"></span></label></li></ul></section><section class="sheet" data-s="fruit"><div class="when"><span>Bartender · before you leave</span><span class="count"></span></div><h2>Walk-In Fruit Check</h2><ul><li data-k="fruit-0"><label><input type="checkbox" id="fruit-0"><span class="t">Every container of cut fruit is labeled and dated. <small>No unlabeled cut fruit in the walk-in (FIFO and health inspection).</small></span><span class="by"></span></label></li><li data-k="fruit-1"><label><input type="checkbox" id="fruit-1"><span class="t">Each fruit is in its one home. <small>No moving fruit into smaller containers near the door.</small></span><span class="by"></span></label></li><li data-k="fruit-2"><label><input type="checkbox" id="fruit-2"><span class="t">Uncut fruit went back with the rest.</span><span class="by"></span></label></li></ul></section>
+  <section class="sheet"><div class="when"><span>End of shift</span><span></span></div><h2>Checkout Chain</h2>
+    <div class="closing" id="closing" aria-live="polite"></div>
+    <ol class="chain"><li>Each server checks out with the closing server.</li><li>The closing server checks out with the closing bartender.</li><li>The closing bartender confirms every closing duty is done before the team is released.</li></ol>
+    <p class="src">Unsure about a task? Ask a manager. Source: FOH Standards &amp; Side-Work SOP v2 (Aug 21, 2026).</p></section>
+</div>
+<script>
+/* ===== CLEANING LOG: each tick/untick is sent to Clay's Google Form (one row per change), and every device reads
+   the responses back from the sheet's published CSV so all tablets show the same checks.
+   Leave formUrl / FEED_URL empty to keep checks on this device only. entry ids come from the form's
+   "Get pre-filled link". Form questions, in order: Event, Date, Time, Initials, Task, Section, Device. */
+const LOG = {
+  formUrl: "",
+  fields: { event: "", date: "", time: "", initials: "", task: "", section: "", device: "" }
+};
+const FEED_URL = "";      // the form's response sheet, File > Share > Publish to web > CSV
+const FEED_MS = 60000;    // how often to re-read the feed
+
+(function(){
+  var views={drinks:document.getElementById('view-drinks'),cleaning:document.getElementById('view-cleaning')};
+  var tabs=document.querySelectorAll('.tabs a');
+  function route(){
+    var h=location.hash.slice(1), v=h==='cleaning'?'cleaning':'drinks';
+    for(var k in views) views[k].hidden=(k!==v);
+    tabs.forEach(function(a){ if(a.dataset.v===v) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+    if(h==='drinks'||h==='cleaning') window.scrollTo(0,0);
+  }
+  window.addEventListener('hashchange',route); route();
+
+  var CLOSING=['stn','bar','fruit'];
+  function pad(n){return String(n).padStart(2,'0');}
+  function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+  function load(k,f){try{var v=localStorage.getItem(k);return v?JSON.parse(v):f;}catch(e){return f;}}
+  function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function clock(d){return d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});}
+  var device=load('yardery-device','');
+  if(!device){device='T'+Math.random().toString(36).slice(2,8).toUpperCase();save('yardery-device',device);}
+
+  // local = this device's changes today (kept until the feed shows them); shared = state rebuilt from the feed
+  var KEY='yardery-foh-clean', st=load(KEY,{}), day=today();
+  var local=(st.day===day&&st.local)?st.local:{}, shared={};
+  function persist(){save(KEY,{day:day,local:local});}
+  function state(k){ var l=local[k], s=shared[k]; if(l&&(!s||l.ts>=s.ts)) return l; return s; }
+
+  var ini=document.getElementById('initials'), need=document.getElementById('need'), sync=document.getElementById('sync');
+  ini.value=load('yardery-initials','');
+  ini.addEventListener('input',function(){ini.value=ini.value.toUpperCase().replace(/[^A-Z]/g,'');save('yardery-initials',ini.value);need.hidden=true;});
+  function status(t,cls){sync.textContent=t;sync.className='sync'+(cls?' '+cls:'');}
+  function title(li){var t=li.querySelector('.t').cloneNode(true);var sm=t.querySelector('small');if(sm)sm.remove();return t.textContent.trim();}
+  function section(li){return li.closest('.sheet').querySelector('h2').textContent;}
+
+  function paint(){
+    var all=0,on=0;
+    document.querySelectorAll('.clean li[data-k]').forEach(function(li){
+      var d=state(li.dataset.k), done=!!(d&&d.on), box=li.querySelector('input');
+      box.checked=done; li.classList.toggle('on',done);
+      li.querySelector('.by').textContent=done?(d.by+' · '+d.time):'';
+    });
+    document.querySelectorAll('.clean .sheet[data-s]').forEach(function(s){
+      var n=s.querySelectorAll('li[data-k]').length, m=s.querySelectorAll('li.on').length; all+=n; on+=m;
+      s.querySelector('.count').textContent=m+' / '+n+(m===n?' done':'');
+    });
+    document.getElementById('sum').textContent='Today: '+on+' of '+all+' tasks done';
+    var open=[];
+    CLOSING.forEach(function(sid){
+      var s=document.querySelector('.sheet[data-s="'+sid+'"]'), h=s.querySelector('h2').textContent.replace(/^Closing: /,'');
+      s.querySelectorAll('li[data-k]:not(.on)').forEach(function(li){open.push(h+': '+title(li));});
+    });
+    var box=document.getElementById('closing');
+    box.className='closing'+(open.length?'':' ok');
+    box.innerHTML='';
+    var b=document.createElement('b');
+    b.textContent=open.length?('Closing not finished: '+open.length+' left. Don’t release the team yet.'):'All closing duties done. The closing bartender can release the team.';
+    box.appendChild(b);
+    if(open.length){var ul=document.createElement('ul');open.forEach(function(t){var li=document.createElement('li');li.textContent=t;ul.appendChild(li);});box.appendChild(ul);}
+  }
+
+  function send(ev,li,rec){
+    if(!LOG.formUrl) return;
+    var f=LOG.fields, body=new URLSearchParams(), d=new Date(rec.ts);
+    var vals={event:ev,date:day,time:pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()),initials:rec.by,task:li.dataset.k+' | '+title(li),section:section(li),device:device};
+    for(var k in vals) if(f[k]) body.append(f[k],vals[k]);
+    fetch(LOG.formUrl,{method:'POST',mode:'no-cors',body:body}).catch(function(){status('No internet: that check is saved on this tablet and won’t reach the other devices.','err');});
+  }
+
+  function parseCSV(t){
+    var rows=[],row=[],cur='',q=false;
+    for(var i=0;i<t.length;i++){var c=t[i];
+      if(q){ if(c==='"'){ if(t[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+      else if(c==='"') q=true; else if(c===','){row.push(cur);cur='';}
+      else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur='';} else if(c!=='\r') cur+=c; }
+    if(cur||row.length){row.push(cur);rows.push(row);}
+    return rows;
+  }
+  // Feed columns: Timestamp, Event, Date, Time, Initials, Task, Section, Device (form order after the timestamp)
+  function applyFeed(rows){
+    var next={};
+    rows.slice(1).forEach(function(r){
+      if(r[2]!==day) return;
+      var k=(r[5]||'').split(' | ')[0], tm=(r[3]||'').split(':'); if(!k||tm.length<2) return;
+      var dt=new Date(day+'T00:00:00'); dt.setHours(+tm[0],+tm[1],+(tm[2]||0));
+      var rec={on:r[1]==='check',by:r[4]||'',ts:dt.getTime(),time:clock(dt)};
+      if(!next[k]||rec.ts>=next[k].ts) next[k]=rec;
+    });
+    shared=next;
+    for(var k in local) if(shared[k]&&shared[k].ts>=local[k].ts) delete local[k];
+    persist(); paint();
+  }
+  function loadFeed(){
+    if(!FEED_URL) return;
+    fetch(FEED_URL+(FEED_URL.indexOf('?')<0?'?':'&')+'t='+Date.now(),{cache:'no-store'})
+      .then(function(r){if(!r.ok) throw 0; return r.text();})
+      .then(function(t){applyFeed(parseCSV(t)); status('Live: every device shows the same checks (updates each minute).','live');})
+      .catch(function(){status('Can’t reach the shared list right now. Checks still save on this tablet.','err');});
+  }
+  function rollover(){ if(today()!==day){ day=today(); local={}; shared={}; persist(); paint(); loadFeed(); } }
+
+  document.querySelectorAll('.clean li[data-k] input').forEach(function(box){
+    box.addEventListener('change',function(){
+      rollover();
+      var li=box.closest('li'), k=li.dataset.k;
+      if(box.checked&&!ini.value){box.checked=false;need.hidden=false;ini.focus();return;}
+      var now=new Date(), prev=state(k);
+      var rec={on:box.checked,by:box.checked?ini.value:(prev&&prev.by)||ini.value,ts:now.getTime(),time:clock(now)};
+      local[k]=rec; persist(); paint();
+      send(box.checked?'check':'uncheck',li,{by:ini.value||rec.by,ts:rec.ts});
+    });
+  });
+
+  paint();
+  if(FEED_URL&&LOG.formUrl){ status('Connecting to the shared list…'); loadFeed(); setInterval(loadFeed,FEED_MS); }
+  else status('Saving on this tablet only.');
+  setInterval(rollover,60000);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden){ rollover(); loadFeed(); } });
+})();
+</script>
+</body></html>
