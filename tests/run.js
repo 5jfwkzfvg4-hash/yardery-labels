@@ -894,6 +894,22 @@ test('Sync: the Claude artifacts were published for this version (README > Keepi
 
 /* ================= Layout ================= */
 
+test('Layout: on a phone, search results show right under the search box, above the keyboard (owner, 2026-11-01)', async () => {
+  const p = await open({ ...REMEMBERED, getDevices: true }, { width: 390, height: 844 });
+  await p.evaluate(() => window.scrollTo(0, 300));
+  await p.click('#q'); await p.keyboard.type('pico'); await p.waitForTimeout(500);
+  assert(!(await p.isVisible('#batchBtn')) && !(await p.isVisible('#pills')), 'Line Flip button and category pills step aside while searching');
+  const r = await p.evaluate(() => { const top = document.querySelector('.top').getBoundingClientRect().bottom, q = document.getElementById('q').getBoundingClientRect(),
+    first = document.querySelector('#lists .item').getBoundingClientRect(); return { top, q: q.top, first: first.top, name: document.querySelector('#lists .item .n').textContent }; });
+  assert(r.q >= r.top - 1 && r.q < r.top + 40, 'search box just under the header: ' + JSON.stringify(r));
+  assert(r.first < 844 * 0.45, 'first result in the top part of the screen a keyboard leaves visible: ' + JSON.stringify(r));
+  assert(/pico/i.test(r.name), 'a matching item first: ' + r.name);
+  await p.click('#qClear'); await p.waitForTimeout(200);
+  assert(await p.isVisible('#batchBtn') && await p.isVisible('#pills'), 'everything back after Clear');
+  eq(p.errors.join(), '', 'no script errors');
+  await p.close2();
+});
+
 test('Layout: no sideways scrolling and Print always on screen (phone, tablet)', async () => {
   for (const [w, h] of [[360, 740], [390, 844], [768, 1024], [1024, 700], [1280, 800]]) {
     const p = await open({ ...REMEMBERED, getDevices: true }, { width: w, height: h });

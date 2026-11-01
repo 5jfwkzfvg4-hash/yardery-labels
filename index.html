@@ -84,6 +84,8 @@ button{cursor:pointer}
 .item .s.need{color:var(--warn)}
 .empty{padding:24px;border:1.5px dashed var(--line);border-radius:12px;color:var(--ink-soft);text-align:center}
 .toprow{display:flex;gap:10px;align-items:stretch}
+/* searching (owner 2026-11-01): results sit right under the box, above a phone keyboard */
+.searching #pickNag,.searching #batchBtn,.searching #pills,.searching #customBtn,.searching #reqs{display:none!important}
 .toprow .search{flex:1;min-width:0}
 .custombtn{flex:none;border:1.5px solid var(--green);background:var(--card);color:var(--green);border-radius:14px;padding:0 16px;font-weight:700;min-height:52px;white-space:nowrap}
 .seg{display:flex;border:1.5px solid var(--line);border-radius:12px;overflow:hidden}
@@ -852,8 +854,17 @@ function renderList(){
     box.appendChild(e);
   }
   $("qClear").hidden = !q;
+  $("q").closest("section").classList.toggle("searching", !!q);
 }
-$("q").addEventListener("input", e => { state.q = e.target.value; renderList(); });
+// on a phone, put the search box just under the header so the results show above the keyboard
+function searchToTop(){
+  if(!matchMedia("(max-width:760px)").matches) return;
+  const top = document.querySelector(".top"), row = $("q").closest(".toprow");
+  const y = row.getBoundingClientRect().top + scrollY - (top ? top.offsetHeight : 0) - 8;
+  if(Math.abs(scrollY - y) > 4) window.scrollTo(0, Math.max(0, y));
+}
+$("q").addEventListener("focus", () => { searchToTop(); setTimeout(searchToTop, 350); });   // again once the keyboard is up
+$("q").addEventListener("input", e => { state.q = e.target.value; renderList(); searchToTop(); });
 $("qClear").onclick = () => { $("q").value = ""; state.q = ""; renderList(); $("q").focus(); };
 
 /* ---------- panel ---------- */
@@ -1545,7 +1556,7 @@ window.addEventListener("pagehide", () => release("hidden"));
    nothing is printing or connecting and nobody has touched the screen for a minute (or right away when the
    app was just reopened). The reload URL carries the version so no cache can hand back the old page.
    BUMP APP_VERSION ON EVERY CHANGE to index.html or recipes.html (the Recipe Book loads with it too). */
-const APP_VERSION = "2026-11-01.1";
+const APP_VERSION = "2026-11-01.2";
 const UPDATE_EVERY_MS = 5 * 60 * 1000, UPDATE_IDLE_MS = 60 * 1000;
 let pendingVersion = null;
 async function latestVersion(){
