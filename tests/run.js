@@ -291,11 +291,11 @@ test('Labels: dates — prep day counts as day 1; frozen/thawing day it goes in 
   await p.close2();
 });
 
-test('Labels: Line Flip Labels prints all 23 with the same 2-day date', async () => {
+test('Labels: Line Flip Labels prints all 22 with the same 2-day date', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   await p.click('#batchBtn'); await printAndWait(p, /Printed all/);
   const f = formats(await zpl(p));
-  eq(f.length, 23, 'label count');
+  eq(f.length, 22, 'label count');
   eq(new Set(f.map(x => (x.match(/\^FD(\d+\/\d+)\^FS/) || [])[1])).size, 1, 'one use-by date');
   await p.close2();
 });
@@ -973,7 +973,7 @@ test('Log: prints made before the form is set up are kept and sent once it is', 
   await p.close2();
 });
 
-test('Log: Line Flip Labels writes one row per item (23 rows)', async () => {
+test('Log: Line Flip Labels writes one row per item (22 rows)', async () => {
   const p = await open({ ...REMEMBERED, getDevices: true });
   const got = [];
   await p.context().route('**/formResponse', r => { got.push(Object.fromEntries(new URLSearchParams(r.request().postData()))); return r.fulfill({ status: 200, body: '' }); });
@@ -982,8 +982,8 @@ test('Log: Line Flip Labels writes one row per item (23 rows)', async () => {
     Object.keys(L.fields).forEach((k, i) => { L.fields[k] = 'entry.' + (i + 1); });
   });
   await p.click('#batchBtn'); await printAndWait(p, /Printed all/); await p.waitForTimeout(1500);
-  eq(got.length, 23, 'rows');
-  eq(new Set(got.map(g => g['entry.5'])).size, 23, 'one row per item');
+  eq(got.length, 22, 'rows');
+  eq(new Set(got.map(g => g['entry.5'])).size, 22, 'one row per item');
   assert(got.every(g => g['entry.9'] === 'Line Flip Labels' && g['entry.6'] === '1'), 'source and count');
   await p.close2();
 });
